@@ -5,7 +5,7 @@ const uuid = require("uuidv4");
 const noderfc = require("node-rfc");
 const INDICATOR = require("../config/IndicateRFC");
 const moment = require("moment");
-noderfc.setIniFileDirectory("c:/customer_prereg");
+noderfc.setIniFileDirectory("../customer_prereg");
 
 const LoadingNoteModel = {};
 

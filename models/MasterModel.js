@@ -1,6 +1,6 @@
 const db = require("../config/connection");
 const noderfc = require("node-rfc");
-noderfc.setIniFileDirectory("c:/customer_prereg");
+noderfc.setIniFileDirectory("../customer_prereg");
 
 const MasterModel = {};
 
