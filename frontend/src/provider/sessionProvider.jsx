@@ -79,6 +79,7 @@ const SessionProvider = ({ children }) => {
         Cookies.remove("access_token");
         Cookies.remove("groupid");
         Cookies.remove("auth");
+        Cookies.remove("permission");
     };
 
     const getPermission = page => {
