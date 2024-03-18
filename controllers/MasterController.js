@@ -51,9 +51,9 @@ MasterController.getSOData = async (req, res) => {
     try {
         const do_num = req.query.do_num;
         const dataComp = await Master.getSOData(do_num);
-        if (!dataComp.IS_PAID) {
-            throw new Error("Data is Not Paid Yet");
-        }
+        // if (!dataComp.IS_PAID) {
+        //     throw new Error("Order is Not Paid Yet");
+        // }
         res.status(200).send(dataComp);
     } catch (error) {
         console.log(error);
