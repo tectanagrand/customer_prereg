@@ -141,7 +141,9 @@ UserModel.login = async ({ uemail, password }) => {
     try {
         await client.query(TRANS.BEGIN);
         const { rows: userData, rowCount } = await client.query(
-            "SELECT fullname, email, username, id_user, role, password FROM mst_user WHERE email = $1 OR username = $2",
+            ` SELECT fullname, email, username, id_user, rl.role_name as role, rl.role_id, password FROM mst_user usr
+            LEFT JOIN mst_role rl on usr.role = rl.role_id
+            WHERE email = $1 OR username = $2`,
             [uemail, uemail]
         );
         if (rowCount <= 0) {
