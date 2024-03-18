@@ -6,7 +6,8 @@ const LoadingNoteController = {};
 LoadingNoteController.SaveLoadingNoteDB = async (req, res) => {
     try {
         const payload = req.body;
-        const insertData = await LoadNote.saveLoadingNoteDB(payload);
+        const session = req.cookies;
+        const insertData = await LoadNote.saveLoadingNoteDB(payload, session);
         const message = !insertData.is_draft
             ? "Loading Note Form for DO Number " +
               insertData.data.id_do +
@@ -28,8 +29,9 @@ LoadingNoteController.SubmitSAP = async (req, res) => {
     try {
         const payload = req.body;
         const isDraft = req.body.is_draft;
+        const session = req.cookies;
 
-        const insertSAP = await LoadNote.finalizeLoadingNote(payload);
+        const insertSAP = await LoadNote.finalizeLoadingNote(payload, session);
         const message = !isDraft
             ? "Loading Note " + insertSAP + " is created"
             : "Draft Saved";
@@ -82,4 +84,16 @@ LoadingNoteController.getById = async (req, res) => {
     }
 };
 
+LoadingNoteController.showSLoc = async (req, res) => {
+    try {
+        const plant = req.query.plant;
+        const sLoc = await LoadNote.showSLoc(plant);
+        res.status(200).send(sLoc);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
 module.exports = LoadingNoteController;
