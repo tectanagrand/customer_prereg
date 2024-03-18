@@ -112,18 +112,20 @@ export default function MasterLoadingNote() {
             flex: 0.03,
             renderCell: item => {
                 let buttons = [];
-                buttons.push(
-                    <Tooltip title={<Typography>Edit</Typography>}>
-                        <IconButton
-                            sx={{ backgroundColor: "primary.light", mx: 1 }}
-                            onClick={() =>
-                                buttonAction("edit", { id: item.row.id })
-                            }
-                        >
-                            <Edit></Edit>
-                        </IconButton>
-                    </Tooltip>
-                );
+                if (item.row.cur_pos !== "END") {
+                    buttons.push(
+                        <Tooltip title={<Typography>Edit</Typography>}>
+                            <IconButton
+                                sx={{ backgroundColor: "primary.light", mx: 1 }}
+                                onClick={() =>
+                                    buttonAction("edit", { id: item.row.id })
+                                }
+                            >
+                                <Edit></Edit>
+                            </IconButton>
+                        </Tooltip>
+                    );
+                }
                 return buttons;
             },
         },
