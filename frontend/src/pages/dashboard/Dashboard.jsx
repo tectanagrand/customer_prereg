@@ -19,6 +19,7 @@ import { useMenu } from "../../provider/MenuProvider";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import KpnLogo from "../../images/kpn-logo-3.svg?react";
 import KpnNav from "../../images/kpn-logo.svg?react";
+import AvatarComp from "./AvatarComp";
 
 const drawerWidth = 240;
 
@@ -176,6 +177,7 @@ export default function Dashboard() {
                     >
                         Customer Pre Registration App
                     </Typography>
+                    <AvatarComp></AvatarComp>
                 </Toolbar>
             </AppBar>
             <Drawer variant="permanent" open={open}>
