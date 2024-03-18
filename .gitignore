@@ -1,0 +1,9 @@
+node_modules
+nwrfcsdk
+sapnwrfc.ini
+frontend/node_modules
+.env.development
+.env.production
+frontend/.env.development
+frontend/.env.production
+
