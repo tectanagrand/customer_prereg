@@ -35,7 +35,7 @@ MasterModel.getDriverData = async (q, limit, offset) => {
         const param = {
             I_LIMIT: parseInt(limit),
             I_OFFSET: parseInt(offset),
-            I_SEARCH: q,
+            I_SEARCH: q.toUpperCase(),
         };
         const rfcData = await client.call("ZRFC_PRE_REGISTRA_SIM", param);
         return {
@@ -55,7 +55,7 @@ MasterModel.getVehicleData = async (q, limit, offset) => {
         const param = {
             I_LIMIT: parseInt(limit),
             I_OFFSET: parseInt(offset),
-            I_SEARCH: q,
+            I_SEARCH: q.toUpperCase(),
         };
         const rfcData = await client.call("ZRFC_PRE_REGISTRA_TRUCK", param);
         return {
@@ -76,11 +76,13 @@ MasterModel.getSOData = async do_num => {
         const param = {
             I_VBELN: do_num,
         };
-        const { I_ZPINO, I_ZSLIP } = await client.call(
+        const { I_ZPINO, I_ZSLIP, RFC_TEXT } = await client.call(
             "ZRFC_PRE_REGISTRA_SLIP",
             param
         );
-        if (I_ZPINO.length === 0) {
+        const data = await client.call("ZRFC_PRE_REGISTRA_SLIP", param);
+        console.log(data);
+        if (I_ZSLIP.length === 0) {
             throw new Error("SO Not Found");
         }
         const PINO = I_ZPINO.map(item => ({
