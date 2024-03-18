@@ -6570,3 +6570,175 @@ Global trace level        : 0
 
 2024-03-18 14:54:02.567358 [23704] >> Info entry
 	Did find config file ../customer_prereg\sapnwrfc.ini.
+
+**** Log file opened at 2024-03-18 15:24:13.116778 UTC+07:00 (SE Asia Standard Time), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 12 Hotfix 2
+Compilation date          : Nov 18 2023 00:08:12
+CPIC library              : 753.2023.11.09 version 3
+NI library                : 40
+Kernel Release            : 753 Patch Level 1235
+Current working directory : C:\customer_prereg
+Program                   : node
+Process ID                : 23216
+User                      : Admin
+Hardware                  : PC with Windows NT 4x AMD64 Level 6 (Mod 142 Step 9)
+Binary Type               : 64bit
+Operating_system          : Windows NT 10.0
+Hostname                  : RAFAEL
+IP address                : 172.29.0.1
+IPv6 address              : fe80::104b:808c:f568:1436
+Global trace level        : 0
+
+2024-03-18 15:24:13.116146 [15396] >> Info entry
+	Setting path to sapnwrfc.ini to "../customer_prereg".
+	Old path was ""
+
+**** Log file opened at 2024-03-18 15:24:13.118768 UTC+07:00 (SE Asia Standard Time), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 12 Hotfix 2
+Compilation date          : Nov 18 2023 00:08:12
+CPIC library              : 753.2023.11.09 version 3
+NI library                : 40
+Kernel Release            : 753 Patch Level 1235
+Current working directory : C:\customer_prereg
+Program                   : node
+Process ID                : 23216
+User                      : Admin
+Hardware                  : PC with Windows NT 4x AMD64 Level 6 (Mod 142 Step 9)
+Binary Type               : 64bit
+Operating_system          : Windows NT 10.0
+Hostname                  : RAFAEL
+IP address                : 172.29.0.1
+IPv6 address              : fe80::104b:808c:f568:1436
+Global trace level        : 0
+
+2024-03-18 15:24:13.118803 [15396] >> Info entry
+	Did find config file ../customer_prereg\sapnwrfc.ini.
+
+**** Log file opened at 2024-03-18 15:25:27.039375 UTC+07:00 (SE Asia Standard Time), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 12 Hotfix 2
+Compilation date          : Nov 18 2023 00:08:12
+CPIC library              : 753.2023.11.09 version 3
+NI library                : 40
+Kernel Release            : 753 Patch Level 1235
+Current working directory : C:\customer_prereg
+Program                   : node
+Process ID                : 10924
+User                      : Admin
+Hardware                  : PC with Windows NT 4x AMD64 Level 6 (Mod 142 Step 9)
+Binary Type               : 64bit
+Operating_system          : Windows NT 10.0
+Hostname                  : RAFAEL
+IP address                : 172.29.0.1
+IPv6 address              : fe80::104b:808c:f568:1436
+Global trace level        : 0
+
+2024-03-18 15:25:27.038169 [20588] >> Info entry
+	Setting path to sapnwrfc.ini to "../customer_prereg".
+	Old path was ""
+
+**** Log file opened at 2024-03-18 15:25:27.041379 UTC+07:00 (SE Asia Standard Time), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 12 Hotfix 2
+Compilation date          : Nov 18 2023 00:08:12
+CPIC library              : 753.2023.11.09 version 3
+NI library                : 40
+Kernel Release            : 753 Patch Level 1235
+Current working directory : C:\customer_prereg
+Program                   : node
+Process ID                : 10924
+User                      : Admin
+Hardware                  : PC with Windows NT 4x AMD64 Level 6 (Mod 142 Step 9)
+Binary Type               : 64bit
+Operating_system          : Windows NT 10.0
+Hostname                  : RAFAEL
+IP address                : 172.29.0.1
+IPv6 address              : fe80::104b:808c:f568:1436
+Global trace level        : 0
+
+2024-03-18 15:25:27.041416 [20588] >> Info entry
+	Did find config file ../customer_prereg\sapnwrfc.ini.
+
+**** Log file opened at 2024-03-18 15:25:33.531855 UTC+07:00 (SE Asia Standard Time), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 12 Hotfix 2
+Compilation date          : Nov 18 2023 00:08:12
+CPIC library              : 753.2023.11.09 version 3
+NI library                : 40
+Kernel Release            : 753 Patch Level 1235
+Current working directory : C:\customer_prereg
+Program                   : node
+Process ID                : 15112
+User                      : Admin
+Hardware                  : PC with Windows NT 4x AMD64 Level 6 (Mod 142 Step 9)
+Binary Type               : 64bit
+Operating_system          : Windows NT 10.0
+Hostname                  : RAFAEL
+IP address                : 172.29.0.1
+IPv6 address              : fe80::104b:808c:f568:1436
+Global trace level        : 0
+
+2024-03-18 15:25:33.531372 [11388] >> Info entry
+	Setting path to sapnwrfc.ini to "../customer_prereg".
+	Old path was ""
+
+**** Log file opened at 2024-03-18 15:25:33.533844 UTC+07:00 (SE Asia Standard Time), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 12 Hotfix 2
+Compilation date          : Nov 18 2023 00:08:12
+CPIC library              : 753.2023.11.09 version 3
+NI library                : 40
+Kernel Release            : 753 Patch Level 1235
+Current working directory : C:\customer_prereg
+Program                   : node
+Process ID                : 15112
+User                      : Admin
+Hardware                  : PC with Windows NT 4x AMD64 Level 6 (Mod 142 Step 9)
+Binary Type               : 64bit
+Operating_system          : Windows NT 10.0
+Hostname                  : RAFAEL
+IP address                : 172.29.0.1
+IPv6 address              : fe80::104b:808c:f568:1436
+Global trace level        : 0
+
+2024-03-18 15:25:33.534820 [11388] >> Info entry
+	Did find config file ../customer_prereg\sapnwrfc.ini.
+
+**** Log file opened at 2024-03-18 15:25:39.863711 UTC+07:00 (SE Asia Standard Time), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 12 Hotfix 2
+Compilation date          : Nov 18 2023 00:08:12
+CPIC library              : 753.2023.11.09 version 3
+NI library                : 40
+Kernel Release            : 753 Patch Level 1235
+Current working directory : C:\customer_prereg
+Program                   : node
+Process ID                : 15108
+User                      : Admin
+Hardware                  : PC with Windows NT 4x AMD64 Level 6 (Mod 142 Step 9)
+Binary Type               : 64bit
+Operating_system          : Windows NT 10.0
+Hostname                  : RAFAEL
+IP address                : 172.29.0.1
+IPv6 address              : fe80::104b:808c:f568:1436
+Global trace level        : 0
+
+2024-03-18 15:25:39.861703 [09860] >> Info entry
+	Setting path to sapnwrfc.ini to "../customer_prereg".
+	Old path was ""
+
+**** Log file opened at 2024-03-18 15:25:39.869427 UTC+07:00 (SE Asia Standard Time), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 12 Hotfix 2
+Compilation date          : Nov 18 2023 00:08:12
+CPIC library              : 753.2023.11.09 version 3
+NI library                : 40
+Kernel Release            : 753 Patch Level 1235
+Current working directory : C:\customer_prereg
+Program                   : node
+Process ID                : 15108
+User                      : Admin
+Hardware                  : PC with Windows NT 4x AMD64 Level 6 (Mod 142 Step 9)
+Binary Type               : 64bit
+Operating_system          : Windows NT 10.0
+Hostname                  : RAFAEL
+IP address                : 172.29.0.1
+IPv6 address              : fe80::104b:808c:f568:1436
+Global trace level        : 0
+
+2024-03-18 15:25:39.869468 [09860] >> Info entry
+	Did find config file ../customer_prereg\sapnwrfc.ini.
