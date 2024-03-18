@@ -9,7 +9,7 @@ noderfc.setIniFileDirectory("c:/customer_prereg");
 
 const LoadingNoteModel = {};
 
-LoadingNoteModel.saveLoadingNoteDB = async params => {
+LoadingNoteModel.saveLoadingNoteDB = async (params, session) => {
     const client = await db.connect();
     let que, val;
     const idLoad = params.uuid !== "" ? params.uuid : uuid.uuid();
@@ -17,6 +17,7 @@ LoadingNoteModel.saveLoadingNoteDB = async params => {
         await client.query(TRANS.BEGIN);
         const method = params.method;
         const is_draft = params.is_draft;
+        const today = new Date();
         const payload = {
             id_do: params.do_num,
             inv_type: params.inv_type,
@@ -35,12 +36,12 @@ LoadingNoteModel.saveLoadingNoteDB = async params => {
             vhcl_num: params.vehicle,
             created_date: params.loading_date,
             pl_load_qty: params.planned_qty,
-            factory_plt: params.fac_plant,
+            factory_plt: params.plant,
             factory_sloc: params.fac_store_loc,
-            oth_factory_plt: params.oth_plant,
+            oth_factory_plt: params.plant,
             oth_factory_sloc: params.oth_store_loc,
-            factory_batch: params.fac_batch,
-            oth_party_batch: params.oth_batch,
+            factory_batch: params.company_code,
+            oth_party_batch: params.do_num,
             factory_valtype: params.fac_val_type,
             oth_party_valtype: params.oth_val_type,
             is_paid: params.is_paid,
@@ -48,6 +49,7 @@ LoadingNoteModel.saveLoadingNoteDB = async params => {
             uuid: idLoad,
             company_code: params.company_code,
             media_tp: params.media_tp,
+            created_by: session.id_user,
         };
         if (is_draft) {
             payload.cur_pos = "INIT";
@@ -55,6 +57,7 @@ LoadingNoteModel.saveLoadingNoteDB = async params => {
             payload.cur_pos = "FINA";
         }
         if (method == "insert") {
+            payload.created_at = today;
             [que, val] = crud.insertItem("loading_note", payload, "id_do");
         } else {
             delete payload.uuid;
@@ -66,7 +69,6 @@ LoadingNoteModel.saveLoadingNoteDB = async params => {
             );
         }
         const { rows } = await client.query(que, val);
-        console.log(rows);
         await client.query(TRANS.COMMIT);
         return {
             is_draft: is_draft,
@@ -108,9 +110,10 @@ LoadingNoteModel.showAllLoadNote = async () => {
     }
 };
 
-LoadingNoteModel.finalizeLoadingNote = async params => {
+LoadingNoteModel.finalizeLoadingNote = async (params, session) => {
     const client = await db.connect();
     const rfcclient = new noderfc.Client({ dest: "Q13" });
+    const today = new Date();
     // let que, val;
     const idLoad = params.uuid;
     try {
@@ -147,6 +150,8 @@ LoadingNoteModel.finalizeLoadingNote = async params => {
             driver_name: params.driver_name,
             company_code: params.company_code,
             media_tp: params.media_tp,
+            update_at: today,
+            update_by: session.id_user,
         };
         const param = {
             I_RECORD_REGISTRA: {
@@ -157,7 +162,7 @@ LoadingNoteModel.finalizeLoadingNote = async params => {
                 VBELN_REF: params.do_num,
                 POSNR: "10",
                 EBELN_REF: "",
-                CREDAT: moment(params.loading_date).format("MM.DD.YYYY"),
+                CREDAT: moment(params.loading_date).format("DD.MM.YYYY"),
                 MATNR: "",
                 PLN_LFIMG: params.planned_qty.toString(),
                 DWERKS: params.fac_plant,
@@ -165,7 +170,7 @@ LoadingNoteModel.finalizeLoadingNote = async params => {
                 RWERKS: params.oth_plant,
                 RLGORT: params.oth_store_loc,
                 ZZTRANSP_TYPE: params.media_tp,
-                WANGKUTAN: "LN12000025",
+                WANGKUTAN: "",
                 WNOSIM: params.driver,
                 WNOPOLISI: params.vehicle,
                 L_LFIMG: "0",
@@ -186,11 +191,13 @@ LoadingNoteModel.finalizeLoadingNote = async params => {
                 param
             );
             console.log(sapPush);
-            if (INDICATOR.hasOwnProperty(sapPush.RFCTEXT)) {
-                throw new Error(sapPush.RFCTEXT);
+            if (INDICATOR.hasOwnProperty(sapPush.RFC_TEXT)) {
+                throw new Error(sapPush.RFC_TEXT);
+            } else if (sapPush.RFC_TEXT.includes("is not allowed")) {
+                throw new Error(sapPush.RFC_TEXT);
             } else {
-                const loadingNoteNum = sapPush.RFCTEXT.replace(
-                    /[^0-9]/,
+                const loadingNoteNum = sapPush.RFC_TEXT.replace(
+                    /[^0-9]/g,
                     ""
                 ).trim();
                 payload.id_loadnote = loadingNoteNum;
@@ -204,9 +211,38 @@ LoadingNoteModel.finalizeLoadingNote = async params => {
             "id_loadnote"
         );
         const { rows } = await client.query(que, val);
+        await client.query(TRANS.COMMIT);
         return rows[0].id_loadnote;
     } catch (error) {
+        await client.query(TRANS.ROLLBACK);
         console.error(error);
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
+LoadingNoteModel.showSLoc = async plant => {
+    try {
+        const rfcclient = new noderfc.Client({ dest: "Q13" });
+        await rfcclient.open();
+        try {
+            const { I_PLANT, I_SLOC } = await rfcclient.call(
+                "ZRFC_PRE_REGISTRA_STORELOC",
+                {
+                    I_PLANT: plant,
+                }
+            );
+            const dataSloc = I_SLOC.map(item => ({
+                value: item.LGORT,
+                label: item.LGORT,
+            }));
+            return dataSloc;
+        } catch (error) {
+            throw error;
+        }
+    } catch (error) {
+        console.log(error);
         throw error;
     }
 };
