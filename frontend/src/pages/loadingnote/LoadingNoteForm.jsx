@@ -10,7 +10,8 @@ import toast, { Toaster } from "react-hot-toast";
 import SelectComp from "../../component/input/SelectComp";
 import DatePickerComp from "../../component/input/DatePickerComp";
 import moment from "moment";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSession } from "../../provider/sessionProvider";
 
 const MediaTransportOp = [
     { value: "V", label: "Vessel" },
@@ -44,8 +45,23 @@ const SLOCOP = [
 ];
 
 export default function LoadingNoteForm() {
+    const checkKeyDown = e => {
+        if (e.key === "Enter") e.preventDefault();
+    };
+
     const [searchParams] = useSearchParams();
-    const { control, getValues, reset, setValue } = useForm({
+    const [slocOP, setSloc] = useState([]);
+    const navigate = useNavigate();
+    const { session, getPermission } = useSession();
+    const curAuth = useRef({});
+    const {
+        control,
+        getValues,
+        reset,
+        setValue,
+        handleSubmit,
+        formState: { errors },
+    } = useForm({
         defaultValues: {
             do_num: "",
             inv_type: "",
@@ -84,10 +100,10 @@ export default function LoadingNoteForm() {
         (async () => {
             try {
                 const idloadnote = searchParams.get("idloadnote");
-                const { data } = await Axios.get(
-                    "ln/id?idloadnote=" + idloadnote
-                );
                 if (idloadnote) {
+                    const { data } = await Axios.get(
+                        "ln/id?idloadnote=" + idloadnote
+                    );
                     reset({
                         do_num: data.id_do,
                         inv_type: data.inv_type,
@@ -117,16 +133,35 @@ export default function LoadingNoteForm() {
                         fac_store_loc: data.factory_sloc,
                         fac_batch: data.factory_batch,
                         fac_val_type: data.factory_valtype,
-                        oth_plant: data.oth_party_plt,
-                        oth_store_loc: data.oth_party_sloc,
+                        oth_plant: data.oth_factory_plt,
+                        oth_store_loc: data.oth_factory_sloc,
                         oth_batch: data.oth_party_batch,
-                        oth_val_type: data.oth_party_valtype,
+                        oth_val_type: data.oth_factory_valtype,
                         media_tp: data.media_tp,
                         company: data.company_code,
                     });
                     uuidLN.current = data.uuid;
                     position.current = data.cur_pos;
                     setPaid(data.is_paid);
+                    const { data: slocList } = await Axios.get(
+                        "ln/sloc?plant=" + data.plant
+                    );
+                    setSloc(slocList);
+                    if (data.cur_pos === "INIT") {
+                        curAuth.current = getPermission("Initial Form");
+                    } else if (data.cur_pos === "FINA") {
+                        curAuth.current = getPermission("Final Form");
+                    } else {
+                        curAuth.current = getPermission("Initial Form");
+                    }
+                    console.log(curAuth.current);
+                } else {
+                    curAuth.current = {
+                        fcreate: true,
+                        fread: true,
+                        fupdate: true,
+                        fdelete: true,
+                    };
                 }
             } catch (error) {
                 console.error(error);
@@ -136,6 +171,9 @@ export default function LoadingNoteForm() {
 
     const submitItem = async (values, is_draft = false) => {
         let method = "";
+        if (typeof is_draft !== "boolean") {
+            is_draft = false;
+        }
         if (uuidLN.current !== "") {
             method = "update";
         } else {
@@ -160,19 +198,24 @@ export default function LoadingNoteForm() {
             company_code: values.company,
         };
         delete payload.incoterms;
-        console.log(payload);
         setLoading(true);
         try {
             if (position.current === "FINA") {
-                const { data } = await Axios.post("/ln/pushsap", payload);
+                const { data } = await Axios.post("/ln/pushsap", payload, {
+                    withCredentials: true,
+                });
                 toast.success(data.message);
             } else {
-                const { data } = await Axios.post("/ln/save", payload);
+                const { data } = await Axios.post("/ln/save", payload, {
+                    withCredentials: true,
+                });
                 uuidLN.current = data.uuid;
                 toast.success(data.message);
             }
+            setTimeout(() => {
+                navigate("/dashboard/loadingnote");
+            }, 2000);
         } catch (error) {
-            console.log(error);
             console.error(error);
             toast.error(error.response.data.message);
         } finally {
@@ -208,6 +251,10 @@ export default function LoadingNoteForm() {
                 }
             });
             setPaid(data.IS_PAID);
+            const { data: slocList } = await Axios.get(
+                "ln/sloc?plant=" + dataMap.plant
+            );
+            setSloc(slocList);
             toast.success("Success retrieve SO");
             if (data.IS_PAID) {
                 toast.success("Already paid, can proceed to logistic");
@@ -246,12 +293,14 @@ export default function LoadingNoteForm() {
             </Typography>
             <br />
             <form
+                onKeyDown={e => checkKeyDown(e)}
                 style={{
                     display: "flex",
                     flexDirection: "column",
                     height: "100%",
                     width: "100%",
                 }}
+                onSubmit={handleSubmit(submitItem)}
             >
                 <div
                     style={{
@@ -283,7 +332,7 @@ export default function LoadingNoteForm() {
                                 }
                                 loading={isLoading}
                             >
-                                Check SO
+                                Check Payment
                             </LoadingButton>
                         </div>
 
@@ -449,7 +498,10 @@ export default function LoadingNoteForm() {
                                         minWidth: "10rem",
                                         maxWidth: "30rem",
                                     }}
-                                    rules={{ required: "Please Insert" }}
+                                    rules={{
+                                        validate: v =>
+                                            v.value !== "" && v !== null,
+                                    }}
                                 />
                                 <AutoSelectVehicle
                                     label="Vehicle"
@@ -459,7 +511,10 @@ export default function LoadingNoteForm() {
                                         minWidth: "10rem",
                                         maxWidth: "15rem",
                                     }}
-                                    rules={{ required: "Please Insert" }}
+                                    rules={{
+                                        validate: v =>
+                                            v.value !== "" && v !== null,
+                                    }}
                                 />
                                 <SelectComp
                                     name="media_tp"
@@ -511,102 +566,138 @@ export default function LoadingNoteForm() {
                             </div>
                         </div>
                     </div>
-
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyItems: "stretch",
-                            flexWrap: "wrap",
-                        }}
-                    >
-                        <div style={{ marginBottom: "3rem", minWidth: "50%" }}>
-                            <Typography variant="h5">Factory Plant</Typography>
-                            <Divider sx={{ my: 3 }} variant="middle" />
-                            <div
-                                style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "1rem",
-                                    paddingRight: "1rem",
-                                }}
-                            >
-                                <TextFieldComp
-                                    name="fac_plant"
-                                    label="Factory Plant"
-                                    control={control}
-                                />
-                                <SelectComp
-                                    name="fac_store_loc"
-                                    label="Factory Store Location"
-                                    control={control}
-                                    options={SLOCOP}
-                                />
-                                <TextFieldComp
-                                    name="fac_batch"
-                                    label="Factory Batch"
-                                    control={control}
-                                />
-                                <SelectComp
-                                    name="fac_val_type"
-                                    label="Factory Valuation Type"
-                                    control={control}
-                                    options={ValuationTypeOp}
-                                />
-                            </div>
-                        </div>
-                        <div style={{ marginBottom: "3rem", minWidth: "50%" }}>
-                            <Typography variant="h5">Other Party</Typography>
-                            <Divider sx={{ my: 3 }} variant="middle" />
-                            <div
-                                style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "1rem",
-                                }}
-                            >
-                                <TextFieldComp
-                                    name="oth_plant"
-                                    label="Other Party Plant"
-                                    control={control}
-                                />
-                                <SelectComp
-                                    name="oth_store_loc"
-                                    label="Other Party Store Location"
-                                    control={control}
-                                    options={SLOCOP}
-                                />
-                                <TextFieldComp
-                                    name="oth_batch"
-                                    label="Other Party Batch"
-                                    control={control}
-                                    readOnly
-                                />
-                                <SelectComp
-                                    name="oth_val_type"
-                                    label="Other Party Valuation Type"
-                                    control={control}
-                                    options={ValuationTypeOp}
-                                />
-                            </div>
-                        </div>
-                    </div>
+                    {curAuth.current.fread &&
+                        ["FINA", "END"].includes(position.current) && (
+                            <>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyItems: "stretch",
+                                        flexWrap: "wrap",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            marginBottom: "3rem",
+                                            minWidth: "50%",
+                                        }}
+                                    >
+                                        <Typography variant="h5">
+                                            Factory Plant
+                                        </Typography>
+                                        <Divider
+                                            sx={{ my: 3 }}
+                                            variant="middle"
+                                        />
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: "1rem",
+                                                paddingRight: "1rem",
+                                            }}
+                                        >
+                                            <TextFieldComp
+                                                name="fac_plant"
+                                                label="Factory Plant"
+                                                control={control}
+                                                toUpperCase={true}
+                                            />
+                                            <SelectComp
+                                                name="fac_store_loc"
+                                                label="Factory Store Location"
+                                                control={control}
+                                                options={slocOP}
+                                            />
+                                            <TextFieldComp
+                                                name="fac_batch"
+                                                label="Factory Batch"
+                                                control={control}
+                                                toUpperCase={true}
+                                            />
+                                            <SelectComp
+                                                name="fac_val_type"
+                                                label="Factory Valuation Type"
+                                                control={control}
+                                                options={ValuationTypeOp}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div
+                                        style={{
+                                            marginBottom: "3rem",
+                                            minWidth: "50%",
+                                        }}
+                                    >
+                                        <Typography variant="h5">
+                                            Other Party
+                                        </Typography>
+                                        <Divider
+                                            sx={{ my: 3 }}
+                                            variant="middle"
+                                        />
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: "1rem",
+                                            }}
+                                        >
+                                            <TextFieldComp
+                                                name="oth_plant"
+                                                label="Other Party Plant"
+                                                control={control}
+                                                toUpperCase={true}
+                                            />
+                                            <SelectComp
+                                                name="oth_store_loc"
+                                                label="Other Party Store Location"
+                                                control={control}
+                                                options={slocOP}
+                                            />
+                                            <TextFieldComp
+                                                name="oth_batch"
+                                                label="Other Party Batch"
+                                                control={control}
+                                                readOnly
+                                            />
+                                            <SelectComp
+                                                name="oth_val_type"
+                                                label="Other Party Valuation Type"
+                                                control={control}
+                                                options={ValuationTypeOp}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                 </div>
-                <div style={{ display: "flex", gap: "1rem" }}>
-                    <LoadingButton
-                        loading={isLoading}
-                        type="submit"
-                        disabled={!isPaid}
-                        onClick={() => submitItem(getValues(), false)}
-                    >
-                        Submit
-                    </LoadingButton>
-                    <LoadingButton
-                        loading={isLoading}
-                        onClick={() => submitItem(getValues(), true)}
-                    >
-                        Save Draft
-                    </LoadingButton>
-                </div>
+                {(curAuth.current.fcreate || curAuth.current.fupdate) &&
+                    position.current !== "END" && (
+                        <>
+                            <div style={{ display: "flex", gap: "1rem" }}>
+                                <LoadingButton
+                                    loading={isLoading}
+                                    disabled={!isPaid}
+                                    type="submit"
+                                    // onClick={() =>
+                                    //     submitItem(getValues(), false)
+                                    // }
+                                >
+                                    Submit
+                                </LoadingButton>
+                                <LoadingButton
+                                    loading={isLoading}
+                                    onClick={() =>
+                                        submitItem(getValues(), true)
+                                    }
+                                >
+                                    Save Draft
+                                </LoadingButton>
+                            </div>
+                        </>
+                    )}
             </form>
         </>
     );
