@@ -3,6 +3,7 @@ import SelectComp from "../../component/input/SelectComp";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
 import { PasswordWithEyes } from "../../component/input/PasswordWithEyes";
 import PatternFieldComp from "../../component/input/PatternFieldComp";
+import AutoSelectUserSAP from "./AutoSelectUserSAP";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 // import useAxiosPrivate from 'src/hooks/useAxiosPrivate';
@@ -81,6 +82,8 @@ export default function FormUserPage() {
         }
     }, []);
 
+    useEffect(() => {});
+
     const submitUser = async data => {
         setBtnclicked(true);
         let type;
@@ -97,6 +100,7 @@ export default function FormUserPage() {
             role: data.role,
             phone_num: data.phone_num,
             updated_by: session.id_user,
+            sap_code: data.customer_id.value,
             type: type,
         };
         if (getFieldState("password").isDirty) {
@@ -197,39 +201,20 @@ export default function FormUserPage() {
                                 rules={{ required: true }}
                             />
                         </Grid>
-                    </Grid>
-                    {/* {allowUpdate && location.state?.page !== "userinfo" && (
-                        <Grid container spacing={2}>
-                            <Grid item xs={6}>
-                                <SelectComp
-                                    name="usergroup"
-                                    control={control}
-                                    label="User Group"
-                                    options={userGroup}
-                                    rules={{ required: true }}
-                                />
-                            </Grid>
-                            <Grid item xs={6}>
-                                <SelectComp
-                                    name="role"
-                                    control={control}
-                                    label="Role"
-                                    options={roles}
-                                    rules={{ required: true }}
-                                    onChangeovr={onRoleChange}
-                                />
-                            </Grid>
-                            <Grid item xs={6}>
-                                <SelectComp
-                                    name="manager"
-                                    control={control}
-                                    label="Manager"
-                                    options={manager}
-                                    disabled={isMgr}
-                                />
-                            </Grid>
+                        <Grid item xs>
+                            <AutoSelectUserSAP
+                                name="customer_id"
+                                control={control}
+                                label="Customer Id"
+                                rules={{
+                                    validate: v =>
+                                        v?.value !== null &&
+                                        v?.value !== "" &&
+                                        v !== null,
+                                }}
+                            />
                         </Grid>
-                    )} */}
+                    </Grid>
                 </Box>
                 <Box
                     sx={{ display: "flex", justifyContent: "flex-end", mt: 10 }}
