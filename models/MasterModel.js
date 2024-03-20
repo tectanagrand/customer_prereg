@@ -1,5 +1,7 @@
 const db = require("../config/connection");
 const noderfc = require("node-rfc");
+const TRANS = require("../config/transaction");
+const crud = require("../helper/crudquery");
 noderfc.setIniFileDirectory("../customer_prereg");
 
 const MasterModel = {};
@@ -112,4 +114,153 @@ MasterModel.getSOData = async do_num => {
     }
 };
 
+MasterModel.getCustData = async () => {
+    try {
+        const rfcclient = new noderfc.Client({ dest: "Q13" });
+        await rfcclient.open();
+        try {
+            const datarfc = rfcclient.call("ZRFC_PRE_REGISTRA_KUNNR", {
+                I_ERDAT: "20220101", // YYYYMMDD
+            });
+            return datarfc;
+        } catch (error) {
+            throw error;
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.getStoreLoc = async () => {
+    try {
+        const rfcclient = new noderfc.Client({ dest: "Q13" });
+        await rfcclient.open();
+        try {
+            const datarfc = rfcclient.call("ZRFC_PRE_REGISTRA_STORELOC", {
+                I_PLANT: "PS21",
+                I_ITEMRULE: "1B",
+            });
+            return datarfc;
+        } catch (error) {
+            throw error;
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.getStoreLoc = async (plant, rule) => {
+    try {
+        const rfcclient = new noderfc.Client({ dest: "Q13" });
+        await rfcclient.open();
+        try {
+            const datarfc = rfcclient.call("ZRFC_PRE_REGISTRA_STORELOC", {
+                I_PLANT: plant,
+                I_ITEMRULE: rule,
+            });
+            return datarfc;
+        } catch (error) {
+            throw error;
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.seedMstCust = async () => {
+    try {
+        const rfcclient = new noderfc.Client({ dest: "Q13" });
+        await rfcclient.open();
+        const client = await db.connect();
+        let promises = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            await client.query("DELETE FROM mst_customer");
+            const { T_KUNNR } = await rfcclient.call(
+                "ZRFC_PRE_REGISTRA_KUNNR",
+                {
+                    I_ERDAT: "19900101", // YYYYMMDD
+                }
+            );
+            T_KUNNR.forEach(item => {
+                const payload = {
+                    kunnr: item.KUNNR,
+                    name_1: item.NAME1,
+                    ort_1: item.ORT01,
+                    erdat: item.ERDAT,
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_customer",
+                    payload,
+                    "kunnr"
+                );
+                promises.push(client.query(que, val));
+            });
+            const dataInsert = Promise.all(promises);
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.getDOList = async cust_id => {
+    try {
+        const rfcclient = new noderfc.Client({ dest: "Q13" });
+        await rfcclient.open();
+        try {
+            const { T_DOKUNNR } = await rfcclient.call(
+                "ZRFC_PRE_REGISTRA_DOKUNNR",
+                {
+                    I_KUNNR: cust_id,
+                }
+            );
+            return T_DOKUNNR.map(item => ({
+                value: item.VBELN,
+                label: item.VBELN,
+            }));
+        } catch (error) {
+            throw error;
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.getCustDataDB = async (limit, offset, q) => {
+    try {
+        const client = await db.connect();
+
+        try {
+            const { rows: dataComp } = await client.query(
+                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name FROM MST_CUSTOMER WHERE lower(name_1) like $1 or lower(kunnr) like $2 LIMIT $3 OFFSET $4`,
+                [`${q}%`, `%${q}%`, limit, offset]
+            );
+            const { rows } = await client.query(
+                "SELECT COUNT(*) AS ctr FROM MST_CUSTOMER WHERE lower(name_1) like $1 or lower(kunnr) like $2",
+                [`${q}%`, `%${q}%`]
+            );
+            return {
+                data: dataComp,
+                count: rows[0].ctr,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
 module.exports = MasterModel;
