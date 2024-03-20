@@ -7,15 +7,16 @@ LoadingNoteController.SaveLoadingNoteDB = async (req, res) => {
     try {
         const payload = req.body;
         const session = req.cookies;
-        const insertData = await LoadNote.saveLoadingNoteDB(payload, session);
-        const message = !insertData.is_draft
-            ? "Loading Note Form for DO Number " +
-              insertData.data.id_do +
-              " is sent to logistic"
-            : +insertData.data.id_do + "DO Loading Note is saved as draft";
+        const insertData = await LoadNote.refSaveLoadingNoteDB(
+            payload,
+            session
+        );
+        const message = payload.is_draft
+            ? "Draft Saved"
+            : "Loading Note Requested";
         res.status(200).send({
             message: message,
-            uuid: insertData.uuid,
+            ...insertData,
         });
     } catch (error) {
         console.error(error);
@@ -64,16 +65,8 @@ LoadingNoteController.getById = async (req, res) => {
     const idloadnote = req.query.idloadnote;
     const client = await db.connect();
     try {
-        const { rows } = await client.query(
-            "SELECT * FROM loading_note WHERE uuid = $1",
-            [idloadnote]
-        );
-        Object.keys(rows[0]).forEach(item => {
-            if (rows[0][item] === null) {
-                rows[0][item] = "";
-            }
-        });
-        res.status(200).send(rows[0]);
+        const result = await LoadNote.getById(idloadnote);
+        res.status(200).send(result);
     } catch (error) {
         console.error(error);
         res.status(500).send({
