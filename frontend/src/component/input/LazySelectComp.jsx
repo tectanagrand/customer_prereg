@@ -72,14 +72,6 @@ export const LazySelectComp = ({
                         return "";
                     }}
                     isOptionEqualToValue={(option, value) => {
-                        if (value !== null || option !== null) {
-                            if (value.value === "") {
-                                return true;
-                            }
-                            return option.value === value.value;
-                        } else if (value.value === "") {
-                            return true;
-                        }
                         return true;
                     }}
                     renderOption={(props, option, { index }) => {
@@ -102,7 +94,7 @@ export const LazySelectComp = ({
                         <TextField
                             {...params}
                             label={label}
-                            error={error}
+                            error={!!error}
                             inputRef={ref}
                             onChange={onChangeovr}
                             onBlur={onBlurovr}
