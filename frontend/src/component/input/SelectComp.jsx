@@ -17,19 +17,39 @@ export default function SelectComp({
     disabled,
     readOnly,
     valueovr,
+    onOpen,
+    lazy,
     ...props
 }) {
     const generateSingleOptions = () => {
-        return options.map(item => {
-            return (
-                <MenuItem key={item.value} value={item.value}>
-                    {item.label}
-                </MenuItem>
-            );
-        });
+        if (lazy) {
+            let optionses = options.map(item => {
+                return (
+                    <MenuItem key={item.value} value={item.value}>
+                        {item.label}
+                    </MenuItem>
+                );
+            });
+            if (props.isLoading) {
+                optionses.unshift(
+                    <MenuItem key="loading" value="">
+                        Loading...
+                    </MenuItem>
+                );
+            }
+            return optionses;
+        } else {
+            return options.map(item => {
+                return (
+                    <MenuItem key={item.value} value={item.value}>
+                        {item.label}
+                    </MenuItem>
+                );
+            });
+        }
     };
     return (
-        <FormControl fullWidth disabled={disabled}>
+        <FormControl {...props} disabled={disabled}>
             <Controller
                 render={({
                     field: { onChange, value, ref },
@@ -43,7 +63,6 @@ export default function SelectComp({
                             <InputLabel error={!!error}>{label}</InputLabel>
                             <Select
                                 {...props}
-                                fullWidth
                                 error={!!error}
                                 label={label}
                                 value={value}
@@ -58,6 +77,7 @@ export default function SelectComp({
                                         onChangeovr(e.target.value);
                                     }
                                 }}
+                                onOpen={onOpen}
                             >
                                 {generateSingleOptions()}
                             </Select>

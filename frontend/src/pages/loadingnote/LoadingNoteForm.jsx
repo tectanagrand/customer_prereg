@@ -1,7 +1,7 @@
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
 import AutoSelectDriver from "./AutoselectDriver";
-import { Typography, Divider } from "@mui/material";
+import { Typography, Divider, Button } from "@mui/material";
 import { LoadingButton } from "@mui/lab";
 import AutoSelectVehicle from "./AutoselectVehicle";
 import { Axios } from "../../api/axios";
@@ -12,6 +12,7 @@ import DatePickerComp from "../../component/input/DatePickerComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
+import SelectDOComp from "./SelectDOComp";
 
 const MediaTransportOp = [
     { value: "V", label: "Vessel" },
@@ -34,23 +35,18 @@ const ValuationTypeOp = [
     { value: "TR-SALES2", label: "TR-SALES2" },
 ];
 
-const SLOCOP = [
-    { value: "FT51", label: "FT51 - Fractionation 1" },
-    { value: "RT51", label: "RT51 - Refinery 1 (KB)" },
-    { value: "TS02", label: "TS02 - Trf. via Ship" },
-    { value: "TW01", label: "TW01 - Tank Whs (NKB)" },
-    { value: "TW51", label: "TW51 - Tank Whs (KB)" },
-    { value: "WH01", label: "WH01 - C.Pack Whs (NKB)" },
-    { value: "WH51", label: "WH51 - C.Pack Whs (KB)" },
-];
-
 export default function LoadingNoteForm() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
 
     const [searchParams] = useSearchParams();
+    const [click, setClick] = useState(false);
     const [slocOP, setSloc] = useState([]);
+    const [medtpOP, setMedTPOP] = useState([]);
+    const [preOp, setPreOp] = useState("");
+    const [pltRule, setPltRule] = useState({ plant: "", rule: "" });
+    const lastIdx = useRef(0);
     const navigate = useNavigate();
     const { session, getPermission } = useSession();
     const curAuth = useRef({});
@@ -58,8 +54,10 @@ export default function LoadingNoteForm() {
         control,
         getValues,
         reset,
+        register,
         setValue,
         handleSubmit,
+        watch,
         formState: { errors },
     } = useForm({
         defaultValues: {
@@ -71,14 +69,21 @@ export default function LoadingNoteForm() {
             rules: "",
             con_num: "",
             material: "",
-            os_deliv: "0",
+            con_qty: "0",
             plant: "",
             description: "",
             uom: "",
-            vehicle: null,
-            driver: null,
-            loading_date: moment(),
-            planned_qty: 0,
+            load_detail: [
+                {
+                    id_detail: "",
+                    vehicle: null,
+                    driver: null,
+                    loading_date: moment(),
+                    planned_qty: 0,
+                    media_tp: "",
+                    method: "",
+                },
+            ],
             fac_plant: "",
             fac_store_loc: "",
             fac_batch: "",
@@ -87,10 +92,15 @@ export default function LoadingNoteForm() {
             oth_store_loc: "",
             oth_batch: "",
             oth_val_type: "",
-            media_tp: "",
             company: "",
         },
     });
+    const { fields, append, remove } = useFieldArray({
+        name: "load_detail",
+        control,
+    });
+    watch("load_detail.method");
+    watch("load_detail.id_detail");
     const [isLoading, setLoading] = useState(false);
     const [isPaid, setPaid] = useState(false);
     const position = useRef("");
@@ -104,49 +114,27 @@ export default function LoadingNoteForm() {
                     const { data } = await Axios.get(
                         "ln/id?idloadnote=" + idloadnote
                     );
+                    const load_detail = data.data.load_detail.map(item => ({
+                        ...item,
+                        loading_date: moment(item.loading_date),
+                        method: "",
+                    }));
                     reset({
-                        do_num: data.id_do,
-                        inv_type: data.inv_type,
-                        inv_type_tol_from: data.inv_tol_from + " %",
-                        inv_type_tol_to: data.inv_tol_to + " %",
-                        incoterms: data.incoterms_1 + "-" + data.incoterms_2,
-                        rules: data.item_rule,
-                        con_num: data.con_num,
-                        material: data.material_code,
-                        os_deliv: data.os_deliv,
-                        plant: data.plant,
-                        description: data.description,
-                        uom: data.uom,
-                        vehicle: data.vhcl_num
-                            ? { value: data.vhcl_num, label: data.vhcl_num }
-                            : { value: "", label: "" },
-                        driver: data.driver_id
-                            ? {
-                                  value: data.driver_id,
-                                  label:
-                                      data.driver_id + " - " + data.driver_name,
-                              }
-                            : { value: "", label: "" },
-                        loading_date: moment(data.created_date),
-                        planned_qty: data.pl_load_qty,
-                        fac_plant: data.factory_plt,
-                        fac_store_loc: data.factory_sloc,
-                        fac_batch: data.factory_batch,
-                        fac_val_type: data.factory_valtype,
-                        oth_plant: data.oth_factory_plt,
-                        oth_store_loc: data.oth_factory_sloc,
-                        oth_batch: data.oth_party_batch,
-                        oth_val_type: data.oth_factory_valtype,
-                        media_tp: data.media_tp,
-                        company: data.company_code,
+                        ...data.data,
+                        load_detail: load_detail,
                     });
-                    uuidLN.current = data.uuid;
+                    setPreOp(data.data.do_num);
+                    uuidLN.current = data.id_header;
                     position.current = data.cur_pos;
+                    setPltRule({
+                        plant: data.data.plant,
+                        rule: data.data.rules,
+                    });
                     setPaid(data.is_paid);
-                    const { data: slocList } = await Axios.get(
-                        "ln/sloc?plant=" + data.plant
-                    );
-                    setSloc(slocList);
+                    // const { data: slocList } = await Axios.get(
+                    //     "ln/sloc?plant=" + data.plant
+                    // );
+                    // setSloc(slocList);
                     if (data.cur_pos === "INIT") {
                         curAuth.current = getPermission("Initial Form");
                     } else if (data.cur_pos === "FINA") {
@@ -154,7 +142,8 @@ export default function LoadingNoteForm() {
                     } else {
                         curAuth.current = getPermission("Initial Form");
                     }
-                    console.log(curAuth.current);
+                    lastIdx.current =
+                        load_detail.length !== 0 ? load_detail.length : 0;
                 } else {
                     curAuth.current = {
                         fcreate: true,
@@ -169,33 +158,42 @@ export default function LoadingNoteForm() {
         })();
     }, []);
 
+    useEffect(() => {
+        (async () => {
+            const { data } = await Axios.get(
+                `master/sloc?plant=${pltRule.plant}&rule=${pltRule.rule}`
+            );
+            setSloc(data);
+        })();
+    }, [pltRule]);
+
     const submitItem = async (values, is_draft = false) => {
-        let method = "";
         if (typeof is_draft !== "boolean") {
             is_draft = false;
         }
-        if (uuidLN.current !== "") {
-            method = "update";
-        } else {
-            method = "insert";
-        }
+        const load_detail = values.load_detail.map(item => ({
+            ...item,
+            driver_id: item.driver ? item.driver.value : "",
+            driver_name: item.driver
+                ? item.driver.label.split("-")[1].trim()
+                : "",
+            vehicle: item.vehicle ? item.vehicle.value : "",
+            loading_date: moment(item.loading_date).format("YYYY-MM-DD"),
+            planned_qty: item.planned_qty,
+            media_tp: item.media_tp,
+            method: item.method,
+        }));
         const payload = {
             ...values,
-            driver: values.driver ? values.driver.value : "",
-            driver_name: values.driver
-                ? values.driver.label.split("-")[1].trim()
-                : "",
-            vehicle: values.vehicle ? values.vehicle.value : "",
             inv_type_tol_from: values.inv_type_tol_from.replace("%", "").trim(),
             inv_type_tol_to: values.inv_type_tol_to.replace("%", "").trim(),
             incoterms_1: values.incoterms.split("-")[0],
             incoterms_2: values.incoterms.split("-")[1],
-            loading_date: moment(values.loading_date).format("YYYY-MM-DD"),
             is_paid: isPaid,
             is_draft: is_draft,
-            method: method,
-            uuid: uuidLN.current,
-            company_code: values.company,
+            id_header: uuidLN.current,
+            company: values.company,
+            load_detail: load_detail,
         };
         delete payload.incoterms;
         setLoading(true);
@@ -209,12 +207,28 @@ export default function LoadingNoteForm() {
                 const { data } = await Axios.post("/ln/save", payload, {
                     withCredentials: true,
                 });
-                uuidLN.current = data.uuid;
                 toast.success(data.message);
+                if (is_draft) {
+                    uuidLN.current = data.id_header;
+                    data.deleteIdx.forEach(item => {
+                        remove(parseInt(item));
+                    });
+                    const detailId = new Map(data.detailId);
+                    if (detailId.size !== 0) {
+                        detailId.forEach((value, key) => {
+                            setValue(`load_detail.${key}.id_detail`, value);
+                        });
+                    }
+                }
             }
-            setTimeout(() => {
-                navigate("/dashboard/loadingnote");
-            }, 2000);
+            if (!is_draft) {
+                setTimeout(() => {
+                    navigate("/dashboard/loadingnote");
+                }, 2000);
+            }
+            if (deletedDet.current.length !== 0) {
+                remove(deletedDet.current);
+            }
         } catch (error) {
             console.error(error);
             toast.error(error.response.data.message);
@@ -236,7 +250,7 @@ export default function LoadingNoteForm() {
                 rules: slip.ITEMRULE,
                 con_num: slip.CTRNO,
                 material: slip.MATNR,
-                os_deliv: slip.KWMENG,
+                con_qty: slip.KWMENG,
                 plant: slip.WERKS,
                 description: slip.MAKTX,
                 uom: slip.VRKME,
@@ -252,7 +266,7 @@ export default function LoadingNoteForm() {
             });
             setPaid(data.IS_PAID);
             const { data: slocList } = await Axios.get(
-                "ln/sloc?plant=" + dataMap.plant
+                "master/sloc?plant=" + dataMap.plant + "&rule=" + dataMap.rules
             );
             setSloc(slocList);
             toast.success("Success retrieve SO");
@@ -272,7 +286,7 @@ export default function LoadingNoteForm() {
                 rules: "",
                 con_num: "",
                 material: "",
-                os_deliv: "",
+                con_qty: "",
                 plant: "",
                 batch: "",
                 description: "",
@@ -285,6 +299,7 @@ export default function LoadingNoteForm() {
             setLoading(false);
         }
     };
+
     return (
         <>
             <Toaster />
@@ -320,11 +335,26 @@ export default function LoadingNoteForm() {
                         <Typography variant="h5">Sales Order</Typography>
                         <Divider sx={{ my: 3 }} />
                         <div style={{ display: "flex" }}>
-                            <TextFieldComp
+                            {/* <SelectComp
                                 name="do_num"
                                 label="DO Number"
+                                fullWidth
                                 control={control}
-                                sx={{ mb: 3, mr: 3, width: "30vw" }}
+                                options={doOP}
+                                onOpen={() => getDataDO()}
+                                sx={{
+                                    mb: 3,
+                                    mr: 3,
+                                    maxWidth: "16rem",
+                                    minWidth: "10rem",
+                                }}
+                                lazy={true}
+                            /> */}
+                            <SelectDOComp
+                                control={control}
+                                name="do_num"
+                                label="DO Number"
+                                preop={preOp}
                             />
                             <LoadingButton
                                 onClick={() =>
@@ -428,8 +458,8 @@ export default function LoadingNoteForm() {
                                 sx={{ minWidth: "10rem", maxWidth: "30rem" }}
                             />
                             <TextFieldComp
-                                name="os_deliv"
-                                label="OS Delivery Order"
+                                name="con_qty"
+                                label="Contract Quantity"
                                 control={control}
                                 readOnly
                                 sx={{ minWidth: "10rem", maxWidth: "20rem" }}
@@ -477,95 +507,190 @@ export default function LoadingNoteForm() {
                     <div
                         style={{
                             display: "flex",
-                            justifyItems: "stretch",
-                            flexWrap: "wrap",
+                            gap: "1rem",
+                            alignItems: "center",
                         }}
                     >
-                        <div style={{ marginBottom: "3rem", minWidth: "60%" }}>
-                            <Typography variant="h5">Transporter</Typography>
-                            <Divider sx={{ my: 3 }} variant="middle" />
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: "1rem",
-                                }}
-                            >
-                                <AutoSelectDriver
-                                    label="Driver"
-                                    name="driver"
-                                    control={control}
-                                    sx={{
-                                        minWidth: "10rem",
-                                        maxWidth: "30rem",
-                                    }}
-                                    rules={{
-                                        validate: v =>
-                                            v.value !== "" && v !== null,
-                                    }}
-                                />
-                                <AutoSelectVehicle
-                                    label="Vehicle"
-                                    name="vehicle"
-                                    control={control}
-                                    sx={{
-                                        minWidth: "10rem",
-                                        maxWidth: "15rem",
-                                    }}
-                                    rules={{
-                                        validate: v =>
-                                            v.value !== "" && v !== null,
-                                    }}
-                                />
-                                <SelectComp
-                                    name="media_tp"
-                                    label="Media Transport"
-                                    control={control}
-                                    sx={{
-                                        minWidth: "10rem",
-                                        maxWidth: "15rem",
-                                    }}
-                                    rules={{ required: "Please Insert" }}
-                                    options={MediaTransportOp}
-                                />
-                            </div>
-                        </div>
-                        <div style={{ marginBottom: "3rem", minWidth: "20%" }}>
-                            <Typography variant="h5">
-                                Loading Note Detail
-                            </Typography>
-                            <Divider sx={{ my: 3 }} />
-                            <div
-                                style={{
-                                    display: "flex",
-                                    width: "100%",
-                                    gap: "1rem",
-                                }}
-                            >
-                                <DatePickerComp
-                                    name="loading_date"
-                                    label="Loading Date"
-                                    control={control}
-                                    rules={{ required: "Please Insert" }}
-                                />
-                                <TextFieldComp
-                                    name="planned_qty"
-                                    label="Planned Loading Qty"
-                                    control={control}
-                                    rules={{
-                                        required: "Please Insert",
-                                        min: {
-                                            value: 1,
-                                            message: "Please Insert",
-                                        },
-                                    }}
-                                    sx={{
-                                        minWidth: "10rem",
-                                        maxWidth: "20rem",
-                                    }}
-                                />
-                            </div>
-                        </div>
+                        <Typography variant="h5">Loading Detail</Typography>
+                        <Button
+                            onClick={() => {
+                                append({
+                                    vehicle: null,
+                                    driver: null,
+                                    loading_date: moment(),
+                                    planned_qty: 0,
+                                    media_tp: "",
+                                });
+                            }}
+                            variant="contained"
+                        >
+                            Add +
+                        </Button>
                     </div>
+
+                    <Divider sx={{ my: 3 }} variant="middle" />
+                    {fields.map((field, index) => {
+                        return (
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyItems: "stretch",
+                                    alignContent: "center",
+                                    flexWrap: "wrap",
+                                }}
+                                key={field.id}
+                            >
+                                <input
+                                    {...register(
+                                        `load_detail.${index}.id_detail`
+                                    )}
+                                    hidden
+                                />
+                                <input
+                                    {...register(`load_detail.${index}.method`)}
+                                    hidden
+                                />
+                                <div
+                                    style={{
+                                        marginBottom: "3rem",
+                                        minWidth: "60%",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            gap: "1rem",
+                                        }}
+                                    >
+                                        <AutoSelectDriver
+                                            label="Driver"
+                                            name={`load_detail.${index}.driver`}
+                                            control={control}
+                                            sx={{
+                                                minWidth: "10rem",
+                                                maxWidth: "30rem",
+                                            }}
+                                            rules={{
+                                                validate: v =>
+                                                    v?.value !== "" &&
+                                                    v !== null,
+                                            }}
+                                        />
+                                        <AutoSelectVehicle
+                                            label="Vehicle"
+                                            name={`load_detail.${index}.vehicle`}
+                                            control={control}
+                                            sx={{
+                                                minWidth: "10rem",
+                                                maxWidth: "15rem",
+                                            }}
+                                            rules={{
+                                                validate: v =>
+                                                    v?.value !== "" &&
+                                                    v !== null,
+                                            }}
+                                        />
+                                        <SelectComp
+                                            name={`load_detail.${index}.media_tp`}
+                                            label="Media Transport"
+                                            control={control}
+                                            fullWidth
+                                            sx={{
+                                                minWidth: "10rem",
+                                                maxWidth: "16rem",
+                                            }}
+                                            rules={{
+                                                required: "Please Insert",
+                                            }}
+                                            options={MediaTransportOp}
+                                        />
+                                    </div>
+                                </div>
+                                <div
+                                    style={{
+                                        marginBottom: "3rem",
+                                        minWidth: "20%",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            width: "100%",
+                                            gap: "1rem",
+                                        }}
+                                    >
+                                        <DatePickerComp
+                                            name={`load_detail.${index}.loading_date`}
+                                            label="Loading Date"
+                                            control={control}
+                                            rules={{
+                                                required: "Please Insert",
+                                            }}
+                                        />
+                                        <TextFieldComp
+                                            name={`load_detail.${index}.planned_qty`}
+                                            label="Planned Loading Qty"
+                                            control={control}
+                                            rules={{
+                                                required: "Please Insert",
+                                                min: {
+                                                    value: 1,
+                                                    message: "Please Insert",
+                                                },
+                                            }}
+                                            sx={{
+                                                minWidth: "10rem",
+                                                maxWidth: "20rem",
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                {index !== 0 && (
+                                    <Button
+                                        onClick={() => {
+                                            if (
+                                                field.id_detail !== "" &&
+                                                field.id_detail !== undefined
+                                            ) {
+                                                if (
+                                                    getValues(
+                                                        `load_detail.${index}.method`
+                                                    ) === "delete"
+                                                ) {
+                                                    setValue(
+                                                        `load_detail.${index}.method`,
+                                                        ""
+                                                    );
+                                                } else {
+                                                    setValue(
+                                                        `load_detail.${index}.method`,
+                                                        "delete"
+                                                    );
+                                                }
+                                            } else {
+                                                remove(index);
+                                            }
+                                            setClick(!click);
+                                        }}
+                                        variant="contained"
+                                        color={
+                                            getValues(
+                                                `load_detail.${index}.method`
+                                            ) === "delete"
+                                                ? "warning"
+                                                : "error"
+                                        }
+                                    >
+                                        {getValues(
+                                            `load_detail.${index}.method`
+                                        ) === "delete"
+                                            ? "Cancel"
+                                            : "Remove"}
+                                    </Button>
+                                )}
+                            </div>
+                        );
+                    })}
                     {curAuth.current.fread &&
                         ["FINA", "END"].includes(position.current) && (
                             <>
