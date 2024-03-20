@@ -84,6 +84,133 @@ LoadingNoteModel.saveLoadingNoteDB = async (params, session) => {
     }
 };
 
+LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
+    try {
+        const client = await db.connect();
+        let que, val;
+        const promises = [];
+        let detailId = {};
+        let deleteIdx = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            const is_draft = params.is_draft;
+            const today = new Date();
+            const details = params.load_detail;
+            const id_header =
+                params.id_header !== "" ? params.id_header : uuid.uuid();
+            const payloadHeader = {
+                hd_id: id_header,
+                id_do: params.do_num,
+                invoice_type: params.inv_type,
+                tol_from: params.inv_type_tol_from,
+                tol_to: params.inv_type_tol_to,
+                inco_1: params.incoterms_1,
+                inco_2: params.incoterms_2,
+                rules: params.rules,
+                con_num: params.con_num,
+                material: params.material,
+                con_qty: params.con_qty,
+                uom: params.uom,
+                plant: params.plant,
+                company: params.company,
+                desc_con: params.description,
+                create_at: today,
+                create_by: session.id_user,
+                is_active: true,
+                is_paid: params.is_paid,
+            };
+            if (is_draft) {
+                payloadHeader.cur_pos = "INIT";
+            } else {
+                payloadHeader.cur_pos = "FINA";
+            }
+            console.log(payloadHeader);
+            if (params.id_header === "") {
+                [que, val] = crud.insertItem(
+                    "loading_note_hd",
+                    payloadHeader,
+                    "hd_id"
+                );
+            } else {
+                [que, val] = crud.updateItem(
+                    "loading_note_hd",
+                    payloadHeader,
+                    { hd_id: id_header },
+                    "hd_id"
+                );
+            }
+            await client.query(que, val);
+            details.forEach((rows, index) => {
+                const id_detail =
+                    rows.id_detail !== "" ? rows.id_detail : uuid.uuid();
+                const payloadDetail = {
+                    hd_fk: id_header,
+                    det_id: id_detail,
+                    driver_id: rows.driver_id,
+                    driver_name: rows.driver_name,
+                    vhcl_id: rows.vehicle,
+                    media_tp: rows.media_tp,
+                    cre_date: rows.loading_date,
+                    plan_qty: rows.planned_qty,
+                    fac_plant: params.plant,
+                    oth_plant: params.plant,
+                    fac_batch: params.company,
+                    oth_batch: params.do_num,
+                    fac_sloc: "",
+                    oth_sloc: "",
+                    create_at: today,
+                    create_by: session.id_user,
+                    is_active: true,
+                    is_pushed: false,
+                };
+                if (rows.id_detail === "") {
+                    [que, val] = crud.insertItem(
+                        "loading_note_det",
+                        payloadDetail,
+                        "det_id"
+                    );
+                    detailId[index] = id_detail;
+                    promises.push(client.query(que, val));
+                } else {
+                    if (rows.method === "delete") {
+                        deleteIdx.push(index);
+                        promises.push(
+                            client.query(
+                                "DELETE FROM loading_note_det WHERE det_id = $1",
+                                [rows.id_detail]
+                            )
+                        );
+                    } else {
+                        [que, val] = crud.updateItem(
+                            "loading_note_det",
+                            payloadDetail,
+                            { det_id: id_detail },
+                            "det_id"
+                        );
+                        promises.push(client.query(que, val));
+                    }
+                }
+            });
+            await Promise.all(promises);
+            await client.query(TRANS.COMMIT);
+            return {
+                detailId: detailId,
+                deleteIdx: deleteIdx,
+                id_header: id_header,
+            };
+        } catch (error) {
+            console.error(error);
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
 LoadingNoteModel.showAllLoadNote = async () => {
     const client = await db.connect();
     try {
@@ -246,5 +373,72 @@ LoadingNoteModel.showSLoc = async plant => {
         throw error;
     }
 };
+
+LoadingNoteModel.getById = async id_header => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(
+                `SELECT HD.*,
+                DET.*
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
+            WHERE HD.hd_id = $1`,
+                [id_header]
+            );
+            const detail = rows.map(item => ({
+                id_detail: item.det_id,
+                vehicle: { value: item.vhcl_id, label: item.vhcl_id },
+                driver: {
+                    value: item.driver_id,
+                    label: item.driver_id + " - " + item.driver_name,
+                },
+                loading_date: item.cre_date,
+                planned_qty: item.plan_qty,
+                media_tp: item.media_tp,
+            }));
+            const hd_dt = rows[0];
+            const resp = {
+                do_num: hd_dt.id_do,
+                inv_type: hd_dt.invoice_type,
+                inv_type_tol_from: hd_dt.tol_from,
+                inv_type_tol_to: hd_dt.tol_to,
+                incoterms: hd_dt.inco_1 + "-" + hd_dt.inco_2,
+                rules: hd_dt.rules,
+                con_num: hd_dt.con_num,
+                material: hd_dt.material,
+                con_qty: hd_dt.con_qty,
+                plant: hd_dt.plant,
+                description: hd_dt.desc_con,
+                uom: hd_dt.uom,
+                company: hd_dt.company,
+                load_detail: detail,
+                fac_plant: hd_dt.fac_plant,
+                fac_store_loc: hd_dt.fac_sloc,
+                fac_batch: hd_dt.fac_batch,
+                fac_val_type: hd_dt.fac_valtype,
+                oth_plant: hd_dt.oth_plant,
+                oth_store_loc: hd_dt.oth_sloc,
+                oth_batch: hd_dt.oth_batch,
+                oth_val_type: hd_dt.oth_valtype,
+            };
+            return {
+                data: resp,
+                id_header: hd_dt.hd_id,
+                cur_pos: hd_dt.cur_pos,
+                is_paid: hd_dt.is_paid,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
+
+LoadingNoteModel.getRequestedLoadNote = async () => {};
 
 module.exports = LoadingNoteModel;
