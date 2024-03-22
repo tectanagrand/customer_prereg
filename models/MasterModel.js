@@ -132,26 +132,28 @@ MasterModel.getCustData = async () => {
     }
 };
 
-MasterModel.getStoreLoc = async () => {
-    try {
-        const rfcclient = new noderfc.Client({ dest: "Q13" });
-        await rfcclient.open();
-        try {
-            const datarfc = rfcclient.call("ZRFC_PRE_REGISTRA_STORELOC", {
-                I_PLANT: "PS21",
-                I_ITEMRULE: "1B",
-            });
-            return datarfc;
-        } catch (error) {
-            throw error;
-        }
-    } catch (error) {
-        console.error(error);
-        throw error;
-    }
-};
+// MasterModel.getStoreLoc = async (plant, rule) => {
+//     console.log(plant, rule);
+//     try {
+//         const rfcclient = new noderfc.Client({ dest: "Q13" });
+//         await rfcclient.open();
+//         try {
+//             const datarfc = await rfcclient.call("ZRFC_PRE_REGISTRA_STORELOC", {
+//                 I_PLANT: "PS21",
+//                 I_ITEMRULE: "1B",
+//             });
+//             return datarfc;
+//         } catch (error) {
+//             throw error;
+//         }
+//     } catch (error) {
+//         console.error(error);
+//         throw error;
+//     }
+// };
 
 MasterModel.getStoreLoc = async (plant, rule) => {
+    console.log(plant, rule);
     try {
         const rfcclient = new noderfc.Client({ dest: "Q13" });
         await rfcclient.open();
@@ -224,6 +226,7 @@ MasterModel.getDOList = async cust_id => {
                     I_KUNNR: cust_id,
                 }
             );
+            console.log(T_DOKUNNR);
             return T_DOKUNNR.map(item => ({
                 value: item.VBELN,
                 label: item.VBELN,
@@ -260,6 +263,58 @@ MasterModel.getCustDataDB = async (limit, offset, q) => {
             client.release();
         }
     } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.getOSDataCust = async (limit, offset, q) => {
+    try {
+        const client = await db.connect();
+
+        try {
+            const { rows: dataComp } = await client.query(
+                `SELECT distinct USR.sap_code FROM loading_note_det DET
+                LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
+                WHERE USR.sap_code like $1
+                LIMIT $2 OFFSET $3`,
+                [`%${q}%`, limit, offset]
+            );
+            const { rows } = await client.query(
+                `SELECT distinct USR.sap_code FROM loading_note_det DET
+                LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
+                WHERE USR.sap_code like $1`,
+                [`${q}%`]
+            );
+            return {
+                data: dataComp,
+                count: rows[0].ctr,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.getDataTP = async rule => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(
+                "SELECT tp, tp_desc from master_tp where incoterm_rule = $1",
+                [rule]
+            );
+            return rows;
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
         throw error;
     }
 };

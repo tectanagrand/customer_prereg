@@ -96,6 +96,7 @@ MasterController.getDataDOList = async (req, res) => {
     try {
         const cust_id = req.cookies.sap_code;
         const dataRFC = await Master.getDOList(cust_id);
+        console.log(dataRFC);
         if (dataRFC.length === 0) {
             throw new Error("NO DO");
         }
@@ -133,6 +134,34 @@ MasterController.getDataCustDB = async (req, res) => {
         const q = req.query.q.toLowerCase();
         const dataComp = await Master.getCustDataDB(limit, offset, q);
         res.status(200).send(dataComp);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getDataTP = async (req, res) => {
+    const rule = req.query.rule;
+    try {
+        const data = await Master.getDataTP(rule);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getOSDataCust = async (req, res) => {
+    const q = req.query.q;
+    const limit = req.query.limit;
+    const offset = req.query.offset;
+    try {
+        const data = await Master.getOSDataCust(limit, offset, q);
+        res.status(200).send(data);
     } catch (error) {
         console.error(error);
         res.status(500).send({
