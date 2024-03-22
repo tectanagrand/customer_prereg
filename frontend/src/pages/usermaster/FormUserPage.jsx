@@ -53,6 +53,10 @@ export default function FormUserPage() {
                 email: userDt.email,
                 role: userDt.role,
                 phone_num: userDt.phone_num,
+                customer_id: {
+                    value: userDt.sap_code,
+                    label: userDt.sap_code,
+                },
             });
         }
     };
@@ -199,6 +203,7 @@ export default function FormUserPage() {
                                 label="Role"
                                 options={role}
                                 rules={{ required: true }}
+                                fullWidth
                             />
                         </Grid>
                         <Grid item xs>
