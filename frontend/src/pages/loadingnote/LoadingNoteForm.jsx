@@ -1,7 +1,8 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
 import AutoSelectDriver from "./AutoselectDriver";
-import { Typography, Divider, Button } from "@mui/material";
+import { Typography, Divider, Button, IconButton } from "@mui/material";
+import { Cancel, Replay } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import AutoSelectVehicle from "./AutoselectVehicle";
 import { Axios } from "../../api/axios";
@@ -633,10 +634,6 @@ export default function LoadingNoteForm() {
                                             control={control}
                                             rules={{
                                                 required: "Please Insert",
-                                                min: {
-                                                    value: 1,
-                                                    message: "Please Insert",
-                                                },
                                             }}
                                             sx={{
                                                 minWidth: "10rem",
@@ -646,7 +643,8 @@ export default function LoadingNoteForm() {
                                     </div>
                                 </div>
                                 {index !== 0 && (
-                                    <Button
+                                    <IconButton
+                                        sx={{ width: "4rem", height: "4rem" }}
                                         onClick={() => {
                                             if (
                                                 field.id_detail !== "" &&
@@ -683,10 +681,22 @@ export default function LoadingNoteForm() {
                                     >
                                         {getValues(
                                             `load_detail.${index}.method`
-                                        ) === "delete"
-                                            ? "Cancel"
-                                            : "Remove"}
-                                    </Button>
+                                        ) === "delete" ? (
+                                            <Replay
+                                                sx={{
+                                                    width: "2rem",
+                                                    height: "2rem",
+                                                }}
+                                            ></Replay>
+                                        ) : (
+                                            <Cancel
+                                                sx={{
+                                                    width: "2rem",
+                                                    height: "2rem",
+                                                }}
+                                            ></Cancel>
+                                        )}
+                                    </IconButton>
                                 )}
                             </div>
                         );
