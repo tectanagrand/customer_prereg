@@ -155,7 +155,9 @@ UserController.showById = async (req, res) => {
     const client = await db.connect();
     try {
         const { rows: userData } = await client.query(
-            "SELECT fullname, username, email, phone_num, role, id_user FROM mst_user WHERE id_user = $1",
+            `SELECT fullname, username, email, phone_num, role, id_user,
+            sap_code 
+            FROM mst_user WHERE id_user = $1`,
             [id_user]
         );
         res.status(200).send(userData[0]);
