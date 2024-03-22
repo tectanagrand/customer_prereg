@@ -9,6 +9,8 @@ import ListUserGroup from "../pages/menuaccess/ListUserGroup";
 import MenuAccessPage from "../pages/menuaccess/MenuAccessPage";
 import LoadingNoteForm from "../pages/loadingnote/LoadingNoteForm";
 import MasterLoadingNote from "../pages/loadingnote/MasterLoadingNote";
+import FormCreateLoadingNote from "../pages/osreq/FormCreateLoadingNote";
+import TableParentCustDashboard from "../component/table/TableParentCustDashboardLN";
 
 export const routes = createBrowserRouter([
     {
@@ -45,11 +47,15 @@ export const routes = createBrowserRouter([
             },
             {
                 path: "loadingnote/",
-                element: <MasterLoadingNote />,
+                element: <TableParentCustDashboard />,
             },
             {
                 path: "loadingnote/create",
                 element: <LoadingNoteForm />,
+            },
+            {
+                path: "osreq/",
+                element: <FormCreateLoadingNote />,
             },
         ],
     },
