@@ -6,6 +6,7 @@ const noderfc = require("node-rfc");
 const INDICATOR = require("../config/IndicateRFC");
 const moment = require("moment");
 noderfc.setIniFileDirectory("../customer_prereg");
+const poolRFC = require("../config/rfcconnection");
 
 const LoadingNoteModel = {};
 
@@ -439,6 +440,373 @@ LoadingNoteModel.getById = async id_header => {
     }
 };
 
-LoadingNoteModel.getRequestedLoadNote = async () => {};
+LoadingNoteModel.getRequestedLoadNote = async (
+    filters = [],
+    pagination = { pageIndex: 0, pageSize: 10 },
+    sorting = { id: "id", desc: "true" }
+) => {
+    try {
+        const client = await db.connect();
+        try {
+            let filter_que = [];
+            let filter_val = [];
+            let filterStr = "";
+            let sortQue = `ORDER BY ${sorting.id} ${sorting.desc ? "DESC" : "ASC"}`;
+            let pagiQue = `LIMIT ${pagination.pageSize} OFFSET ${pagination.pageSize * pagination.pageIndex}`;
+
+            if (filters.length !== 0) {
+                filters.forEach((item, index) => {
+                    filter_que.push(`${item.id} LIKE $${index + 1}`);
+                    filter_val.push(`%${item.value}%`);
+                });
+                filterStr = "WHERE " + filter_que.join(" AND ");
+            }
+            const baseQ = `SELECT DET.det_id as id,
+                HD.hd_id,
+                HD.ID_DO,
+                HD.PLANT,
+                USR.SAP_CODE as cust_code,
+                CONCAT(DET.DRIVER_ID,
+
+                    ' - ',
+                    DET.DRIVER_NAME) AS DRIVER,
+                DET.VHCL_ID,
+                TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE,
+                DET.PLAN_QTY,
+                HD.UOM
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
+            LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+            WHERE HD.CUR_POS = 'FINA'`;
+            const que = `SELECT * FROM (${baseQ}) A ${filterStr} ${sortQue} ${pagiQue} ;`;
+            const { rows } = await client.query(que, filter_val);
+            console.log(rows);
+            return {
+                limit: pagination.limit,
+                offset: pagination.offset,
+                data: rows,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.getRequestedLoadNote2 = async (filters = []) => {
+    try {
+        const client = await db.connect();
+        try {
+            let filter_que = [];
+            let filter_val = [];
+            let filterStr = "";
+            if (filters.length !== 0) {
+                let idx = 1;
+                filters.forEach((item, index) => {
+                    if (item.value !== "") {
+                        filter_que.push(`${item.id} = $${idx}`);
+                        filter_val.push(`${item.value}`);
+                        idx++;
+                    }
+                });
+                if (filter_que.length !== 0) {
+                    filterStr = "WHERE " + filter_que.join(" AND ");
+                }
+            }
+            const baseQ = `SELECT DET.det_id as id,
+                HD.hd_id,
+                HD.ID_DO,
+                HD.PLANT,
+                HD.RULES,
+                HD.company,
+                HD.material,
+                DET.fac_plant,
+                DET.oth_plant,
+                DET.media_tp,
+                DET.driver_id,
+                USR.SAP_CODE as cust_code,
+                CONCAT(DET.DRIVER_ID,
+
+                    ' - ',
+                    DET.DRIVER_NAME) AS DRIVER,
+                DET.VHCL_ID,
+                TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE,
+                DET.cre_date as CREATE_DATE,
+                DET.PLAN_QTY,
+                HD.UOM
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
+            LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+            WHERE DET.ln_num IS NULL`;
+            const que = `SELECT * FROM (${baseQ}) A ${filterStr} ;`;
+            const { rows } = await client.query(que, filter_val);
+            return {
+                data: rows,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.getOSLoadingNoteNum = async (limit, offset, q) => {
+    try {
+        const client = await db.connect();
+
+        try {
+            const { rows: dataComp } = await client.query(
+                `SELECT distinct id_do FROM loading_note_hd WHERE id_do like $1 LIMIT $2 OFFSET $3`,
+                [`%${q}%`, limit, offset]
+            );
+            const { rows } = await client.query(
+                `SELECT count(distinct id_do) as ctr FROM loading_note_hd WHERE id_do like $1 `,
+                [`%${q}%`]
+            );
+            return {
+                data: dataComp,
+                count: rows[0].ctr,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.finalizeLoadingNote_2 = async (params, session) => {
+    try {
+        const client = await db.connect();
+        let rfcclient = await poolRFC.acquire();
+        let dbpromise = [];
+        let loading_note = new Map();
+        let failed_case = new Map();
+        const today = new Date();
+        const uploadData = params.selected_req;
+        const fac_sloc = params.fac_sloc;
+        const fac_valtype = params.fac_valtype;
+        const oth_sloc = params.oth_sloc;
+        const oth_valtype = params.oth_valtype;
+        try {
+            await client.query(TRANS.BEGIN);
+            let index = 0;
+            for (item of uploadData) {
+                const param = {
+                    I_RECORD_REGISTRA: {
+                        BUKRS: item.company,
+                        UPLOADID: "1",
+                        DOTYPE: "S",
+                        ITEMRULE: item.rules,
+                        VBELN_REF: item.id_do,
+                        POSNR: "10",
+                        EBELN_REF: "",
+                        CREDAT: moment(item.create_date).format("DD.MM.YYYY"),
+                        MATNR: item.material,
+                        PLN_LFIMG: item.plan_qty,
+                        DWERKS: item.fac_plant,
+                        DLGORT: fac_sloc,
+                        RWERKS: item.oth_plant,
+                        RLGORT: oth_sloc,
+                        ZZTRANSP_TYPE: item.media_tp,
+                        WANGKUTAN: "",
+                        WNOSIM: item.driver_id,
+                        WNOPOLISI: item.vhcl_id,
+                        L_LFIMG: "0",
+                        OP_LFIMG: "0",
+                        DOPLINE: "0000",
+                        VSLCD: "",
+                        VOYNR: "",
+                        DCHARG_1: item.company,
+                        RCHARG_1: item.id_do,
+                        RBWTAR_1: oth_valtype,
+                    },
+                };
+                console.log(param);
+                const data = await rfcclient.call(
+                    "ZRFC_PRE_REGISTRA_CUST",
+                    param
+                );
+                if (
+                    data?.RFC_TEXT &&
+                    data?.RFC_TEXT.includes("successfully created")
+                ) {
+                    loading_note.set(
+                        uploadData[index].id,
+                        data?.RFC_TEXT.replace(/[^0-9]/g, "").trim()
+                    );
+                } else {
+                    failed_case.set(
+                        `${uploadData[index].id_do}-${uploadData[index].vhcl_id}-${uploadData[index].id}`,
+                        data?.RFC_TEXT
+                    );
+                }
+                index++;
+            }
+            loading_note.forEach((value, key) => {
+                const payload = {
+                    ln_num: value,
+                    is_pushed: true,
+                    fac_sloc: fac_sloc,
+                    oth_sloc: oth_sloc,
+                    fac_valtype: fac_valtype,
+                    oth_valtype: oth_valtype,
+                    update_at: today,
+                    update_by: session.id_user,
+                };
+                const [que, val] = crud.updateItem(
+                    "loading_note_det",
+                    payload,
+                    { det_id: key },
+                    "ln_num"
+                );
+                dbpromise.push(client.query(que, val));
+            });
+            const resultDb = await Promise.all(dbpromise);
+            // console.log(resultDb);
+            await client.query(TRANS.COMMIT);
+            return {
+                loading_note: Object.fromEntries(loading_note.entries()),
+                failed: Object.fromEntries(failed_case.entries()),
+            };
+        } catch (error) {
+            console.log(error);
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+            poolRFC.release(rfcclient);
+        }
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
+
+LoadingNoteModel.getAllDataLNbyUser = async session => {
+    try {
+        const client = await db.connect();
+        try {
+            const que = `SELECT HD.HD_ID,
+            DET.DET_ID,
+                HD.ID_DO,
+                HD.RULES,
+                HD.CON_NUM,
+                CONCAT(HD.CON_QTY,
+            
+                    HD.UOM),
+                HD.PLANT,
+                HD.COMPANY,
+                TO_CHAR(DET.CRE_DATE,
+            
+                    'MM-DD-YYYY'),
+                DET.DRIVER_ID,
+                DET.DRIVER_NAME,
+                DET.VHCL_ID,
+                DET.MEDIA_TP,
+                DET.LN_NUM,
+                CASE 
+                    WHEN HD.CUR_POS = 'INIT' THEN 'CUSTOMER'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NULL OR DET.LN_NUM = '') THEN 'LOGISTIC'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NOT NULL OR DET.LN_NUM <> '') THEN 'END'
+                    ELSE ''
+                END
+                AS CURRENT_POS
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN LOADING_NOTE_DET DET ON DET.HD_FK = HD.HD_ID`;
+            const getDataSess = `${que} WHERE DET.CREATE_BY = $1`;
+            const { rows } = await client.query(getDataSess, [session.id_user]);
+            return rows;
+        } catch (error) {
+            throw error;
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.getAllDataLNbyUser_2 = async session => {
+    try {
+        const client = await db.connect();
+        let finaData = [];
+        try {
+            const que_par = `SELECT HD.HD_ID,
+                HD.ID_DO,
+                HD.RULES,
+                HD.CON_NUM,
+                CONCAT(HD.CON_QTY,
+                    HD.UOM) AS CON_QTY,
+                HD.PLANT,
+                HD.COMPANY
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN LOADING_NOTE_DET DET ON DET.HD_FK = HD.HD_ID`;
+            const getDataSess = `${que_par} WHERE HD.CREATE_BY = $1`;
+            const { rows: parentRow } = await client.query(getDataSess, [
+                session.id_user,
+            ]);
+
+            for (const row of parentRow) {
+                const que_ch = `SELECT 
+                TO_CHAR(DET.CRE_DATE,
+            
+                    'MM-DD-YYYY') AS CRE_DATE,
+                DET.DRIVER_ID,
+                DET.DRIVER_NAME,
+                DET.VHCL_ID,
+                DET.MEDIA_TP,
+                DET.LN_NUM,
+                CASE 
+                    WHEN HD.CUR_POS = 'INIT' THEN 'CUSTOMER'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NULL OR DET.LN_NUM = '') THEN 'LOGISTIC'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NOT NULL OR DET.LN_NUM <> '') THEN 'END'
+                    ELSE ''
+                END
+                AS CURRENT_POS
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN LOADING_NOTE_DET DET ON DET.HD_FK = HD.HD_ID
+                `;
+                const getDataCh = `${que_ch} WHERE HD.create_by = $1 AND HD.HD_ID = $2`;
+                const { rows: rowCh } = await client.query(getDataCh, [
+                    session.id_user,
+                    row.hd_id,
+                ]);
+                finaData.push({ ...row, sub_table: rowCh });
+            }
+
+            /*
+            TO_CHAR(DET.CRE_DATE,
+            
+                    'MM-DD-YYYY'),
+                DET.DRIVER_ID,
+                DET.DRIVER_NAME,
+                DET.VHCL_ID,
+                DET.MEDIA_TP,
+                DET.LN_NUM,
+                CASE 
+                    WHEN HD.CUR_POS = 'INIT' THEN 'CUSTOMER'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NULL OR DET.LN_NUM = '') THEN 'LOGISTIC'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NOT NULL OR DET.LN_NUM <> '') THEN 'END'
+                    ELSE ''
+                END
+                AS CURRENT_POS
+            */
+            return finaData;
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
 
 module.exports = LoadingNoteModel;

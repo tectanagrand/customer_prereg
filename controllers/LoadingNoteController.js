@@ -89,4 +89,96 @@ LoadingNoteController.showSLoc = async (req, res) => {
         });
     }
 };
+
+LoadingNoteController.showOSReqLN = async (req, res) => {
+    // filters :
+    /*
+   [
+    id : <key>,
+    value : value
+   ]
+    pagination : 
+    {
+       pageIndex :
+       pageSize :
+    }
+
+    sorting : {
+       id : <key> , desc : bool
+    }
+    */
+
+    try {
+        const filter = req.body.filter;
+        const pagination = req.body.pagination;
+        const sorting = req.body.sorting;
+        const data = await LoadNote.getRequestedLoadNote(
+            filter,
+            pagination,
+            sorting
+        );
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.showOSReqLN2 = async (req, res) => {
+    try {
+        const filter = req.body.filters;
+        const data = await LoadNote.getRequestedLoadNote2(filter);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.getOSLoadingNoteNum = async (req, res) => {
+    try {
+        const q = req.query.q;
+        const limit = req.query.limit;
+        const offset = req.query.offset;
+        const dataLN = await LoadNote.getOSLoadingNoteNum(limit, offset, q);
+        res.status(200).send(dataLN);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.SubmitSAP_2 = async (req, res) => {
+    try {
+        const payload = req.body;
+        const session = req.cookies;
+        const insertSAP = await LoadNote.finalizeLoadingNote_2(
+            payload,
+            session
+        );
+        res.status(200).send(insertSAP);
+    } catch (error) {
+        console.error(error.stack);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.getAllDataLNbyUser = async (req, res) => {
+    try {
+        const session = req.cookies;
+        const data = await LoadNote.getAllDataLNbyUser_2(session);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: error.message });
+    }
+};
 module.exports = LoadingNoteController;
