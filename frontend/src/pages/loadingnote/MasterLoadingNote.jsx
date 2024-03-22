@@ -18,7 +18,9 @@ export default function MasterLoadingNote() {
 
     useEffect(() => {
         const getAllDataUser = async () => {
-            const { data } = await Axios.get("/ln");
+            const { data } = await Axios.get("/ln/lnuser", {
+                withCredentials: true,
+            });
             // console.log(getUser.data.data);
             setLoadNote(data.data);
             setLoad(false);
