@@ -267,23 +267,42 @@ MasterModel.getCustDataDB = async (limit, offset, q) => {
     }
 };
 
-MasterModel.getOSDataCust = async (limit, offset, q) => {
+MasterModel.getOSDataCust = async (limit, offset, q, do_num) => {
+    console.log(do_num);
     try {
         const client = await db.connect();
+        let do_numCheck = "";
+        let do_numCheck2 = "";
+        if (do_num !== "") {
+            do_numCheck = "AND HED.id_do = $2";
+            do_numCheck = "AND HED.id_do = $2";
+        }
 
         try {
             const { rows: dataComp } = await client.query(
                 `SELECT distinct USR.sap_code FROM loading_note_det DET
                 LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
+                LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
                 WHERE USR.sap_code like $1
-                LIMIT $2 OFFSET $3`,
-                [`%${q}%`, limit, offset]
+                AND DET.ln_num is null
+                AND DET.push_sap_date is null
+                AND hed.cur_pos = 'FINA'
+                ${do_numCheck}
+                LIMIT $3 OFFSET $4`,
+                do_numCheck !== ""
+                    ? [`%${q}%`, do_num, limit, offset]
+                    : [`%${q}%`, limit, offset]
             );
             const { rows } = await client.query(
                 `SELECT distinct USR.sap_code FROM loading_note_det DET
                 LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
-                WHERE USR.sap_code like $1`,
-                [`${q}%`]
+                 LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
+                WHERE USR.sap_code like $1
+                AND DET.push_sap_date is null
+                AND hed.cur_pos = 'FINA'
+                ${do_numCheck2}
+                AND DET.ln_num is null`,
+                do_numCheck2 !== "" ? [`%${q}%`, do_num] : [`%${q}%`]
             );
             return {
                 data: dataComp,
