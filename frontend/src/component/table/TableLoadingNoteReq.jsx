@@ -14,6 +14,8 @@ import {
 } from "@mui/material";
 import { useState, useEffect, useMemo } from "react";
 import { CheckBoxTable } from "../input/CheckBoxTable";
+import { useTheme, styled } from "@mui/material/styles";
+import { checkboxClasses } from "@mui/material";
 // import PaginationActionButton from "./PaginationActionButton";
 
 export default function TableLoadingNoteReq({
@@ -21,6 +23,7 @@ export default function TableLoadingNoteReq({
     setLoading,
     setSelectedRowsUp,
 }) {
+    const theme = useTheme();
     const [rows, setRows] = useState([]);
     const dataFilters = useMemo(() => filters, [filters]);
     const [rowSelected, setSelectedRows] = useState([]);
@@ -37,6 +40,12 @@ export default function TableLoadingNoteReq({
                             checked: table.getIsAllRowsSelected(),
                             indeterminate: table.getIsSomeRowsSelected(),
                             onChange: table.getToggleAllRowsSelectedHandler(),
+                            sx: {
+                                [`&, &.${checkboxClasses.checked}`]: {
+                                    color: theme.palette.grey[100],
+                                },
+                                color: theme.palette.grey[100],
+                            },
                         }}
                     />
                 ),
