@@ -1,4 +1,5 @@
 const db = require("../config/connection");
+const { PoolOra, ora } = require("../config/oracleconnection");
 const TRANS = require("../config/transaction");
 const crud = require("../helper/crudquery");
 const uuid = require("uuidv4");
@@ -125,7 +126,6 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
             } else {
                 payloadHeader.cur_pos = "FINA";
             }
-            console.log(payloadHeader);
             if (params.id_header === "") {
                 [que, val] = crud.insertItem(
                     "loading_note_hd",
@@ -540,7 +540,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = []) => {
             FROM LOADING_NOTE_HD HD
             LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
             LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
-            WHERE DET.ln_num IS NULL`;
+            WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA'`;
             const que = `SELECT * FROM (${baseQ}) A ${filterStr} ;`;
             const { rows } = await client.query(que, filter_val);
             return {
@@ -562,11 +562,16 @@ LoadingNoteModel.getOSLoadingNoteNum = async (limit, offset, q) => {
 
         try {
             const { rows: dataComp } = await client.query(
-                `SELECT distinct id_do FROM loading_note_hd WHERE id_do like $1 LIMIT $2 OFFSET $3`,
+                `SELECT distinct hd.id_do FROM loading_note_hd hd
+                LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
+                WHERE hd.id_do like $1 AND det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
+                LIMIT $2 OFFSET $3`,
                 [`%${q}%`, limit, offset]
             );
             const { rows } = await client.query(
-                `SELECT count(distinct id_do) as ctr FROM loading_note_hd WHERE id_do like $1 `,
+                `SELECT count(distinct hd.id_do) as ctr FROM loading_note_hd hd
+                LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
+                WHERE hd.id_do like $1 AND det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'`,
                 [`%${q}%`]
             );
             return {
@@ -630,7 +635,6 @@ LoadingNoteModel.finalizeLoadingNote_2 = async (params, session) => {
                         RBWTAR_1: oth_valtype,
                     },
                 };
-                console.log(param);
                 const data = await rfcclient.call(
                     "ZRFC_PRE_REGISTRA_CUST",
                     param
@@ -691,6 +695,103 @@ LoadingNoteModel.finalizeLoadingNote_2 = async (params, session) => {
     }
 };
 
+LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
+    try {
+        const client = await db.connect();
+        const oraclient = await ora.getConnection();
+        const today = new Date();
+        const uploadData = params.selected_req;
+        const fac_sloc = params.fac_sloc;
+        const fac_valtype = params.fac_valtype;
+        const oth_sloc = params.oth_sloc;
+        const oth_valtype = params.oth_valtype;
+        try {
+            await client.query(TRANS.BEGIN);
+            for (item of uploadData) {
+                const { rowCount } = await client.query(
+                    `SELECT * FROM loading_note_det WHERE det_id = $1 and push_sap_date is not null`,
+                    [item.id]
+                );
+                if (rowCount > 0) {
+                    throw new Error("Request already pushed");
+                }
+                const param = {
+                    HEAD_ID: item.hd_id,
+                    DET_ID: item.id,
+                    BUKRS: item.company,
+                    UPLOAD_ID: "1",
+                    DOTYPE: "S",
+                    ITEMRULE: item.rules,
+                    VBELN_REF: item.id_do,
+                    POSNR: "10",
+                    EBELN_REF: "",
+                    // CREDAT: moment(item.create_date).format("DD.MM.YYYY"),
+                    CREDAT: `TO_DATE('${moment(item.create_date).format("YYYY-MM-DD")}', 'yyyy-mm-dd')`,
+                    MATNR: item.material,
+                    PLN_LFIMG: parseInt(item.plan_qty),
+                    DWERKS: item.fac_plant,
+                    DLGORT: fac_sloc,
+                    RWERKS: item.oth_plant,
+                    RLGORT: oth_sloc,
+                    ZZTRANSP_TYPE: item.media_tp,
+                    WANGKUTAN: "",
+                    WNOSIM: item.driver_id,
+                    WNOPOLISI: item.vhcl_id,
+                    L_LFIMG: 0,
+                    OP_LFIMG: 0,
+                    DOPLINE: "0000",
+                    VSLCD: "",
+                    VOYNR: "",
+                    DCHARG_1: item.company,
+                    RCHARG_1: item.id_do,
+                    RBWTAR_1: oth_valtype,
+                    CREATE_BY: session.id_user,
+                    CREATE_AT: `TO_DATE('${moment(today).format("YYYY-MM-DD")}', 'yyyy-mm-dd')`,
+                };
+                const [queIns, valIns] = crud.insertItemOra(
+                    "LOADING_NOTE_SAP",
+                    param
+                );
+                const paramDb = {
+                    push_sap_date: today,
+                    update_by: session.id_user,
+                    fac_sloc: fac_sloc,
+                    oth_sloc: oth_sloc,
+                    fac_valtype: fac_valtype,
+                    oth_valtype: oth_valtype,
+                };
+                const whereDb = {
+                    det_id: item.id,
+                };
+                const [upDb, valDb] = crud.updateItem(
+                    "loading_note_det",
+                    paramDb,
+                    whereDb,
+                    "det_id"
+                );
+                const uptoDb = await client.query(upDb, valDb);
+                const insertToStage = await oraclient.execute(queIns, valIns);
+            }
+            // console.log(resultDb);
+            await client.query(TRANS.COMMIT);
+            await oraclient.commit();
+            return {
+                message: "Loading Note request staged to SAP",
+            };
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            await oraclient.rollback();
+            throw error;
+        } finally {
+            client.release();
+            oraclient.close();
+        }
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
+
 LoadingNoteModel.getAllDataLNbyUser = async session => {
     try {
         const client = await db.connect();
@@ -715,8 +816,9 @@ LoadingNoteModel.getAllDataLNbyUser = async session => {
                 DET.LN_NUM,
                 CASE 
                     WHEN HD.CUR_POS = 'INIT' THEN 'CUSTOMER'
-                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NULL OR DET.LN_NUM = '') THEN 'LOGISTIC'
-                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NOT NULL OR DET.LN_NUM <> '') THEN 'END'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.PUSH_SAP_DATE IS NULL OR DET.PUSH_SAP_DATE = '') THEN 'LOGISTIC'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.PUSH_SAP_DATE IS NOT NULL OR DET.PUSH_SAP_DATE <> '') AND (DET.LN_NUM IS NULL OR DET.LN_NUM == '')  THEN 'PUSHED SAP'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NOT NULL OR DET.LN_NUM <> '') THEN 'SUCCESS'
                     ELSE ''
                 END
                 AS CURRENT_POS
@@ -746,8 +848,7 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async session => {
                     HD.UOM) AS CON_QTY,
                 HD.PLANT,
                 HD.COMPANY
-            FROM LOADING_NOTE_HD HD
-            LEFT JOIN LOADING_NOTE_DET DET ON DET.HD_FK = HD.HD_ID`;
+            FROM LOADING_NOTE_HD HD`;
             const getDataSess = `${que_par} WHERE HD.CREATE_BY = $1`;
             const { rows: parentRow } = await client.query(getDataSess, [
                 session.id_user,
@@ -765,8 +866,9 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async session => {
                 DET.LN_NUM,
                 CASE 
                     WHEN HD.CUR_POS = 'INIT' THEN 'CUSTOMER'
-                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NULL OR DET.LN_NUM = '') THEN 'LOGISTIC'
-                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NOT NULL OR DET.LN_NUM <> '') THEN 'END'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.PUSH_SAP_DATE IS NULL) THEN 'LOGISTIC'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.PUSH_SAP_DATE IS NOT NULL ) AND (DET.LN_NUM IS NULL OR DET.LN_NUM = '')  THEN 'PUSHED SAP'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NOT NULL OR DET.LN_NUM <> '') THEN 'SUCCESS'
                     ELSE ''
                 END
                 AS CURRENT_POS
@@ -781,23 +883,93 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async session => {
                 finaData.push({ ...row, sub_table: rowCh });
             }
 
-            /*
-            TO_CHAR(DET.CRE_DATE,
+            return finaData;
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.getDataOSUser = async session => {
+    const que = `SELECT 
+    HD.ID_DO,
+    HD.desc_con,
+    CONCAT(DET.DRIVER_ID, '-', DET.DRIVER_NAME) AS DRIVER,
+    DET.VHCL_ID,
+    CONCAT(DET.PLAN_QTY, ' ', UOM) AS PLAN_QTY,
+    CASE 
+        WHEN HD.CUR_POS = 'FINA' AND (DET.PUSH_SAP_DATE IS NULL) THEN 'LOGISTIC'
+        WHEN HD.CUR_POS = 'FINA' AND (DET.PUSH_SAP_DATE IS NOT NULL ) AND (DET.LN_NUM IS NULL OR DET.LN_NUM = '')  THEN 'PUSHED SAP'
+        ELSE ''
+    END AS STATUS
+    FROM LOADING_NOTE_HD HD 
+    LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
+    WHERE HD.CUR_POS = 'FINA' AND DET.LN_NUM IS NULL AND HD.CREATE_BY = $1
+    `;
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(que, [session.id_user]);
+            return rows;
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
+
+LoadingNoteModel.getDataLastReq = async () => {
+    try {
+        const client = await db.connect();
+        let finaData = [];
+        try {
+            const que_par = `SELECT HD.HD_ID,
+                HD.ID_DO,
+                HD.RULES,
+                HD.CON_NUM,
+                CONCAT(HD.CON_QTY,
+                    HD.UOM) AS CON_QTY,
+                HD.PLANT,
+                HD.COMPANY,
+                CONCAT(CUST.KUNNR, '-', CUST.NAME_1) AS CUSTOMER
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+            LEFT JOIN MST_CUSTOMER CUST ON CUST.KUNNR = USR.SAP_CODE
+            LEFT JOIN (
+                SELECT HD_FK, COUNT(DET_ID) AS CTR FROM loading_note_det WHERE PUSH_SAP_DATE IS NULL
+                AND LN_NUM IS NULL
+                GROUP BY HD_FK 
+            ) DET ON HD.HD_ID = DET.HD_FK `;
+            const getDataSess = `${que_par} WHERE HD.cur_pos = 'FINA' AND DET.CTR > 0`;
+            const { rows: parentRow } = await client.query(getDataSess);
+
+            for (const row of parentRow) {
+                const que_ch = `SELECT 
+                TO_CHAR(DET.CRE_DATE,
             
-                    'MM-DD-YYYY'),
+                    'MM-DD-YYYY') AS CRE_DATE,
                 DET.DRIVER_ID,
                 DET.DRIVER_NAME,
                 DET.VHCL_ID,
                 DET.MEDIA_TP,
-                DET.LN_NUM,
-                CASE 
-                    WHEN HD.CUR_POS = 'INIT' THEN 'CUSTOMER'
-                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NULL OR DET.LN_NUM = '') THEN 'LOGISTIC'
-                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NOT NULL OR DET.LN_NUM <> '') THEN 'END'
-                    ELSE ''
-                END
-                AS CURRENT_POS
-            */
+                CONCAT(DET.PLAN_QTY, HD.UOM) AS PLAN_QTY
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN LOADING_NOTE_DET DET ON DET.HD_FK = HD.HD_ID
+                `;
+                const getDataCh = `${que_ch} WHERE HD.HD_ID = $1 AND PUSH_SAP_DATE IS NULL`;
+                const { rows: rowCh } = await client.query(getDataCh, [
+                    row.hd_id,
+                ]);
+                finaData.push({ ...row, sub_table: rowCh });
+            }
             return finaData;
         } catch (error) {
             throw error;

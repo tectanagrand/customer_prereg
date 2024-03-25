@@ -171,10 +171,50 @@ LoadingNoteController.SubmitSAP_2 = async (req, res) => {
     }
 };
 
+LoadingNoteController.SubmitSAP_3 = async (req, res) => {
+    try {
+        const payload = req.body;
+        const session = req.cookies;
+        const insertSAP = await LoadNote.finalizeLoadingNote_3(
+            payload,
+            session
+        );
+        res.status(200).send(insertSAP);
+    } catch (error) {
+        console.error(error.stack);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 LoadingNoteController.getAllDataLNbyUser = async (req, res) => {
     try {
         const session = req.cookies;
         const data = await LoadNote.getAllDataLNbyUser_2(session);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: error.message });
+    }
+};
+
+LoadingNoteController.getDataOSUser = async (req, res) => {
+    try {
+        const session = req.cookies;
+        const data = await LoadNote.getDataOSUser(session);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.getDataLastReq = async (req, res) => {
+    try {
+        const data = await LoadNote.getDataLastReq();
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
