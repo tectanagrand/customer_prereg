@@ -15,11 +15,13 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import NavSection from "./NavSection";
 import { useMenu } from "../../provider/MenuProvider";
+import { useNavigate } from "react-router-dom";
 // import { useSession } from "../../provider/sessionProvider";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import KpnLogo from "../../images/kpn-logo-3.svg?react";
 import KpnNav from "../../images/kpn-logo.svg?react";
 import AvatarComp from "./AvatarComp";
+import { Button } from "@mui/material";
 
 const drawerWidth = 240;
 
@@ -86,6 +88,7 @@ const Drawer = styled(MuiDrawer, {
 
 export default function Dashboard() {
     const theme = useTheme();
+    const navigate = useNavigate();
     const location = useLocation();
     // const { session, setSession } = useSession();
     const { permission } = useMenu();
@@ -182,11 +185,18 @@ export default function Dashboard() {
             </AppBar>
             <Drawer variant="permanent" open={open}>
                 <DrawerHeader>
-                    <SvgIcon
-                        sx={{ width: "10rem", height: "2rem" }}
-                        component={KpnLogo}
-                        viewBox="10 50 700 100"
-                    ></SvgIcon>
+                    <Button
+                        sx={{ width: "10rem", height: "4rem" }}
+                        disableElevation
+                        disableFocusRipple
+                    >
+                        <SvgIcon
+                            sx={{ width: "100%", height: "100%" }}
+                            component={KpnLogo}
+                            viewBox="10 50 700 100"
+                            onClick={() => navigate("/dashboard")}
+                        ></SvgIcon>
+                    </Button>
                     <IconButton onClick={handleDrawerClose}>
                         {theme.direction === "rtl" ? (
                             <ChevronRightIcon />
