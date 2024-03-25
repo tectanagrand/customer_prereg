@@ -105,7 +105,7 @@ export default function User() {
             flex: 0.1,
         },
         {
-            field: "role",
+            field: "role_name",
             headerName: "Role",
             flex: 0.05,
         },
