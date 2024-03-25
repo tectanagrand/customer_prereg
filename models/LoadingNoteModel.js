@@ -841,14 +841,19 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async session => {
         let finaData = [];
         try {
             const que_par = `SELECT HD.HD_ID,
-                HD.ID_DO,
-                HD.RULES,
-                HD.CON_NUM,
-                CONCAT(HD.CON_QTY,
-                    HD.UOM) AS CON_QTY,
-                HD.PLANT,
-                HD.COMPANY
-            FROM LOADING_NOTE_HD HD`;
+            HD.ID_DO,
+            HD.RULES,
+            HD.CON_NUM,
+            CONCAT(HD.CON_QTY,
+                HD.UOM) AS CON_QTY,
+            HD.PLANT,
+            HD.COMPANY,
+            COALESCE(DET.CTROS, 0) AS CTROS
+        FROM LOADING_NOTE_HD HD
+        LEFT JOIN (
+            SELECT HD_FK, COUNT(DET_ID) AS CTROS FROM LOADING_NOTE_DET WHERE LN_NUM IS NULL AND PUSH_SAP_DATE IS NULL
+            GROUP BY HD_FK
+        ) DET ON HD.HD_ID = DET.HD_FK`;
             const getDataSess = `${que_par} WHERE HD.CREATE_BY = $1`;
             const { rows: parentRow } = await client.query(getDataSess, [
                 session.id_user,
