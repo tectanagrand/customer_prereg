@@ -23,6 +23,31 @@ const Crud = {
         return [query, value];
     },
 
+    insertItemOra: (toTable, val) => {
+        let valFormat = [];
+        let value = [];
+        let insertCol = [];
+        let index = 1;
+        Object.keys(val).forEach((key, ix) => {
+            insertCol.push(key);
+            if (typeof val[key] === "string" && !val[key].includes("TO_DATE")) {
+                valFormat.push(":" + index);
+                value.push(val[key]);
+                index++;
+            } else {
+                valFormat.push(val[key]);
+            }
+        });
+        // Object.values(val).forEach(v => {
+        //     value.push(v);
+        // });
+        const qinsertCol = insertCol.join(", ");
+        const qvalFormat = valFormat.join(", ");
+        let query = `INSERT INTO ${toTable}(${qinsertCol}) values(${qvalFormat}) `;
+
+        return [query, value];
+    },
+
     updateItem: (toTable, val, where, returning = null) => {
         let value = [];
         let insertCol = [];
@@ -45,6 +70,26 @@ const Crud = {
         } else {
             query += " ;";
         }
+        return [query, value];
+    },
+
+    updateItemOra: (toTable, val, where) => {
+        let value = [];
+        let insertCol = [];
+        let whereCol = [];
+        delete val[`${where.col}`];
+        Object.keys(val).forEach((key, ix) => {
+            insertCol.push(key + ` = :${ix + 1}`);
+        });
+        Object.values(val).forEach(v => {
+            value.push(v);
+        });
+        Object.keys(where).forEach(key => {
+            whereCol.push(key + `= '${where[key]}'`);
+        });
+        let whereScr = whereCol.join(" and ");
+        const qinsertCol = insertCol.join(", ");
+        let query = `UPDATE ${toTable} SET ${qinsertCol} WHERE ${whereScr}`;
         return [query, value];
     },
 
