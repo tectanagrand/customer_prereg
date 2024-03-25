@@ -15,6 +15,7 @@ PageModel.showAll = async role_id => {
       AND PARENT_ID IS NULL
       AND TYPE = 'M'
       AND fread = true
+      AND MP.is_active = true
       ORDER BY position`,
             [role_id]
         );
