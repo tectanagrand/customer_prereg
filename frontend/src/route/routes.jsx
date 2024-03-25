@@ -30,6 +30,10 @@ export const routes = createBrowserRouter([
         element: <Dashboard />,
         children: [
             {
+                path: "",
+                element: <Home />,
+            },
+            {
                 path: "users",
                 element: <User />,
             },
@@ -56,6 +60,10 @@ export const routes = createBrowserRouter([
             {
                 path: "osreq/",
                 element: <FormCreateLoadingNote />,
+            },
+            {
+                path: "account/edit",
+                element: <FormUserPage />,
             },
         ],
     },
