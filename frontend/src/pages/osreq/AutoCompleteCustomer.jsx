@@ -3,7 +3,11 @@ import { LazySelectCompNoCont } from "../../component/input/LazySelectCompNoCont
 import { useState, useRef, useEffect } from "react";
 import { debounce } from "lodash";
 
-export default function AutoCompleteCustomer({ onChangeovr, ...props }) {
+export default function AutoCompleteCustomer({
+    onChangeovr,
+    do_num,
+    ...props
+}) {
     const limit = 10;
     const [dataRow, setDataRow] = useState([]);
     let paginationRef = useRef({
@@ -22,7 +26,7 @@ export default function AutoCompleteCustomer({ onChangeovr, ...props }) {
         setLoading(true);
         try {
             const { data: rowData } = await Axios.get(
-                `master/oscust?q=${q}&limit=${limit}&offset=${offset}`
+                `master/oscust?q=${q}&limit=${limit}&offset=${offset}&do_num=${do_num}`
             );
             return {
                 list: rowData.data,
@@ -90,7 +94,7 @@ export default function AutoCompleteCustomer({ onChangeovr, ...props }) {
                 console.error(error);
             }
         })();
-    }, [searchQuery]);
+    }, [searchQuery, do_num]);
 
     return (
         <>
