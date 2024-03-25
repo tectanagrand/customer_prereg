@@ -120,14 +120,14 @@ export default function LoginPage() {
                                 alignItems: "center",
                             }}
                         >
-                            <Link
+                            {/* <Link
                                 sx={{ mr: "3rem" }}
                                 onClick={() => {
                                     navigate("/register");
                                 }}
                             >
                                 Sign Up
-                            </Link>
+                            </Link> */}
                             <LoadingButton
                                 variant="contained"
                                 type="submit"

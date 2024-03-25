@@ -21,10 +21,10 @@ export const routes = createBrowserRouter([
         path: "login",
         element: <LoginPage />,
     },
-    {
-        path: "register",
-        element: <RegistrationPage />,
-    },
+    // {
+    //     path: "register",
+    //     element: <RegistrationPage />,
+    // },
     {
         path: "dashboard",
         element: <Dashboard />,
