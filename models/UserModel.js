@@ -201,7 +201,11 @@ UserModel.login = async ({ uemail, password }) => {
 UserModel.showAllUser = async () => {
     const client = await db.connect();
     try {
-        const { rows: userData } = await client.query("SELECT * FROM mst_user");
+        const { rows: userData } = await client.query(`
+        SELECT USR.fullname, USR.username, USR.email, RL.role_name, USR.created_date, USR.id_user, USR.id_user as id, USR.is_active
+        FROM MST_USER USR
+        LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = USR.ROLE
+        `);
         return userData;
     } catch (error) {
         console.error(error);
@@ -217,7 +221,7 @@ UserModel.getAllAuth = async role_id => {
     try {
         const { rows: getDataAuth } = await client.query(
             `SELECT mpa.page_id, mpa.fcreate, mpa.fread, mpa.fupdate, mpa.fdelete, mp.menu_page FROM mst_page_access mpa  
-            LEFT JOIN mst_page mp on mpa.page_id = mp.menu_id
+            LEFT JOIN mst_page mp on mpa.page_id = mp.menu_id and mp.is_active = true
             WHERE role_id = $1`,
             [role_id]
         );
