@@ -117,23 +117,28 @@ export default function TableParentCustDashboard() {
                 enableSorting: false,
                 cell: props => {
                     let buttons = [];
-                    buttons.push(
-                        <Tooltip
-                            key={props.row.id}
-                            title={<Typography>Edit</Typography>}
-                        >
-                            <IconButton
-                                sx={{ backgroundColor: "primary.light", mx: 1 }}
-                                onClick={() =>
-                                    buttonAction("edit", {
-                                        id: props.row.original.hd_id,
-                                    })
-                                }
+                    if (props.row.original.ctros > 0) {
+                        buttons.push(
+                            <Tooltip
+                                key={props.row.id}
+                                title={<Typography>Edit</Typography>}
                             >
-                                <Edit></Edit>
-                            </IconButton>
-                        </Tooltip>
-                    );
+                                <IconButton
+                                    sx={{
+                                        backgroundColor: "primary.light",
+                                        mx: 1,
+                                    }}
+                                    onClick={() =>
+                                        buttonAction("edit", {
+                                            id: props.row.original.hd_id,
+                                        })
+                                    }
+                                >
+                                    <Edit></Edit>
+                                </IconButton>
+                            </Tooltip>
+                        );
+                    }
                     return buttons;
                 },
             },
