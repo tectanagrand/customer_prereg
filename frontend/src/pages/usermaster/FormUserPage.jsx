@@ -6,18 +6,20 @@ import PatternFieldComp from "../../component/input/PatternFieldComp";
 import AutoSelectUserSAP from "./AutoSelectUserSAP";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
+import { useSession } from "../../provider/sessionProvider";
 // import useAxiosPrivate from 'src/hooks/useAxiosPrivate';
 import { Axios } from "../../api/axios";
 // import DatePickerComp from 'src/components/common/DatePickerComp';
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { LoadingButton } from "@mui/lab";
-import { useSession } from "../../provider/sessionProvider";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function FormUserPage() {
     const [btnClicked, setBtnclicked] = useState(false);
+    const { getPermission } = useSession();
     const { session } = useSession();
     const location = useLocation();
+    const allowUpdate = getPermission("User Master").fupdate;
     // const axiosPrivate = useAxiosPrivate();
     const [role, setRoles] = useState([]);
     const [searchParams] = useSearchParams();
@@ -32,12 +34,19 @@ export default function FormUserPage() {
             email: "",
             password: "",
             role: "",
+            customer_id: { value: "", label: "" },
         },
         resetOptions: {
             keepDirtyValues: true, // user-interacted input will be retained
             keepErrors: true, // input errors will be retained with value update
         },
     });
+
+    useEffect(() => {
+        if (!allowUpdate) {
+            navigate("/dashboard");
+        }
+    }, []);
 
     const getUserData = async iduser => {
         // const userDt = await axiosPrivate.get(`/user/show/?iduser=${iduser}`);
@@ -86,7 +95,10 @@ export default function FormUserPage() {
         }
     }, []);
 
-    useEffect(() => {});
+    useEffect(() => {
+        let userid = searchParams.get("iduser");
+        getUserData(userid);
+    }, [location.state]);
 
     const submitUser = async data => {
         setBtnclicked(true);
@@ -196,29 +208,33 @@ export default function FormUserPage() {
                                 isNumString={false}
                             />
                         </Grid>
-                        <Grid item xs>
-                            <SelectComp
-                                name="role"
-                                control={control}
-                                label="Role"
-                                options={role}
-                                rules={{ required: true }}
-                                fullWidth
-                            />
-                        </Grid>
-                        <Grid item xs>
-                            <AutoSelectUserSAP
-                                name="customer_id"
-                                control={control}
-                                label="Customer Id"
-                                rules={{
-                                    validate: v =>
-                                        v?.value !== null &&
-                                        v?.value !== "" &&
-                                        v !== null,
-                                }}
-                            />
-                        </Grid>
+                        {allowUpdate && location.state?.page !== "userinfo" && (
+                            <>
+                                <Grid item xs>
+                                    <SelectComp
+                                        name="role"
+                                        control={control}
+                                        label="Role"
+                                        options={role}
+                                        rules={{ required: true }}
+                                        fullWidth
+                                    />
+                                </Grid>
+                                <Grid item xs>
+                                    <AutoSelectUserSAP
+                                        name="customer_id"
+                                        control={control}
+                                        label="Customer Id"
+                                        rules={{
+                                            validate: v =>
+                                                v?.value !== null &&
+                                                v?.value !== "" &&
+                                                v !== null,
+                                        }}
+                                    />
+                                </Grid>
+                            </>
+                        )}
                     </Grid>
                 </Box>
                 <Box

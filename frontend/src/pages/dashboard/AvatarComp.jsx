@@ -30,13 +30,13 @@ export default function AvatarComp() {
             navigate("/login");
         }, 1000);
     };
-    // const handleUserInfo = () => {
-    //     setAnchorel(null);
-    //     navigate(`../../dashboard/account/edit?iduser=${session.id_user}`, {
-    //         replace: true,
-    //         state: { page: "userinfo" },
-    //     });
-    // };
+    const handleUserInfo = () => {
+        setAnchorel(null);
+        navigate(`/dashboard/account/edit?iduser=${session.id_user}`, {
+            replace: true,
+            state: { page: "userinfo" },
+        });
+    };
     return (
         <>
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
@@ -82,9 +82,9 @@ export default function AvatarComp() {
                 <MenuItem onClick={handleLogout} sx={{ width: "10rem" }}>
                     Logout
                 </MenuItem>
-                {/* <MenuItem onClick={handleUserInfo} sx={{ width: "10rem" }}>
+                <MenuItem onClick={handleUserInfo} sx={{ width: "10rem" }}>
                     Edit User Info
-                </MenuItem> */}
+                </MenuItem>
             </Menu>
             <Backdrop
                 sx={{ color: "#fff", zIndex: theme => theme.zIndex.drawer - 2 }}
