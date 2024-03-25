@@ -3,6 +3,7 @@ import { Button, Divider, Tooltip, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import TableLastOSRequested from "./TableLastOSRequested";
+import TableParentLastReqCust from "./TableLastOSRequestedCust";
 
 export default function HomeCustomer() {
     const theme = useTheme();
@@ -71,7 +72,7 @@ export default function HomeCustomer() {
             <Divider sx={{ my: "2rem" }}></Divider>
             <div>
                 <Typography variant="h6">Last Requested :</Typography>
-                <TableLastOSRequested />
+                <TableParentLastReqCust />
             </div>
         </>
     );
