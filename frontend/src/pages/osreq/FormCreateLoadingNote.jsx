@@ -37,6 +37,7 @@ export default function FormCreateLoadingNote() {
         register,
         setValue,
         getValues,
+        reset,
         formState: { errors, isValid },
     } = useForm({
         defaultValues: {
@@ -79,7 +80,7 @@ export default function FormCreateLoadingNote() {
     };
 
     const onCloseModal = () => {
-        setModalscs(false);
+        setModalOpen(false);
     };
 
     useEffect(() => {
@@ -113,19 +114,21 @@ export default function FormCreateLoadingNote() {
         // }, 3000);
         try {
             const { data } = await Axios.post("/ln/pushmultisap", payload);
-            const load_note = Object.values(data.loading_note);
-            const fail_case = Object.keys(data.failed).map(item => {
-                return `${item.split("-")[0]} - ${item.split("-")[1]} : ${data.failed[item]}`;
-            });
-            setLNScs(load_note);
-            setFailedCase(fail_case);
             setModalscs(true);
+            reset({
+                fac_sloc: "",
+                fac_valtype: "",
+                oth_sloc: "",
+                oth_valtype: "",
+                selected_req: [],
+            });
             setTimeout(() => {
                 setModalscs(false);
-            }, 30000);
+                setModalOpen(false);
+            }, 3000);
         } catch (error) {
             console.error(error);
-            toast.error(error.message);
+            toast.error(error.response.data.message);
         } finally {
             setLoadingPush(false);
         }
@@ -138,6 +141,7 @@ export default function FormCreateLoadingNote() {
                 style={{
                     display: "flex",
                     justifyContent: "space-between",
+                    flexWrap: "wrap",
                 }}
             >
                 <Paper
@@ -159,6 +163,7 @@ export default function FormCreateLoadingNote() {
                         sx={{ minWidth: "12rem", maxWidth: "15rem" }}
                         label="Customer Code"
                         onChangeovr={setdataCust}
+                        do_num={DoNum}
                     />
                 </Paper>
                 <form
@@ -180,7 +185,7 @@ export default function FormCreateLoadingNote() {
                             label="Facility Store Loc."
                             control={control}
                             options={slocop}
-                            sx={{ minWidth: "15rem", maxWidth: "15rem" }}
+                            sx={{ minWidth: "13rem" }}
                             rules={{ required: "Please Insert" }}
                         />
                         <SelectComp
@@ -188,7 +193,7 @@ export default function FormCreateLoadingNote() {
                             label="Facility Val. Type"
                             control={control}
                             options={ValuationTypeOp}
-                            sx={{ minWidth: "15rem", maxWidth: "15rem" }}
+                            sx={{ minWidth: "13rem" }}
                             rules={{ required: "Please Insert" }}
                         />
                         <SelectComp
@@ -196,7 +201,7 @@ export default function FormCreateLoadingNote() {
                             label="Other Party Store Loc."
                             control={control}
                             options={slocop}
-                            sx={{ minWidth: "15rem", maxWidth: "15rem" }}
+                            sx={{ minWidth: "13rem" }}
                             rules={{ required: "Please Insert" }}
                         />
                         <SelectComp
@@ -204,7 +209,7 @@ export default function FormCreateLoadingNote() {
                             label="Other Party Val. Type"
                             control={control}
                             options={ValuationTypeOp}
-                            sx={{ minWidth: "15rem", maxWidth: "15rem" }}
+                            sx={{ minWidth: "13rem" }}
                             rules={{ required: "Please Insert" }}
                         />
                     </Paper>
@@ -311,42 +316,31 @@ export default function FormCreateLoadingNote() {
             </Dialog>
             <Dialog
                 open={modalSuccess}
-                maxWidth="xl"
+                maxWidth="sm"
                 onClose={onCloseModal}
                 sx={{ zIndex: theme => theme.zIndex.drawer - 2 }}
             >
                 <Box
                     sx={{
-                        width: "80em",
-                        height: "30rem",
+                        minWidth: "30rem",
+                        minHeight: "15rem",
                         display: "flex",
-                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
                         gap: 5,
-                        p: 2,
-                        mb: 3,
+                        p: 4,
                     }}
                 >
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                        <CheckCircleOutline
-                            sx={{
-                                height: "4rem",
-                                width: "4rem",
-                                mx: 2,
-                                color: "green",
-                            }}
-                        />
-                        <Typography variant="h4">
-                            Loading Note Created
-                        </Typography>
-                    </div>
-                    <Typography>Successfully created :</Typography>
-                    <div>
-                        <Typography>{loadNotescs.join(",")}</Typography>
-                    </div>
-                    <Typography>Failed created :</Typography>
-                    {failedCase.map(item => (
-                        <Typography>{item}</Typography>
-                    ))}
+                    <CheckCircleOutline
+                        sx={{
+                            height: "4rem",
+                            width: "4rem",
+                            color: "green",
+                        }}
+                    />
+                    <Typography variant="h4">
+                        Loading Note Pushed to Staging
+                    </Typography>
                 </Box>
             </Dialog>
         </>
