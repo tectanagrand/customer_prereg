@@ -749,7 +749,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     CREATE_AT: `TO_DATE('${moment(today).format("YYYY-MM-DD")}', 'yyyy-mm-dd')`,
                 };
                 const [queIns, valIns] = crud.insertItemOra(
-                    "LOADING_NOTE_SAP",
+                    "PREREG_LOADING_NOTE_SAP",
                     param
                 );
                 const paramDb = {
