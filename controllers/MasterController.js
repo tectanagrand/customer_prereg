@@ -159,8 +159,9 @@ MasterController.getOSDataCust = async (req, res) => {
     const q = req.query.q;
     const limit = req.query.limit;
     const offset = req.query.offset;
+    const do_num = req.query.do_num;
     try {
-        const data = await Master.getOSDataCust(limit, offset, q);
+        const data = await Master.getOSDataCust(limit, offset, q, do_num);
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
