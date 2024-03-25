@@ -12,8 +12,10 @@ import {
     TableRow,
 } from "@mui/material";
 import { useMemo } from "react";
+import { useTheme } from "@mui/material/styles";
 
 export default function TableChildCustLN({ dataChild }) {
+    const theme = useTheme();
     const columns = useMemo(
         () => [
             {
@@ -66,7 +68,7 @@ export default function TableChildCustLN({ dataChild }) {
                     height: "10rem",
                 }}
             >
-                <Table stickyHeader>
+                <Table>
                     <TableHead>
                         {table.getHeaderGroups().map(headerGroup => {
                             return (
@@ -79,14 +81,12 @@ export default function TableChildCustLN({ dataChild }) {
                                             >
                                                 {header.isPlaceholder ? null : (
                                                     <div>
-                                                        <div>
-                                                            {flexRender(
-                                                                header.column
-                                                                    .columnDef
-                                                                    .header,
-                                                                header.getContext()
-                                                            )}
-                                                        </div>
+                                                        {flexRender(
+                                                            header.column
+                                                                .columnDef
+                                                                .header,
+                                                            header.getContext()
+                                                        )}
                                                     </div>
                                                 )}
                                             </TableCell>

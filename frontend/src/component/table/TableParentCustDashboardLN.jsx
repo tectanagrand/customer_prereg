@@ -3,6 +3,8 @@ import {
     getCoreRowModel,
     useReactTable,
     getExpandedRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
 } from "@tanstack/react-table";
 import {
     TableContainer,
@@ -16,10 +18,13 @@ import {
     Typography,
     Box,
     Button,
+    TablePagination,
+    TableFooter,
 } from "@mui/material";
 import {
     KeyboardArrowRight,
     KeyboardArrowDown,
+    KeyboardArrowUp,
     Edit,
 } from "@mui/icons-material";
 import { useEffect, useMemo, useState } from "react";
@@ -28,9 +33,15 @@ import toast, { Toaster } from "react-hot-toast";
 import TableChildCustLN from "./TableChildCustLN";
 import { useNavigate } from "react-router-dom";
 import { Fragment } from "react";
+import PaginationActionButton from "./PaginationActionButton";
 
 export default function TableParentCustDashboard() {
     const [dataCust, setDataCust] = useState([]);
+    const [sorting, setSorting] = useState([]);
+    const [pagination, setPagination] = useState({
+        pageIndex: 0,
+        pageSize: 5,
+    });
     const navigate = useNavigate();
 
     const buttonAction = async (action, data) => {
@@ -57,6 +68,7 @@ export default function TableParentCustDashboard() {
         () => [
             {
                 id: "expand",
+                enableSorting: false,
                 cell: ({ row }) => {
                     return row.getCanExpand() ? (
                         <>
@@ -102,11 +114,14 @@ export default function TableParentCustDashboard() {
             },
             {
                 id: "action_but",
+                enableSorting: false,
                 cell: props => {
                     let buttons = [];
-                    console.log(props);
                     buttons.push(
-                        <Tooltip title={<Typography>Edit</Typography>}>
+                        <Tooltip
+                            key={props.row.id}
+                            title={<Typography>Edit</Typography>}
+                        >
                             <IconButton
                                 sx={{ backgroundColor: "primary.light", mx: 1 }}
                                 onClick={() =>
@@ -132,6 +147,14 @@ export default function TableParentCustDashboard() {
         getRowCanExpand: () => true,
         getCoreRowModel: getCoreRowModel(),
         getExpandedRowModel: getExpandedRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        onPaginationChange: setPagination,
+        onSortingChange: setSorting,
+        getSortedRowModel: getSortedRowModel(),
+        state: {
+            pagination,
+            sorting,
+        },
     });
 
     useEffect(() => {
@@ -159,7 +182,7 @@ export default function TableParentCustDashboard() {
                     <Typography>Request New</Typography>
                 </Button>
             </Box>
-            <TableContainer sx={{ height: "60vh" }}>
+            <TableContainer sx={{ height: "28rem" }}>
                 <Table stickyHeader>
                     <TableHead>
                         {table.getHeaderGroups().map(headerGroup => {
@@ -170,17 +193,45 @@ export default function TableParentCustDashboard() {
                                             <TableCell
                                                 key={header.id}
                                                 colSpan={header.colSpan}
+                                                onClick={header.column.getToggleSortingHandler()}
                                             >
                                                 {header.isPlaceholder ? null : (
-                                                    <div>
-                                                        <div>
-                                                            {flexRender(
-                                                                header.column
-                                                                    .columnDef
-                                                                    .header,
-                                                                header.getContext()
-                                                            )}
-                                                        </div>
+                                                    <div
+                                                        sx={{
+                                                            display: "flex",
+                                                            alignContent:
+                                                                "center",
+                                                        }}
+                                                    >
+                                                        {flexRender(
+                                                            header.column
+                                                                .columnDef
+                                                                .header,
+                                                            header.getContext()
+                                                        )}
+                                                        {header.column.getCanSort() ? (
+                                                            header.column.getNextSortingOrder() ===
+                                                            "asc" ? (
+                                                                <KeyboardArrowUp
+                                                                    sx={{
+                                                                        width: "1rem",
+                                                                        height: "1rem",
+                                                                    }}
+                                                                />
+                                                            ) : header.column.getNextSortingOrder() ===
+                                                              "desc" ? (
+                                                                <KeyboardArrowDown
+                                                                    sx={{
+                                                                        width: "1rem",
+                                                                        height: "1rem",
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                ""
+                                                            )
+                                                        ) : (
+                                                            ""
+                                                        )}
                                                     </div>
                                                 )}
                                             </TableCell>
@@ -194,9 +245,8 @@ export default function TableParentCustDashboard() {
                         {table.getRowModel().rows.map(row => {
                             return (
                                 <Fragment key={row.id}>
-                                    <TableRow>
+                                    <TableRow hover>
                                         {row.getVisibleCells().map(cell => {
-                                            console.log(cell);
                                             return (
                                                 <TableCell key={cell.id}>
                                                     {flexRender(
@@ -209,8 +259,9 @@ export default function TableParentCustDashboard() {
                                         })}
                                     </TableRow>
                                     {row.getIsExpanded() && (
-                                        <TableRow>
+                                        <TableRow key={"rowchild" + row.id}>
                                             <TableCell
+                                                key={"rowcell" + row.id}
                                                 colSpan={
                                                     row.getVisibleCells().length
                                                 }
@@ -220,6 +271,10 @@ export default function TableParentCustDashboard() {
                                                         dataChild={
                                                             row.original
                                                                 .sub_table
+                                                        }
+                                                        key={
+                                                            "tablechild" +
+                                                            row.id
                                                         }
                                                     />
                                                 }
@@ -232,6 +287,28 @@ export default function TableParentCustDashboard() {
                     </TableBody>
                 </Table>
             </TableContainer>
+            <Table>
+                <TableFooter>
+                    <TableRow>
+                        <TablePagination
+                            rowsPerPageOptions={[5]}
+                            count={table.getFilteredRowModel().rows.length}
+                            rowsPerPage={pagination.pageSize}
+                            page={pagination.pageIndex}
+                            onPageChange={(_, page) => {
+                                table.setPageIndex(page);
+                            }}
+                            onRowsPerPageChange={e => {
+                                const size = e.target.value
+                                    ? Number(e.target.value)
+                                    : 10;
+                                table.setPageSize(size);
+                            }}
+                            ActionsComponent={PaginationActionButton}
+                        />
+                    </TableRow>
+                </TableFooter>
+            </Table>
         </>
     );
 }
