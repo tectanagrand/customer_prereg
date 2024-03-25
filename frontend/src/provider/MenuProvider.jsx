@@ -26,7 +26,7 @@ const MenuProvider = ({ children }) => {
         // }, 2000);
         const simFetch = async () => {
             const getData = await axiosPrivate.post("/page/showall", {
-                role_id: Cookies.get("role"),
+                role_id: Cookies.get("role_id"),
             });
             _setMenu(new Map(Object.entries(getData.data)));
             localStorage.setItem("permission", JSON.stringify(getData.data));
