@@ -11,6 +11,7 @@ import LoadingNoteForm from "../pages/loadingnote/LoadingNoteForm";
 import MasterLoadingNote from "../pages/loadingnote/MasterLoadingNote";
 import FormCreateLoadingNote from "../pages/osreq/FormCreateLoadingNote";
 import TableParentCustDashboard from "../component/table/TableParentCustDashboardLN";
+import RecapLoadingNote from "../pages/recap/RecapLoadingNote";
 
 export const routes = createBrowserRouter([
     {
@@ -64,6 +65,10 @@ export const routes = createBrowserRouter([
             {
                 path: "account/edit",
                 element: <FormUserPage />,
+            },
+            {
+                path: "lnview",
+                element: <RecapLoadingNote />,
             },
         ],
     },
