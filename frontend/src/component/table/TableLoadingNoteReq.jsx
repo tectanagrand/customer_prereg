@@ -11,22 +11,43 @@ import {
     TableCell,
     TableHead,
     TableRow,
+    TextField,
 } from "@mui/material";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { CheckBoxTable } from "../input/CheckBoxTable";
 import { useTheme, styled } from "@mui/material/styles";
 import { checkboxClasses } from "@mui/material";
 // import PaginationActionButton from "./PaginationActionButton";
 
+function useSkipper() {
+    const shouldSkipRef = useRef(true);
+    const shouldSkip = shouldSkipRef.current;
+
+    // Wrap a function with this to skip a pagination reset temporarily
+    const skip = useCallback(() => {
+        shouldSkipRef.current = false;
+    }, []);
+
+    useEffect(() => {
+        shouldSkipRef.current = true;
+    });
+
+    return [shouldSkip, skip];
+}
+
 export default function TableLoadingNoteReq({
-    filters,
+    DoNum,
+    CustNum,
     setLoading,
     setSelectedRowsUp,
+    resetRows,
 }) {
     const theme = useTheme();
     const [rows, setRows] = useState([]);
-    const dataFilters = useMemo(() => filters, [filters]);
+    const rowData = useMemo(() => rows, [rows]);
     const [rowSelected, setSelectedRows] = useState([]);
+    const selectedRows = useMemo(() => rowSelected, [rowSelected]);
+    const [autoResetPageIndex, skipAutoResetPageIndex] = useSkipper();
     // const { onPaginationChange, pagination, limit, skip } = usePagination();
     // const { sorting, onSortingChange, order, field } = useSorting();
     // const { filters, onColumnFilterChange } = useFilter();
@@ -80,7 +101,8 @@ export default function TableLoadingNoteReq({
             {
                 header: "Customer",
                 accessorKey: "cust_code",
-                cell: props => props.getValue(),
+                cell: ({ row }) =>
+                    row.original.cust_code + " - " + row.original.cust_name,
             },
             {
                 header: "Driver",
@@ -100,7 +122,30 @@ export default function TableLoadingNoteReq({
             {
                 header: "Planned Qty",
                 accessorKey: "plan_qty",
-                cell: props => props.getValue(),
+                cell: ({ getValue, row: { index }, column: { id }, table }) => {
+                    const initVal = getValue();
+                    const [value, setValue] = useState(initVal);
+                    const onBlur = () => {
+                        table.options.meta?.updateData(index, id, value);
+                    };
+
+                    useEffect(() => {
+                        setValue(initVal);
+                    }, [initVal]);
+
+                    return (
+                        <>
+                            <TextField
+                                value={value}
+                                onBlur={onBlur}
+                                onChange={e => {
+                                    setValue(e.target.value);
+                                }}
+                                type="number"
+                            />
+                        </>
+                    );
+                },
             },
             {
                 header: "UOM",
@@ -112,32 +157,44 @@ export default function TableLoadingNoteReq({
     );
 
     const table = useReactTable({
-        data: rows,
+        data: rowData,
         columns,
         getRowId: row => row.id,
         getCoreRowModel: getCoreRowModel(),
         // onColumnFiltersChange: onColumnFilterChange,
         onRowSelectionChange: setSelectedRows,
+        autoResetPageIndex,
         state: {
             rowSelection: rowSelected,
+        },
+        meta: {
+            updateData: (rowIndex, columnId, value) => {
+                skipAutoResetPageIndex();
+                setRows(prev =>
+                    prev.map((row, index) => {
+                        if (index === rowIndex) {
+                            return { ...prev[rowIndex], [columnId]: value };
+                        }
+                        return row;
+                    })
+                );
+            },
         },
     });
 
     useEffect(() => {
-        const dataSelected = table
-            .getSelectedRowModel()
-            .rows.map(item => item.original);
-        setSelectedRowsUp(dataSelected);
-    }, [rowSelected]);
+        console.log("Filters changed Table:", DoNum, CustNum);
+    }, [DoNum, CustNum]);
+
     useEffect(() => {
         setLoading(true);
         (async () => {
             try {
-                if (filters.DoNum !== "" && filters.CustNum !== "") {
+                if (DoNum !== "" && CustNum !== "") {
                     const { data } = await Axios.post("/ln/osreq", {
                         filters: [
-                            { id: "id_do", value: dataFilters.DoNum },
-                            { id: "cust_code", value: dataFilters.CustNum },
+                            { id: "id_do", value: DoNum },
+                            { id: "cust_code", value: CustNum },
                         ],
                     });
                     setRows(data.data);
@@ -150,15 +207,22 @@ export default function TableLoadingNoteReq({
                 setLoading(false);
             }
         })();
-    }, [dataFilters]);
-    // console.log(dataFilters);
+    }, [DoNum, CustNum, resetRows]);
+
+    // useEffect(() => {
+    //     console.log(rows);
+    // }, [rows]);
+
+    useEffect(() => {
+        console.log(selectedRows);
+        const dataSelected = table
+            .getSelectedRowModel()
+            .rows.map(item => item.original);
+        setSelectedRowsUp(dataSelected);
+    }, [rows, rowSelected]);
+
     return (
         <>
-            {/* <p>Rows Selected :</p>
-            {dataSelected.map(item => {
-                console.log(item);
-                return <p key={item.id}>{item.id_do}</p>;
-            })} */}
             <TableContainer
                 sx={{
                     height: "35rem",

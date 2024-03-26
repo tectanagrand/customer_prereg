@@ -55,7 +55,7 @@ export default function AutoCompleteCustomer({
                 ...item,
                 value: item.sap_code,
                 id: item.sap_code,
-                label: item.sap_code,
+                label: item.sap_code + " - " + item.name_1,
             }));
 
             setDataRow(prev => [
@@ -86,7 +86,7 @@ export default function AutoCompleteCustomer({
                     ...item,
                     value: item.sap_code,
                     id: item.sap_code,
-                    label: item.sap_code,
+                    label: item.sap_code + " - " + item.name_1,
                 }));
                 setDataRow([...dataList]);
                 paginationRef.current = resPagination;

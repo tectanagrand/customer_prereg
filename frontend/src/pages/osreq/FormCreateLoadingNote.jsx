@@ -12,7 +12,7 @@ import {
     Box,
     Button,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import SelectComp from "../../component/input/SelectComp";
 import { useForm } from "react-hook-form";
 import TableSelectedLNReq from "../../component/table/TableSelectedLNReq";
@@ -60,17 +60,18 @@ export default function FormCreateLoadingNote() {
     const [loadingPush, setLoadingPush] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRows, _setSelected] = useState([]);
+    const [resetRow, setResetRow] = useState(false);
     const [loadNotescs, setLNScs] = useState([]);
     const [failedCase, setFailedCase] = useState([]);
     const [modalSuccess, setModalscs] = useState(false);
     const navigate = useNavigate();
 
-    const setdataDo = value => {
+    const setdataDo = useCallback(value => {
         setDoNum(value);
-    };
-    const setdataCust = value => {
+    }, []);
+    const setdataCust = useCallback(value => {
         setCustNum(value);
-    };
+    }, []);
     const setLoading = value => {
         _setLoading(value);
     };
@@ -82,6 +83,9 @@ export default function FormCreateLoadingNote() {
     const onCloseModal = () => {
         setModalOpen(false);
     };
+
+    const DoNumVal = useMemo(() => DoNum, [DoNum]);
+    const CustNumVal = useMemo(() => CustNum, [CustNum]);
 
     useEffect(() => {
         if (selectedRows.length > 0) {
@@ -122,6 +126,7 @@ export default function FormCreateLoadingNote() {
                 oth_valtype: "",
                 selected_req: [],
             });
+            setResetRow(!resetRow);
             setTimeout(() => {
                 setModalscs(false);
                 setModalOpen(false);
@@ -160,7 +165,7 @@ export default function FormCreateLoadingNote() {
                         onChangeovr={setdataDo}
                     />
                     <AutoCompleteCustomer
-                        sx={{ minWidth: "12rem", maxWidth: "15rem" }}
+                        sx={{ minWidth: "18rem", maxWidth: "15rem" }}
                         label="Customer Code"
                         onChangeovr={setdataCust}
                         do_num={DoNum}
@@ -243,9 +248,11 @@ export default function FormCreateLoadingNote() {
                 <p style={{ color: "red" }}>{errors.selected_req.message}</p>
             )}
             <TableLoadingNoteReq
-                filters={{ DoNum, CustNum }}
+                DoNum={DoNumVal}
+                CustNum={CustNumVal}
                 setLoading={setLoading}
                 setSelectedRowsUp={setSelected}
+                resetRows={resetRow}
             />
             <Dialog
                 open={modalOpen}
