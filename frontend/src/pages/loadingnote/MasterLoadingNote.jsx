@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Box, Button, Typography, Tooltip, IconButton } from "@mui/material";
 import { DoDisturb, Edit, SystemUpdate } from "@mui/icons-material";
+import { useSession } from "../../provider/sessionProvider";
 import { useNavigate } from "react-router";
 import { DataGrid } from "@mui/x-data-grid";
 import { Axios } from "../../api/axios";
@@ -9,6 +10,7 @@ import ProgressStat from "../../component/common/ProgressStat";
 export default function MasterLoadingNote() {
     const [loadNote, setLoadNote] = useState();
     const [load, setLoad] = useState(false);
+    const { getPermission } = useSession();
 
     const navigate = useNavigate();
 
@@ -17,8 +19,9 @@ export default function MasterLoadingNote() {
     };
 
     useEffect(() => {
+        const allow = getPermission("Loading Note").fcreate;
         const getAllDataUser = async () => {
-            const { data } = await Axios.get("/ln/lnuser", {
+            const { data } = await Axios.get("/ln/lnuser?isallow=" + allow, {
                 withCredentials: true,
             });
             // console.log(getUser.data.data);
