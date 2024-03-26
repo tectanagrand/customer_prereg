@@ -14,6 +14,7 @@ import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
 import SelectDOComp from "./SelectDOComp";
+import { useTheme } from "@mui/material/styles";
 
 const MediaTransportOp = [
     { value: "V", label: "Vessel" },
@@ -75,15 +76,15 @@ export default function LoadingNoteForm() {
             description: "",
             uom: "",
             load_detail: [
-                {
-                    id_detail: "",
-                    vehicle: null,
-                    driver: null,
-                    loading_date: moment(),
-                    planned_qty: 0,
-                    media_tp: "",
-                    method: "",
-                },
+                // {
+                //     id_detail: "",
+                //     vehicle: null,
+                //     driver: null,
+                //     loading_date: moment(),
+                //     planned_qty: 0,
+                //     media_tp: "",
+                //     method: "",
+                // },
             ],
             fac_plant: "",
             fac_store_loc: "",
@@ -99,6 +100,7 @@ export default function LoadingNoteForm() {
     const { fields, append, remove } = useFieldArray({
         name: "load_detail",
         control,
+        rules: { required: "Insert data" },
     });
     watch("load_detail.method");
     watch("load_detail.id_detail");
@@ -106,6 +108,7 @@ export default function LoadingNoteForm() {
     const [isPaid, setPaid] = useState(false);
     const position = useRef("");
     const uuidLN = useRef("");
+    const theme = useTheme();
 
     useEffect(() => {
         (async () => {
@@ -226,9 +229,6 @@ export default function LoadingNoteForm() {
                 setTimeout(() => {
                     navigate("/dashboard/loadingnote");
                 }, 2000);
-            }
-            if (deletedDet.current.length !== 0) {
-                remove(deletedDet.current);
             }
         } catch (error) {
             console.error(error);
@@ -380,8 +380,9 @@ export default function LoadingNoteForm() {
                                 name="inv_type"
                                 label="Invoice Type"
                                 control={control}
-                                readOnly
+                                disabled
                                 sx={{ minWidth: "10rem", maxWidth: "30rem" }}
+                                rules={{ required: true }}
                             />
                             <div
                                 style={{
@@ -402,7 +403,7 @@ export default function LoadingNoteForm() {
                                         name="inv_type_tol_from"
                                         label="From"
                                         control={control}
-                                        readOnly
+                                        disabled
                                         sx={{
                                             minWidth: "5rem",
                                             maxWidth: "10rem",
@@ -413,7 +414,7 @@ export default function LoadingNoteForm() {
                                         name="inv_type_tol_to"
                                         label="To"
                                         control={control}
-                                        readOnly
+                                        disabled
                                         sx={{
                                             minWidth: "5rem",
                                             maxWidth: "10rem",
@@ -425,14 +426,14 @@ export default function LoadingNoteForm() {
                                 name="incoterms"
                                 label="Incoterms"
                                 control={control}
-                                readOnly
+                                disabled
                                 sx={{ minWidth: "10rem", maxWidth: "20rem" }}
                             />
                             <TextFieldComp
                                 name="rules"
                                 label="Rules"
                                 control={control}
-                                readOnly
+                                disabled
                                 sx={{ minWidth: "10rem", maxWidth: "10rem" }}
                             />
                         </div>
@@ -448,28 +449,29 @@ export default function LoadingNoteForm() {
                                 name="con_num"
                                 label="Contract Document"
                                 control={control}
-                                readOnly
+                                disabled
                                 sx={{ minWidth: "10rem", maxWidth: "20rem" }}
+                                rules={{ required: true }}
                             />
                             <TextFieldComp
                                 name="material"
                                 label="Material"
                                 control={control}
-                                readOnly
+                                disabled
                                 sx={{ minWidth: "10rem", maxWidth: "30rem" }}
                             />
                             <TextFieldComp
                                 name="con_qty"
                                 label="Contract Quantity"
                                 control={control}
-                                readOnly
+                                disabled
                                 sx={{ minWidth: "10rem", maxWidth: "20rem" }}
                             />
                             <TextFieldComp
                                 name="uom"
                                 label="Unit of Measure"
                                 control={control}
-                                readOnly
+                                disabled
                                 sx={{ minWidth: "10rem", maxWidth: "10rem" }}
                             />
                         </div>
@@ -485,14 +487,16 @@ export default function LoadingNoteForm() {
                                 label="Plant"
                                 sx={{ minWidth: "10rem", maxWidth: "10rem" }}
                                 control={control}
-                                readOnly
+                                disabled
+                                rules={{ required: true }}
                             />
                             <TextFieldComp
                                 name="company"
                                 label="Company"
                                 sx={{ minWidth: "10rem", maxWidth: "10rem" }}
                                 control={control}
-                                readOnly
+                                disabled
+                                rules={{ required: true }}
                             />
                             <TextFieldComp
                                 name="description"
@@ -501,7 +505,7 @@ export default function LoadingNoteForm() {
                                 control={control}
                                 rows={2}
                                 multiline={true}
-                                readOnly
+                                disabled
                             />
                         </div>
                     </div>
@@ -512,7 +516,9 @@ export default function LoadingNoteForm() {
                             alignItems: "center",
                         }}
                     >
-                        <Typography variant="h5">Loading Detail</Typography>
+                        <Typography variant="h5">
+                            Data Supir dan Truck
+                        </Typography>
                         <Button
                             onClick={() => {
                                 append({
@@ -520,14 +526,20 @@ export default function LoadingNoteForm() {
                                     driver: null,
                                     loading_date: moment(),
                                     planned_qty: 0,
-                                    media_tp: "",
+                                    media_tp: "T",
                                 });
                             }}
+                            disabled={!isPaid}
                             variant="contained"
                         >
                             Add +
                         </Button>
                     </div>
+                    {errors?.load_detail && (
+                        <p style={{ color: theme.palette.error.main }}>
+                            Tambahkan data supir dan truck
+                        </p>
+                    )}
 
                     <Divider sx={{ my: 3 }} variant="middle" />
                     {fields.map((field, index) => {
@@ -568,8 +580,8 @@ export default function LoadingNoteForm() {
                                             name={`load_detail.${index}.driver`}
                                             control={control}
                                             sx={{
-                                                minWidth: "10rem",
-                                                maxWidth: "30rem",
+                                                minWidth: "30rem",
+                                                maxWidth: "20rem",
                                             }}
                                             rules={{
                                                 validate: v =>
@@ -598,28 +610,13 @@ export default function LoadingNoteForm() {
                                             fullWidth
                                             sx={{
                                                 minWidth: "10rem",
-                                                maxWidth: "16rem",
+                                                maxWidth: "12rem",
                                             }}
                                             rules={{
                                                 required: "Please Insert",
                                             }}
                                             options={MediaTransportOp}
                                         />
-                                    </div>
-                                </div>
-                                <div
-                                    style={{
-                                        marginBottom: "3rem",
-                                        minWidth: "20%",
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            width: "100%",
-                                            gap: "1rem",
-                                        }}
-                                    >
                                         <DatePickerComp
                                             name={`load_detail.${index}.loading_date`}
                                             label="Loading Date"
@@ -627,17 +624,26 @@ export default function LoadingNoteForm() {
                                             rules={{
                                                 required: "Please Insert",
                                             }}
+                                            sx={{
+                                                minWidth: "15rem",
+                                            }}
                                         />
                                         <TextFieldComp
+                                            type="number"
                                             name={`load_detail.${index}.planned_qty`}
                                             label="Planned Loading Qty"
                                             control={control}
                                             rules={{
                                                 required: "Please Insert",
+                                                min: {
+                                                    value: 1,
+                                                    message:
+                                                        "Minimum value is 0",
+                                                },
                                             }}
                                             sx={{
-                                                minWidth: "10rem",
-                                                maxWidth: "20rem",
+                                                minWidth: "8rem",
+                                                maxWidth: "10rem",
                                             }}
                                         />
                                     </div>
@@ -794,7 +800,7 @@ export default function LoadingNoteForm() {
                                                 name="oth_batch"
                                                 label="Other Party Batch"
                                                 control={control}
-                                                readOnly
+                                                disabled
                                             />
                                             <SelectComp
                                                 name="oth_val_type"
@@ -822,14 +828,14 @@ export default function LoadingNoteForm() {
                                 >
                                     Submit
                                 </LoadingButton>
-                                <LoadingButton
+                                {/* <LoadingButton
                                     loading={isLoading}
                                     onClick={() =>
                                         submitItem(getValues(), true)
                                     }
                                 >
                                     Save Draft
-                                </LoadingButton>
+                                </LoadingButton> */}
                             </div>
                         </>
                     )}
