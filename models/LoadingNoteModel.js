@@ -1,6 +1,7 @@
 const db = require("../config/connection");
 const { PoolOra, ora } = require("../config/oracleconnection");
 const TRANS = require("../config/transaction");
+// const ExcelJS = require("exceljs");
 const crud = require("../helper/crudquery");
 const uuid = require("uuidv4");
 const noderfc = require("node-rfc");
@@ -553,7 +554,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = []) => {
                 HD.material,
                 DET.fac_plant,
                 DET.oth_plant,
-                MKY.key_desc as media_tp,
+                DET.media_tp,
                 DET.driver_id,
                 USR.SAP_CODE as cust_code,
                 CUST.name_1 as cust_name,
@@ -1061,7 +1062,9 @@ LoadingNoteModel.getDataLastReq = async () => {
 };
 
 LoadingNoteModel.getRecap = async customer_id => {
-    const getRecapData = `SELECT HD.ID_DO,
+    const getRecapData = `SELECT 
+            DET.LN_NUM,
+            HD.ID_DO,
             HD.INCO_1,
             HD.INCO_2,
             HD.COMPANY,
@@ -1101,5 +1104,102 @@ LoadingNoteModel.getRecap = async customer_id => {
         throw error;
     }
 };
+
+// LoadingNoteModel.getSSRecap = async (filters, customer_id) => {
+//     const getRecapData = `SELECT
+//             DET.LN_NUM,
+//             HD.ID_DO,
+//             HD.INCO_1,
+//             HD.INCO_2,
+//             HD.COMPANY,
+//             HD.PLANT,
+//             HD.DESC_CON,
+//             HD.CON_QTY,
+//             CUST.KUNNR,
+//             CUST.NAME_1,
+//             DET.HD_FK,
+//             DET.DET_ID AS ID,
+//             DET.DRIVER_ID,
+//             DET.DRIVER_NAME,
+//             DET.VHCL_ID,
+//             DET.PLAN_QTY,
+//             HD.UOM,
+//             DET.BRUTO,
+//             DET.TARRA,
+//             DET.NETTO,
+//             DET.RECEIVE,
+//             DET.DEDUCTION
+//         FROM LOADING_NOTE_DET DET
+//         LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
+//         LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+//         LEFT JOIN MST_CUSTOMER CUST ON USR.SAP_CODE = CUST.KUNNR
+//         WHERE DET.LN_NUM IS NOT NULL `;
+//     let where = [];
+//     let whereVal = [];
+//     let ltindex = 0;
+//     let whereQue = "";
+//     filters.forEach((item, index) => {
+//         let value = item.value;
+//         let id = item.id;
+//         if (item.id === "Incoterms") {
+//             value = item.value.split("-")[0].trim();
+//             id = "inco_1";
+//         } else if (item.id === "Customer") {
+//             value = item.value.split("-")[0].trim();
+//             id = "kunnr";
+//         } else if (item.id === "Contract Quantity") {
+//             value = item.value.split(" ")[0].trim();
+//             id = "con_qty";
+//         } else if (item.id === "Planning Quantity") {
+//             value = item.value.split(" ")[0].trim();
+//             id = "plan_qty";
+//         }
+//         where.push(`${id} = $${index + 1}`);
+//         ltindex++;
+//         whereVal.push(value);
+//     });
+//     if (customer_id !== "") {
+//         where.push(`kunnr = $${ltindex}`);
+//         whereVal.push(customer_id);
+//     }
+//     if (where.length != 0) {
+//         whereQue = `AND ${where.join(" AND ")}`;
+//     }
+//     let que = `${getRecapData} ${whereQue}`;
+//     console.log(que);
+//     let val = whereVal;
+//     console.log(val);
+//     try {
+//         const client = await db.connect();
+//         try {
+//             const { rows } = await client.query(que, val);
+//             return rows;
+//         } catch (error) {
+//             throw error;
+//         } finally {
+//             client.release();
+//         }
+//     } catch (error) {
+//         throw error;
+//     }
+// };
+
+// LoadingNoteModel.generateExcel = async (filters, customer_id) => {
+//     try {
+//         const rowData = await LoadingNoteModel.getSSRecap(filters, customer_id);
+//         const bookRecap = new ExcelJS.Workbook();
+//         const recapSheet = bookRecap.addWorksheet("Recap Loading Note");
+//         const firstData = rowData[0];
+//         recapSheet.columns = Object.keys(firstData).map(item => ({
+//             header: item.toUpperCase(),
+//             id: item,
+//         }));
+//         recapSheet.addRows(rowData);
+//         return recapSheet;
+//     } catch (error) {
+//         console.error(error);
+//         throw error;
+//     }
+// };
 
 module.exports = LoadingNoteModel;
