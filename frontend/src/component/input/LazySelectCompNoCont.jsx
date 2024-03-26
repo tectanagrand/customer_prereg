@@ -2,7 +2,14 @@ import LoadingButton from "@mui/lab/LoadingButton";
 import { TextField } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
-import React, { forwardRef, useCallback, useRef, useState } from "react";
+import React, {
+    forwardRef,
+    useCallback,
+    useRef,
+    useState,
+    useMemo,
+    useEffect,
+} from "react";
 
 const OptionComponent = forwardRef(
     (
@@ -35,6 +42,12 @@ export const LazySelectCompNoCont = ({
     const observer = useRef();
     const [value, setValue] = useState(null);
 
+    // useEffect(() => {
+    //     console.log("value changed :" + value);
+    // }, [value]);
+
+    // const valueMemo = useMemo(() => value, [value]);
+
     const lastOptionElementRef = useCallback(async node => {
         if (observer.current) observer.current.disconnect();
         observer.current = new IntersectionObserver(async entries => {
@@ -51,13 +64,12 @@ export const LazySelectCompNoCont = ({
                 options={options}
                 loading={loading}
                 onChange={(e, newValue) => {
-                    console.log(newValue);
                     setValue(newValue);
                 }}
                 value={value}
                 fullWidth
                 getOptionLabel={option => {
-                    if (option !== null) return option.label;
+                    if (option !== null) return option.value;
                     return "";
                 }}
                 isOptionEqualToValue={(option, value) => {
