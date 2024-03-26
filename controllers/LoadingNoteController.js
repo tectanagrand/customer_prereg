@@ -26,6 +26,21 @@ LoadingNoteController.SaveLoadingNoteDB = async (req, res) => {
     }
 };
 
+LoadingNoteController.sendToLogistic = async (req, res) => {
+    try {
+        const id_header = req.body.id_header;
+        const insertData = await LoadNote.sendToLogistic(id_header);
+        res.status(200).send({
+            message: insertData,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 LoadingNoteController.SubmitSAP = async (req, res) => {
     try {
         const payload = req.body;
@@ -191,7 +206,8 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
 LoadingNoteController.getAllDataLNbyUser = async (req, res) => {
     try {
         const session = req.cookies;
-        const data = await LoadNote.getAllDataLNbyUser_2(session);
+        const isallow = req.query.isallow === "true" ? true : false;
+        const data = await LoadNote.getAllDataLNbyUser_2(session, isallow);
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
@@ -215,6 +231,16 @@ LoadingNoteController.getDataOSUser = async (req, res) => {
 LoadingNoteController.getDataLastReq = async (req, res) => {
     try {
         const data = await LoadNote.getDataLastReq();
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: error.message });
+    }
+};
+
+LoadingNoteController.getDataRecap = async (req, res) => {
+    try {
+        const data = await LoadNote.getRecap();
         res.status(200).send(data);
     } catch (error) {
         console.error(error);

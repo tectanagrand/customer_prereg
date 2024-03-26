@@ -16,6 +16,8 @@ router.get("/sloc", LoadNote.showSLoc);
 router.post("/osreq", LoadNote.showOSReqLN2);
 router.get("/osdo", LoadNote.getOSLoadingNoteNum);
 router.get("/lnuser", LoadNote.getAllDataLNbyUser);
+router.post("/tolog", LoadNote.sendToLogistic);
 router.get("/lastos", LoadNote.getDataOSUser);
 router.get("/lastreq", LoadNote.getDataLastReq);
+router.get("/recap", LoadNote.getDataRecap);
 module.exports = router;
