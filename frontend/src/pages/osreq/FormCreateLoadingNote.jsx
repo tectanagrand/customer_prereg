@@ -28,6 +28,7 @@ const ValuationTypeOp = [
     { value: "1011100444", label: "1011100444" },
     { value: "IN-VS51", label: "IN-VS51" },
     { value: "TR-SALES2", label: "TR-SALES2" },
+    { value: "MAIN", label: "MAIN" },
 ];
 
 export default function FormCreateLoadingNote() {
