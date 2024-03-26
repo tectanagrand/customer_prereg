@@ -4,6 +4,9 @@ import {
     useReactTable,
     getExpandedRowModel,
     getPaginationRowModel,
+    getFilteredRowModel,
+    getFacetedRowModel,
+    getFacetedUniqueValues,
     getSortedRowModel,
 } from "@tanstack/react-table";
 import {
@@ -33,6 +36,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { Fragment } from "react";
 import PaginationActionButton from "../../component/table/PaginationActionButton";
+import AutocompleteFilter from "../../component/input/AutocompleteFilterComp";
 
 function TableChildLastReq({ dataChild }) {
     const columns = useMemo(
@@ -74,6 +78,10 @@ function TableChildLastReq({ dataChild }) {
         columns,
         data: dataChild,
         getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getFacetedRowModel: getFacetedRowModel(),
+        getFacetedUniqueValues: getFacetedUniqueValues(),
+        getFilteredRowModel: getFilteredRowModel(),
     });
 
     return (
@@ -144,26 +152,6 @@ export default function TableParentLastOSReq() {
     });
     const navigate = useNavigate();
 
-    const buttonAction = async (action, data) => {
-        if (action === "edit") {
-            navigate(
-                {
-                    pathname: "./create",
-                    search: `?idloadnote=${data.id}`,
-                },
-                {
-                    state: {
-                        page: "user",
-                    },
-                }
-            );
-        }
-    };
-
-    const buttonNewUser = () => {
-        navigate("./create");
-    };
-
     const columns = useMemo(
         () => [
             {
@@ -198,13 +186,8 @@ export default function TableParentLastOSReq() {
                 cell: props => props.getValue(),
             },
             {
-                header: "Contract Quantity",
-                accessorKey: "con_qty",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Plant",
-                accessorKey: "plant",
+                header: "Customer",
+                accessorKey: "customer",
                 cell: props => props.getValue(),
             },
             {
@@ -213,8 +196,13 @@ export default function TableParentLastOSReq() {
                 cell: props => props.getValue(),
             },
             {
-                header: "Customer",
-                accessorKey: "customer",
+                header: "Plant",
+                accessorKey: "plant",
+                cell: props => props.getValue(),
+            },
+            {
+                header: "Contract Quantity",
+                accessorKey: "con_qty",
                 cell: props => props.getValue(),
             },
             // {
@@ -256,6 +244,9 @@ export default function TableParentLastOSReq() {
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         getSortedRowModel: getSortedRowModel(),
+        getFacetedRowModel: getFacetedRowModel(),
+        getFacetedUniqueValues: getFacetedUniqueValues(),
+        getFilteredRowModel: getFilteredRowModel(),
         state: {
             pagination,
             sorting,
@@ -289,6 +280,17 @@ export default function TableParentLastOSReq() {
                                                 colSpan={header.colSpan}
                                                 onClick={header.column.getToggleSortingHandler()}
                                             >
+                                                {header.column.getCanFilter() ? (
+                                                    <div>
+                                                        <AutocompleteFilter
+                                                            column={
+                                                                header.column
+                                                            }
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <></>
+                                                )}
                                                 {header.isPlaceholder ? null : (
                                                     <div
                                                         sx={{
