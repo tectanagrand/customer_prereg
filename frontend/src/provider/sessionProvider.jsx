@@ -28,6 +28,8 @@ const SessionProvider = ({ children }) => {
             Cookies.get("sap_code") === undefined
                 ? ""
                 : Cookies.get("sap_code"),
+        id_sap:
+            Cookies.get("id_sap") === undefined ? "" : Cookies.get("id_sap"),
         permission:
             localStorage.getItem("permission") === undefined
                 ? {}
@@ -47,6 +49,7 @@ const SessionProvider = ({ children }) => {
         Cookies.set("role", data.role);
         Cookies.set("role_id", data.role_id);
         Cookies.set("sap_code", data.sap_code);
+        Cookies.set("id_sap", data.id_sap);
         localStorage.setItem("permission", JSON.stringify(data.permission));
         localStorage.setItem("auth", JSON.stringify(data.auth));
         setSession_({
@@ -60,6 +63,7 @@ const SessionProvider = ({ children }) => {
             permission: data.permission,
             auth: data.auth,
             sap_code: data.sap_code,
+            id_sap: data.id_sap,
         });
     };
 
@@ -92,6 +96,7 @@ const SessionProvider = ({ children }) => {
         Cookies.remove("permission");
         Cookies.remove("sap_code");
         Cookies.remove("role_id");
+        Cookies.remove("id_sap");
     };
 
     const getPermission = page => {
@@ -121,6 +126,7 @@ const SessionProvider = ({ children }) => {
             Cookies.set("role", session.role);
             Cookies.set("sap_code", session.sap_code);
             Cookies.set("role_id", session.role_id);
+            Cookies.set("id_sap", session.id_sap);
             localStorage.setItem(
                 "permission",
                 JSON.stringify(session.permission)
