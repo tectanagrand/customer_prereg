@@ -24,7 +24,7 @@ const corsOption = {
     },
     methods: ["POST", "PUT", "GET", "OPTIONS", "HEAD", "DELETE", "PATCH"],
     credentials: true,
-    exposedHeaders: ["set-cookie"],
+    exposedHeaders: ["set-cookie", "Content-Disposition"],
 };
 app.use(cors(corsOption));
 app.use(express.json());
