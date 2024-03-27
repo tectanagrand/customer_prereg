@@ -9,6 +9,7 @@ const INDICATOR = require("../config/IndicateRFC");
 const moment = require("moment");
 noderfc.setIniFileDirectory("../customer_prereg");
 const poolRFC = require("../config/rfcconnection");
+const EmailModel = require("../models/EmailModel");
 
 const LoadingNoteModel = {};
 
@@ -214,14 +215,38 @@ LoadingNoteModel.sendToLogistic = async id_header => {
         const client = await db.connect();
         try {
             const { rows, rowCount } = await client.query(
-                "SELECT * FROM LOADING_NOTE_HD WHERE HD_ID = $1",
+                `SELECT HD.HD_ID,
+                HD.ID_DO,
+                HD.CUR_POS,
+                CONCAT(HD.MATERIAL, ' - ', HD.DESC_CON) AS MATERIAL,
+                HD.PLANT,
+                USR.EMAIL,
+                CONCAT(CUS.KUNNR,
+            
+                    ' - ',
+                    CUS.NAME_1) AS CUSTOMER
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+            LEFT JOIN MST_CUSTOMER CUS ON USR.SAP_CODE = CUS.KUNNR
+            WHERE HD.HD_ID = $1`,
                 [id_header]
             );
+            const dataEmail = rows[0];
+            const { rows: dataLogistic } = await client.query(
+                `SELECT USR.EMAIL FROM MST_USER USR
+                LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = USR.ROLE
+                WHERE RL.ROLE_NAME = 'LOGISTIC'`
+            );
+            const email_target = dataLogistic
+                .map(item => item.email)
+                .join(", ");
+            const cc_target = rows[0].email;
             if (rowCount < 0) {
                 throw new Error("Loading Note Header not Found");
             } else if (rows[0].cur_pos !== "INIT") {
                 throw new Error("Loading Note not in Customer position");
             }
+            const dataHeader = rows[0];
             const [queUp, valUp] = crud.updateItem(
                 "LOADING_NOTE_HD",
                 { CUR_POS: "FINA" },
@@ -229,6 +254,14 @@ LoadingNoteModel.sendToLogistic = async id_header => {
                 "hd_id"
             );
             const updateData = await client.query(queUp, valUp);
+            await EmailModel.notifyRequestSend(
+                dataEmail.id_do,
+                dataEmail.customer,
+                dataEmail.material,
+                dataEmail.plant,
+                email_target,
+                cc_target
+            );
             return {
                 message: "Success updating loading note ",
             };
@@ -317,7 +350,7 @@ LoadingNoteModel.finalizeLoadingNote = async (params, session) => {
                 DOTYPE: "S",
                 ITEMRULE: params.rules,
                 VBELN_REF: params.do_num,
-                POSNR: "10",
+                POSNR: "000010",
                 EBELN_REF: "",
                 CREDAT: moment(params.loading_date).format("DD.MM.YYYY"),
                 MATNR: "",
@@ -347,7 +380,6 @@ LoadingNoteModel.finalizeLoadingNote = async (params, session) => {
                 "ZRFC_PRE_REGISTRA_CUST",
                 param
             );
-            console.log(sapPush);
             if (INDICATOR.hasOwnProperty(sapPush.RFC_TEXT)) {
                 throw new Error(sapPush.RFC_TEXT);
             } else if (sapPush.RFC_TEXT.includes("is not allowed")) {
