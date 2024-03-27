@@ -6,6 +6,7 @@ const { hashPassword, validatePassword } = require("../helper/hashpass");
 const Mailer = require("../helper/Emailer");
 const OTP = require("../helper/OTPHandler");
 const jwt = require("jsonwebtoken");
+const ncrypt = require("ncrypt-js");
 const moment = require("moment");
 
 const UserModel = {};
@@ -242,6 +243,8 @@ UserModel.submitUser = async params => {
     const client = await db.connect();
     let que, val;
     const typeAct = params.type;
+    const ncryption = new ncrypt(process.env.TOKEN_KEY);
+
     delete params.type;
     try {
         await client.query(TRANS.BEGIN);
@@ -250,7 +253,9 @@ UserModel.submitUser = async params => {
         params["is_active"] = true;
         if (params.hasOwnProperty("password")) {
             const hashedPass = await hashPassword(params.password);
+            const ncryptedpass = ncryption.encrypt(params.password);
             params.password = hashedPass;
+            params.enc_pwd = ncryptedpass;
         }
         if (typeAct === "update") {
             [que, val] = crud.updateItem(
@@ -433,4 +438,6 @@ UserModel.submitRoleGroup = async (role_id, accesses, id_user, role_name) => {
         client.release();
     }
 };
+
+// UserModel.deleteUser = async()
 module.exports = UserModel;
