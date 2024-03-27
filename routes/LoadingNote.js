@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const LoadNote = require("../controllers/LoadingNoteController");
+const PDF = require("../controllers/PDFController");
 const SubmissionLN = require("../middleware/SubmissionLN");
 
 router.post(
@@ -22,5 +23,6 @@ router.get("/lastreq", LoadNote.getDataLastReq);
 router.get("/recap", LoadNote.getDataRecap);
 router.post("/recapss", LoadNote.getDataRecapSS);
 router.post("/genxls", LoadNote.generateExcel);
+router.post("/pdf", PDF.exportSuratJalan);
 
 module.exports = router;

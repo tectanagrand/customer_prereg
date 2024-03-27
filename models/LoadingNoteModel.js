@@ -787,7 +787,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     DOTYPE: "S",
                     ITEMRULE: item.rules,
                     VBELN_REF: item.id_do,
-                    POSNR: "10",
+                    POSNR: "000010",
                     EBELN_REF: "",
                     // CREDAT: moment(item.create_date).format("DD.MM.YYYY"),
                     CREDAT: `TO_DATE('${moment(item.create_date).format("YYYY-MM-DD")}', 'yyyy-mm-dd')`,
