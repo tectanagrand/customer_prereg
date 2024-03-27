@@ -12,6 +12,7 @@ const cookieParser = require("cookie-parser");
 const fs = require("fs");
 const whitelist = require("./config/allowedOrigin");
 const router = require("./routes");
+const SAPGetterChores = require("./helper/SAPGetterChores");
 
 const corsOption = {
     origin: function (req, callback) {
