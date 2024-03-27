@@ -185,18 +185,11 @@ export default function Dashboard() {
             </AppBar>
             <Drawer variant="permanent" open={open}>
                 <DrawerHeader>
-                    <Button
-                        sx={{ width: "10rem", height: "4rem" }}
-                        disableElevation
-                        disableFocusRipple
-                    >
-                        <SvgIcon
-                            sx={{ width: "100%", height: "100%" }}
-                            component={KpnLogo}
-                            viewBox="10 50 700 100"
-                            onClick={() => navigate("/dashboard")}
-                        ></SvgIcon>
-                    </Button>
+                    <SvgIcon
+                        sx={{ width: "70%", height: "100%" }}
+                        component={KpnLogo}
+                        viewBox="10 50 700 100"
+                    ></SvgIcon>
                     <IconButton onClick={handleDrawerClose}>
                         {theme.direction === "rtl" ? (
                             <ChevronRightIcon />
