@@ -20,4 +20,7 @@ router.post("/tolog", LoadNote.sendToLogistic);
 router.get("/lastos", LoadNote.getDataOSUser);
 router.get("/lastreq", LoadNote.getDataLastReq);
 router.get("/recap", LoadNote.getDataRecap);
+router.post("/recapss", LoadNote.getDataRecapSS);
+router.post("/genxls", LoadNote.generateExcel);
+
 module.exports = router;
