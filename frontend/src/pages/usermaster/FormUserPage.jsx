@@ -17,14 +17,20 @@ import toast, { Toaster } from "react-hot-toast";
 export default function FormUserPage() {
     const [btnClicked, setBtnclicked] = useState(false);
     const { getPermission } = useSession();
+    const [roleState, _setRoleState] = useState("");
     const { session } = useSession();
     const location = useLocation();
     const allowUpdate = getPermission("User Master").fupdate;
     // const axiosPrivate = useAxiosPrivate();
-    const [role, setRoles] = useState([]);
+    const [role, setRoles] = useState([{ value: "", label: "" }]);
     const [searchParams] = useSearchParams();
     const [userId, setUserid] = useState("");
     const navigate = useNavigate();
+
+    const setRoleState = value => {
+        _setRoleState(value);
+    };
+
     const { handleSubmit, control, reset, getFieldState } = useForm({
         mode: "onChange",
         defaultValues: {
@@ -35,6 +41,7 @@ export default function FormUserPage() {
             password: "",
             role: "",
             customer_id: { value: "", label: "" },
+            id_sap: "",
         },
         resetOptions: {
             keepDirtyValues: true, // user-interacted input will be retained
@@ -53,8 +60,9 @@ export default function FormUserPage() {
         const { data: userDt } = await Axios.get(
             `/user/showbyid?id_user=${iduser}`
         );
-        if (userDt != undefined) {
+        if (userDt !== undefined) {
             setUserid(iduser);
+            setRoleState(userDt.role);
             reset({
                 fullname: userDt.fullname,
                 username: userDt.username,
@@ -66,6 +74,7 @@ export default function FormUserPage() {
                     value: userDt.sap_code,
                     label: userDt.sap_code,
                 },
+                id_sap: userDt.id_sap,
             });
         }
     };
@@ -90,14 +99,16 @@ export default function FormUserPage() {
     useEffect(() => {
         let userid = searchParams.get("iduser");
         setUserid(userid);
-        if (userid !== undefined) {
+        if (userid !== undefined && userid !== null) {
             getUserData(userid);
         }
     }, []);
 
     useEffect(() => {
         let userid = searchParams.get("iduser");
-        getUserData(userid);
+        if (userid !== undefined && userid !== null) {
+            getUserData(userid);
+        }
     }, [location.state]);
 
     const submitUser = async data => {
@@ -117,6 +128,7 @@ export default function FormUserPage() {
             phone_num: data.phone_num,
             updated_by: session.id_user,
             sap_code: data.customer_id.value,
+            id_sap: data.id_sap,
             type: type,
         };
         if (getFieldState("password").isDirty) {
@@ -218,6 +230,7 @@ export default function FormUserPage() {
                                         options={role}
                                         rules={{ required: true }}
                                         fullWidth
+                                        onChangeovr={setRoleState}
                                     />
                                 </Grid>
                                 <Grid item xs>
@@ -236,6 +249,21 @@ export default function FormUserPage() {
                             </>
                         )}
                     </Grid>
+                    {role.find(({ value }) => value === roleState)?.label ===
+                        "LOGISTIC" &&
+                        allowUpdate &&
+                        location.state?.page !== "userinfo" && (
+                            <Grid container spacing={2}>
+                                <Grid item>
+                                    <TextFieldComp
+                                        label="SAP ID Logistic"
+                                        name="id_sap"
+                                        control={control}
+                                        rules={{ required: true }}
+                                    />
+                                </Grid>
+                            </Grid>
+                        )}
                 </Box>
                 <Box
                     sx={{ display: "flex", justifyContent: "flex-end", mt: 10 }}
