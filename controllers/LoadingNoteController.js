@@ -1,5 +1,6 @@
 const LoadNote = require("../models/LoadingNoteModel");
 const db = require("../config/connection");
+const fs = require("fs");
 
 const LoadingNoteController = {};
 
@@ -245,6 +246,44 @@ LoadingNoteController.getDataRecap = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).send({ message: error.message });
+    }
+};
+
+LoadingNoteController.getDataRecapSS = async (req, res) => {
+    try {
+        const filters = req.body.filters;
+        const customer_id = req.body.customer_id;
+        const data = await LoadNote.getSSRecap(filters, customer_id);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            messsage: error.message,
+        });
+    }
+};
+
+LoadingNoteController.generateExcel = async (req, res) => {
+    try {
+        const filters = req.body.filters;
+        const customer_id = req.body.customer_id;
+        const data = await LoadNote.generateExcel(filters, customer_id);
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+        res.setHeader(
+            "Content-Disposition",
+            "attachment; filename=" + "data.xlsx"
+        );
+        await data.xlsx.write(res);
+        res.status(200);
+        res.end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            messsage: error.message,
+        });
     }
 };
 module.exports = LoadingNoteController;
