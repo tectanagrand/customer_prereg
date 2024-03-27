@@ -143,7 +143,8 @@ UserModel.login = async ({ uemail, password }) => {
     try {
         await client.query(TRANS.BEGIN);
         const { rows: userData, rowCount } = await client.query(
-            ` SELECT fullname, email, username, id_user, rl.role_name as role, rl.role_id, password, sap_code FROM mst_user usr
+            ` SELECT fullname, email, username, id_user, rl.role_name as role, rl.role_id, password, sap_code, id_sap 
+            FROM mst_user usr
             LEFT JOIN mst_role rl on usr.role = rl.role_id
             WHERE email = $1 OR username = $2`,
             [uemail, uemail]
