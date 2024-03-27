@@ -20,8 +20,7 @@ export default function Input(theme) {
                     "&.MuiOutlinedInput-input": {
                         "&.Mui-disabled": {
                             color: theme.palette.text.primary,
-                            "-webkit-text-fill-color":
-                                theme.palette.text.primary,
+                            WebkitTextFillColor: theme.palette.text.primary,
                         },
                     },
                 },
