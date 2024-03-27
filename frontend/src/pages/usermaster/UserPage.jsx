@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { Box, Button, Typography, Tooltip, IconButton } from "@mui/material";
-import { DoDisturb, Edit, SystemUpdate } from "@mui/icons-material";
+import {
+    DoDisturb,
+    Edit,
+    SystemUpdate,
+    ForwardToInbox,
+} from "@mui/icons-material";
 import { useNavigate } from "react-router";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 // import useAxiosPrivate from 'src/hooks/useAxiosPrivate';
@@ -31,7 +36,6 @@ export default function User() {
     }, [load]);
 
     const buttonAction = async (action, data) => {
-        console.log(data);
         setLoad(true);
         if (action === "edit") {
             navigate(
@@ -85,6 +89,17 @@ export default function User() {
                     setLoad(false);
                 }
             }
+        } else if (action === "email") {
+            try {
+                const sendEmail = await Axios.post("/user/email", {
+                    id_user: data.id,
+                });
+                alert(`${sendEmail.data.message}`);
+                setLoad(false);
+            } catch (error) {
+                alert(`${error.response.data.message}`);
+                setLoad(false);
+            }
         }
     };
 
@@ -92,7 +107,7 @@ export default function User() {
         {
             field: "fullname",
             headerName: "Full Name",
-            flex: 0.1,
+            flex: 0.08,
         },
         {
             field: "username",
@@ -112,7 +127,7 @@ export default function User() {
         {
             field: "created_date",
             headerName: "Created At",
-            flex: 0.1,
+            flex: 0.08,
         },
         {
             headerName: "Action",
@@ -163,6 +178,20 @@ export default function User() {
                         </Tooltip>
                     );
                 }
+                buttons.push(
+                    <Tooltip title={<Typography>Send Email</Typography>}>
+                        <IconButton
+                            sx={{ backgroundColor: "#4ea500", mx: 1 }}
+                            onClick={() =>
+                                buttonAction("email", {
+                                    id: item.row.id,
+                                })
+                            }
+                        >
+                            <ForwardToInbox></ForwardToInbox>
+                        </IconButton>
+                    </Tooltip>
+                );
                 return buttons;
             },
         },
