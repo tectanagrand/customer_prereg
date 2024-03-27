@@ -225,7 +225,7 @@ export default function TableLoadingNoteReq({
         <>
             <TableContainer
                 sx={{
-                    height: "35rem",
+                    height: "30rem",
                 }}
             >
                 <Table stickyHeader>

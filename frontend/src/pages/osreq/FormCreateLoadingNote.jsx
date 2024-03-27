@@ -19,6 +19,7 @@ import TableSelectedLNReq from "../../component/table/TableSelectedLNReq";
 import { Axios } from "../../api/axios";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
+import AutocompleteComp from "../../component/input/AutocompleteComp";
 
 const ValuationTypeOp = [
     { value: "TR-SALES", label: "TR-SALES" },
@@ -51,19 +52,13 @@ export default function FormCreateLoadingNote() {
     });
     const [DoNum, setDoNum] = useState("");
     const [CustNum, setCustNum] = useState("");
-    const [slocop, setSlocop] = useState([
-        {
-            value: "x",
-            label: "x",
-        },
-    ]);
+    const [slocop, setSlocop] = useState([]);
+    const [valtypeOp, setvpOp] = useState([]);
     const [isLoading, _setLoading] = useState(false);
     const [loadingPush, setLoadingPush] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRows, _setSelected] = useState([]);
     const [resetRow, setResetRow] = useState(false);
-    const [loadNotescs, setLNScs] = useState([]);
-    const [failedCase, setFailedCase] = useState([]);
     const [modalSuccess, setModalscs] = useState(false);
     const navigate = useNavigate();
 
@@ -88,20 +83,42 @@ export default function FormCreateLoadingNote() {
     const DoNumVal = useMemo(() => DoNum, [DoNum]);
     const CustNumVal = useMemo(() => CustNum, [CustNum]);
 
+    // useEffect(() => {
+    //     if (selectedRows.length > 0) {
+    //         (async () => {
+    //             const rules = selectedRows[0].rules;
+    //             const plant = selectedRows[0].plant;
+    //             const { data } = await Axios.get(
+    //                 `/master/sloc?plant=${plant}&rule=${rules}`
+    //             );
+    //             setSlocop(data);
+    //         })();
+    //     } else {
+    //         setSlocop([{ value: "", label: "" }]);
+    //     }
+    // }, [selectedRows]);
+
     useEffect(() => {
-        if (selectedRows.length > 0) {
-            (async () => {
-                const rules = selectedRows[0].rules;
-                const plant = selectedRows[0].plant;
-                const { data } = await Axios.get(
-                    `/master/sloc?plant=${plant}&rule=${rules}`
-                );
+        (async () => {
+            try {
+                const { data } = await Axios.get("/master/sloc");
                 setSlocop(data);
-            })();
-        } else {
-            setSlocop([{ value: "", label: "" }]);
-        }
-    }, [selectedRows]);
+            } catch (error) {
+                console.error(error);
+            }
+        })();
+    }, []);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data } = await Axios.get("/master/valtype");
+                setvpOp(data);
+            } catch (error) {
+                console.error(error);
+            }
+        })();
+    }, []);
 
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
@@ -113,12 +130,19 @@ export default function FormCreateLoadingNote() {
 
     const pushSAP = async () => {
         const payload = getValues();
+        const newPayload = {
+            ...payload,
+            fac_sloc: payload.fac_sloc.value,
+            fac_valtype: payload.fac_valtype.value,
+            oth_sloc: payload.oth_sloc.value,
+            oth_valtype: payload.oth_valtype.value,
+        };
         setLoadingPush(true);
         // setTimeout(() => {
         //     setLoadingPush(false);
         // }, 3000);
         try {
-            const { data } = await Axios.post("/ln/pushmultisap", payload);
+            const { data } = await Axios.post("/ln/pushmultisap", newPayload);
             setModalscs(true);
             reset({
                 fac_sloc: "",
@@ -172,78 +196,6 @@ export default function FormCreateLoadingNote() {
                         do_num={DoNum}
                     />
                 </Paper>
-                <form
-                    style={{ display: "flex" }}
-                    onKeyDown={e => checkKeyDown(e)}
-                    onSubmit={handleSubmit(submitItem)}
-                >
-                    <Paper
-                        sx={{
-                            p: 3,
-                            display: "flex",
-                            gap: 2,
-                            mb: 2,
-                        }}
-                        elevation={4}
-                    >
-                        <SelectComp
-                            name="fac_sloc"
-                            label="Facility Store Loc."
-                            control={control}
-                            options={slocop}
-                            sx={{ minWidth: "13rem" }}
-                            rules={{ required: "Please Insert" }}
-                        />
-                        <SelectComp
-                            name="fac_valtype"
-                            label="Facility Val. Type"
-                            control={control}
-                            options={ValuationTypeOp}
-                            sx={{ minWidth: "13rem" }}
-                            rules={{ required: "Please Insert" }}
-                        />
-                        <SelectComp
-                            name="oth_sloc"
-                            label="Other Party Store Loc."
-                            control={control}
-                            options={slocop}
-                            sx={{ minWidth: "13rem" }}
-                            rules={{ required: "Please Insert" }}
-                        />
-                        <SelectComp
-                            name="oth_valtype"
-                            label="Other Party Val. Type"
-                            control={control}
-                            options={ValuationTypeOp}
-                            sx={{ minWidth: "13rem" }}
-                            rules={{ required: "Please Insert" }}
-                        />
-                    </Paper>
-                    <input
-                        {...register("selected_req", {
-                            validate: selected => {
-                                return (
-                                    selected.length > 0 ||
-                                    "Please check data below at least 1"
-                                );
-                            },
-                        })}
-                        hidden
-                    />
-                    <LoadingButton
-                        variant="contained"
-                        sx={{ m: 3 }}
-                        loading={isLoading}
-                        // onClick={() => {
-                        //     if (isValid) {
-                        //         setModalOpen(true);
-                        //     }
-                        // }}
-                        type="submit"
-                    >
-                        Push To SAP
-                    </LoadingButton>
-                </form>
             </div>
             {!!errors.selected_req && (
                 <p style={{ color: "red" }}>{errors.selected_req.message}</p>
@@ -255,6 +207,110 @@ export default function FormCreateLoadingNote() {
                 setSelectedRowsUp={setSelected}
                 resetRows={resetRow}
             />
+            <form
+                style={{ display: "flex" }}
+                onKeyDown={e => checkKeyDown(e)}
+                onSubmit={handleSubmit(submitItem)}
+            >
+                <Paper
+                    sx={{
+                        p: 3,
+                        display: "flex",
+                        gap: 2,
+                        mb: 2,
+                    }}
+                    elevation={4}
+                >
+                    {/* <SelectComp
+                            name="fac_sloc"
+                            label="Facility Store Loc."
+                            control={control}
+                            options={slocop}
+                            sx={{ minWidth: "13rem" }}
+                            rules={{ required: "Please Insert" }}
+                        /> */}
+                    <AutocompleteComp
+                        name="fac_sloc"
+                        label="Facility Store Loc."
+                        control={control}
+                        options={slocop}
+                        sx={{ minWidth: "13rem" }}
+                        rules={{ required: "Please Insert" }}
+                    />
+                    {/* <SelectComp
+                            name="fac_valtype"
+                            label="Facility Val. Type"
+                            control={control}
+                            options={ValuationTypeOp}
+                            sx={{ minWidth: "13rem" }}
+                            rules={{ required: "Please Insert" }}
+                        /> */}
+                    <AutocompleteComp
+                        name="fac_valtype"
+                        label="Facility Val. Type"
+                        control={control}
+                        options={valtypeOp}
+                        sx={{ minWidth: "13rem" }}
+                        rules={{ required: "Please Insert" }}
+                    />
+                    {/* <SelectComp
+                            name="oth_sloc"
+                            label="Other Party Store Loc."
+                            control={control}
+                            options={slocop}
+                            sx={{ minWidth: "13rem" }}
+                            rules={{ required: "Please Insert" }}
+                        /> */}
+                    <AutocompleteComp
+                        name="oth_sloc"
+                        label="Other Party Store Loc."
+                        control={control}
+                        options={slocop}
+                        sx={{ minWidth: "13rem" }}
+                        rules={{ required: "Please Insert" }}
+                    />
+                    {/* <SelectComp
+                            name="oth_valtype"
+                            label="Other Party Val. Type"
+                            control={control}
+                            options={ValuationTypeOp}
+                            sx={{ minWidth: "13rem" }}
+                            rules={{ required: "Please Insert" }}
+                        /> */}
+                    <AutocompleteComp
+                        name="oth_valtype"
+                        label="Other Party Val. Type"
+                        control={control}
+                        options={valtypeOp}
+                        sx={{ minWidth: "13rem" }}
+                        rules={{ required: "Please Insert" }}
+                    />
+                </Paper>
+                <input
+                    {...register("selected_req", {
+                        validate: selected => {
+                            return (
+                                selected.length > 0 ||
+                                "Please check data below at least 1"
+                            );
+                        },
+                    })}
+                    hidden
+                />
+                <LoadingButton
+                    variant="contained"
+                    sx={{ m: 3, minWidth: "10rem" }}
+                    loading={isLoading}
+                    // onClick={() => {
+                    //     if (isValid) {
+                    //         setModalOpen(true);
+                    //     }
+                    // }}
+                    type="submit"
+                >
+                    Push To Staging
+                </LoadingButton>
+            </form>
             <Dialog
                 open={modalOpen}
                 maxWidth="xl"
@@ -284,21 +340,21 @@ export default function FormCreateLoadingNote() {
                         <div>
                             <div style={{ display: "flex", gap: "1rem" }}>
                                 <p>Factory Store Loc :</p>{" "}
-                                <p>{getValues("fac_sloc")}</p>
+                                <p>{getValues("fac_sloc").label}</p>
                             </div>
                             <div style={{ display: "flex", gap: "1rem" }}>
                                 <p>Factory Val. Type :</p>{" "}
-                                <p>{getValues("fac_valtype")}</p>
+                                <p>{getValues("fac_valtype").label}</p>
                             </div>
                         </div>
                         <div>
                             <div style={{ display: "flex", gap: "1rem" }}>
                                 <p>Other Party Store Loc :</p>{" "}
-                                <p>{getValues("oth_sloc")}</p>
+                                <p>{getValues("oth_sloc").label}</p>
                             </div>
                             <div style={{ display: "flex", gap: "1rem" }}>
                                 <p>Other Party Val. Type :</p>{" "}
-                                <p>{getValues("oth_valtype")}</p>
+                                <p>{getValues("oth_valtype").label}</p>
                             </div>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-import { Container, Typography, Grid, Box } from "@mui/material";
+import { Container, Typography, Grid, Box, Button } from "@mui/material";
 import SelectComp from "../../component/input/SelectComp";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
 import { PasswordWithEyes } from "../../component/input/PasswordWithEyes";
@@ -146,6 +146,9 @@ export default function FormUserPage() {
             );
             toast.success(resultSubmit.message);
             setBtnclicked(false);
+            setTimeout(() => {
+                navigate("/dashboard/users");
+            }, 1000);
         } catch (error) {
             toast.error(error.response.data.message);
             setBtnclicked(false);
@@ -274,11 +277,24 @@ export default function FormUserPage() {
                         )}
                 </Box>
                 <Box
-                    sx={{ display: "flex", justifyContent: "flex-end", mt: 10 }}
+                    sx={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        mt: 10,
+                        gap: 3,
+                    }}
                 >
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={() => {
+                            navigate("/dashboard/users");
+                        }}
+                    >
+                        Cancel
+                    </Button>
                     <LoadingButton
                         type="submit"
-                        sx={{ width: 100, height: 50 }}
                         variant="contained"
                         loading={btnClicked}
                     >
