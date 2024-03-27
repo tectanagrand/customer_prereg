@@ -42,7 +42,6 @@ SAPGetterChores.LoadingNoteSync = async () => {
 
             for (const row of rows) {
                 //check data db oracle
-                console.log(row);
                 let payload = {};
                 let orapayload = {};
                 const { metaData, rows } = await oraclient.execute(
