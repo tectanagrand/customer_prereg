@@ -233,24 +233,32 @@ export default function FormUserPage() {
                                         onChangeovr={setRoleState}
                                     />
                                 </Grid>
-                                <Grid item xs>
-                                    <AutoSelectUserSAP
-                                        name="customer_id"
-                                        control={control}
-                                        label="Customer Id"
-                                        rules={{
-                                            validate: v =>
-                                                v?.value !== null &&
-                                                v?.value !== "" &&
-                                                v !== null,
-                                        }}
-                                    />
-                                </Grid>
+                                {(role.find(({ value }) => value === roleState)
+                                    ?.label !== "LOGISTIC" ||
+                                    role.find(
+                                        ({ value }) => value === roleState
+                                    )?.label === "BASE") && (
+                                    <Grid item xs>
+                                        <AutoSelectUserSAP
+                                            name="customer_id"
+                                            control={control}
+                                            label="Customer Id"
+                                            rules={{
+                                                validate: v =>
+                                                    v?.value !== null &&
+                                                    v?.value !== "" &&
+                                                    v !== null,
+                                            }}
+                                        />
+                                    </Grid>
+                                )}
                             </>
                         )}
                     </Grid>
-                    {role.find(({ value }) => value === roleState)?.label ===
-                        "LOGISTIC" &&
+                    {(role.find(({ value }) => value === roleState)?.label ===
+                        "LOGISTIC" ||
+                        role.find(({ value }) => value === roleState)?.label ===
+                            "BASE") &&
                         allowUpdate &&
                         location.state?.page !== "userinfo" && (
                             <Grid container spacing={2}>
