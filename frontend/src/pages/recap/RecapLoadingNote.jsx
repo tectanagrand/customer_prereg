@@ -17,7 +17,7 @@ export default function RecapLoadingNote() {
             // Create a link element and simulate a click to trigger the download
             const link = document.createElement("a");
             link.href = url;
-            link.setAttribute("download", "example.xlsx");
+            link.setAttribute("download", "ReportLoadingNote.xlsx");
             document.body.appendChild(link);
             link.click();
 
