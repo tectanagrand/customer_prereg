@@ -11,9 +11,6 @@ import {
     KeyboardArrowRight,
     KeyboardArrowDown,
     KeyboardArrowUp,
-    Edit,
-    Outbox,
-    CheckCircleOutline,
 } from "@mui/icons-material";
 import {
     TableContainer,
@@ -27,9 +24,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import AutocompleteFilter from "../input/AutocompleteFilterComp";
 import { Axios } from "../../api/axios";
 
-export default function TableRecapReport() {
+export default function TableRecapReport({ onsetFilterData }) {
     const column = useMemo(
         () => [
+            {
+                header: "Loading Note",
+                accessorKey: "ln_num",
+            },
             {
                 header: "Do Number",
                 accessorKey: "id_do",
@@ -122,15 +123,22 @@ export default function TableRecapReport() {
     }, [columnFilter]);
 
     useEffect(() => {
+        onsetFilterData({
+            filters: dataColFilter,
+            customer_id: "",
+        });
         (async () => {
             try {
-                const { data } = await Axios.get("/ln/recap");
+                const { data } = await Axios.post("/ln/recapss", {
+                    filters: dataColFilter,
+                    customer_id: "",
+                });
                 setData(data);
             } catch (error) {
                 console.error(error);
             }
         })();
-    }, []);
+    }, [columnFilter]);
 
     const table = useReactTable({
         data: dataRows,
@@ -142,6 +150,7 @@ export default function TableRecapReport() {
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnfilter,
         getFacetedUniqueValues: getFacetedUniqueValues(),
+        manualFiltering: true,
         state: {
             sorting: dataSorting,
             columnFilters: dataColFilter,
@@ -151,8 +160,8 @@ export default function TableRecapReport() {
     return (
         <TableContainer
             sx={{
-                maxWidth: "100%",
-                height: "85vh",
+                maxWidth: "85vw",
+                height: "80vh",
             }}
         >
             <Table stickyHeader>
