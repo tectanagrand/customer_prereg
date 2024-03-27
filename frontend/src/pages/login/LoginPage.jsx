@@ -33,7 +33,11 @@ export default function LoginPage() {
             setMenu(userData.permission);
             toast.success("Login Success");
             setTimeout(() => {
-                navigate("/dashboard");
+                if (userData.role === "LOGISTIC") {
+                    navigate("/dashboard/osreq");
+                } else {
+                    navigate("/dashboard/loadingnote");
+                }
             }, 1000);
         } catch (error) {
             console.log(error);
