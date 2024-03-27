@@ -782,6 +782,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     ISACTIVE: "TRUE",
                     FLAG: "I",
                     ISRETRIVEDBYSAP: "FALSE",
+                    USERSAP: session.id_sap,
                 };
                 const [queIns, valIns] = crud.insertItemOra(
                     "PREREG_LOADING_NOTE_SAP",
