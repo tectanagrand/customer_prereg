@@ -207,6 +207,7 @@ UserModel.showAllUser = async () => {
         SELECT USR.fullname, USR.username, USR.email, RL.role_name, USR.created_date, USR.id_user, USR.id_user as id, USR.is_active
         FROM MST_USER USR
         LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = USR.ROLE
+        ORDER BY USR.created_date desc
         `);
         return userData;
     } catch (error) {
