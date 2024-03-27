@@ -289,7 +289,10 @@ UserController.sendEmailCredentials = async (req, res) => {
                 [id_user]
             );
             const dataUser = rows[0];
-            const password = ncryption.decrypt(dataUser.enc_pwd);
+            let password = dataUser.enc_pwd;
+            if (password !== null) {
+                password = ncryption.decrypt(dataUser.enc_pwd);
+            }
             await EmailModel.newUserNotify(
                 dataUser.email,
                 dataUser.username,
