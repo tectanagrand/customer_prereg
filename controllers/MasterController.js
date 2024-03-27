@@ -1,4 +1,5 @@
 const Master = require("../models/MasterModel");
+const db = require("../config/connection");
 
 const MasterController = {};
 
@@ -163,6 +164,48 @@ MasterController.getOSDataCust = async (req, res) => {
     try {
         const data = await Master.getOSDataCust(limit, offset, q, do_num);
         res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getDataSLocDB = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(
+                `SELECT sloc as value, concat(sloc, '-', description) as label FROM mst_sloc`
+            );
+            res.status(200).send(rows);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getDataValTypeDB = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(
+                `SELECT valtype_id as value, valtype_desc as label FROM mst_valtype`
+            );
+            res.status(200).send(rows);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
     } catch (error) {
         console.error(error);
         res.status(500).send({
