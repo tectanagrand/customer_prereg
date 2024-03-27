@@ -44,8 +44,13 @@ export default function TableChildCustLN({ dataChild }) {
                 cell: props => props.getValue(),
             },
             {
-                header: "Loading Note Number",
-                accessorKey: "ln_num",
+                header: "Planning Quantity",
+                accessorKey: "plan_qty",
+                cell: props => props.getValue(),
+            },
+            {
+                header: "Error Message",
+                accessorKey: "error_msg",
                 cell: props => props.getValue(),
             },
             {
