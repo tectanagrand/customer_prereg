@@ -156,7 +156,7 @@ UserController.showById = async (req, res) => {
     try {
         const { rows: userData } = await client.query(
             `SELECT fullname, username, email, phone_num, role, id_user,
-            sap_code 
+            sap_code, id_sap
             FROM mst_user WHERE id_user = $1`,
             [id_user]
         );
