@@ -11,6 +11,7 @@ import {
     KeyboardArrowRight,
     KeyboardArrowDown,
     KeyboardArrowUp,
+    FileDownload,
 } from "@mui/icons-material";
 import {
     TableContainer,
@@ -19,14 +20,62 @@ import {
     TableCell,
     TableHead,
     TableRow,
+    IconButton,
+    Tooltip,
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AutocompleteFilter from "../input/AutocompleteFilterComp";
 import { Axios } from "../../api/axios";
 
 export default function TableRecapReport({ onsetFilterData }) {
+    const exportData = async id_loadnote => {
+        try {
+            const response = await Axios.post(
+                "/ln/pdf",
+                {
+                    loadnote: id_loadnote,
+                },
+                { responseType: "blob", withCredentials: true }
+            );
+            console.log(response);
+            const filename = response.headers
+                .get("Content-Disposition")
+                .split("filename=")[1]
+                .replace(/['"]+/g, "");
+            console.log(filename);
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+
+            // Create a link element and simulate a click to trigger the download
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+
+            // Cleanup
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.log(error);
+        }
+    };
     const column = useMemo(
         () => [
+            {
+                id: "exportln",
+                cell: ({ row }) => {
+                    return (
+                        <Tooltip title="Download PDF">
+                            <IconButton
+                                onClick={async () => {
+                                    await exportData(row.original.id);
+                                }}
+                            >
+                                <FileDownload></FileDownload>
+                            </IconButton>
+                        </Tooltip>
+                    );
+                },
+            },
             {
                 header: "Loading Note",
                 accessorKey: "ln_num",
@@ -118,9 +167,7 @@ export default function TableRecapReport({ onsetFilterData }) {
     const [columnFilter, setColumnfilter] = useState([]);
     const dataColFilter = useMemo(() => columnFilter, [columnFilter]);
 
-    useEffect(() => {
-        console.log(columnFilter);
-    }, [columnFilter]);
+    useEffect(() => {}, [columnFilter]);
 
     useEffect(() => {
         onsetFilterData({
