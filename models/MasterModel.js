@@ -246,11 +246,14 @@ MasterModel.getCustDataDB = async (limit, offset, q) => {
 
         try {
             const { rows: dataComp } = await client.query(
-                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name FROM MST_CUSTOMER WHERE lower(name_1) like $1 or lower(kunnr) like $2 LIMIT $3 OFFSET $4`,
+                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name FROM MST_CUSTOMER 
+                WHERE (lower(name_1) like $1 or lower(kunnr) like $2) 
+                AND kunnr like '%000'
+                LIMIT $3 OFFSET $4`,
                 [`${q}%`, `%${q}%`, limit, offset]
             );
             const { rows } = await client.query(
-                "SELECT COUNT(*) AS ctr FROM MST_CUSTOMER WHERE lower(name_1) like $1 or lower(kunnr) like $2",
+                "SELECT COUNT(*) AS ctr FROM MST_CUSTOMER WHERE (lower(name_1) like $1 or lower(kunnr) like $2) AND kunnr like '%000'",
                 [`${q}%`, `%${q}%`]
             );
             return {
@@ -275,7 +278,7 @@ MasterModel.getOSDataCust = async (limit, offset, q, do_num) => {
         let do_numCheck2 = "";
         if (do_num !== "") {
             do_numCheck = "AND HED.id_do = $2";
-            do_numCheck = "AND HED.id_do = $2";
+            do_numCheck2 = "AND HED.id_do = $2";
         }
 
         try {
@@ -294,7 +297,7 @@ MasterModel.getOSDataCust = async (limit, offset, q, do_num) => {
                     ? [`%${q}%`, do_num, limit, offset]
                     : [`%${q}%`, limit, offset]
             );
-            const { rows } = await client.query(
+            const { rows, rowCount } = await client.query(
                 `SELECT distinct USR.sap_code FROM loading_note_det DET
                 LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
                  LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
@@ -307,7 +310,7 @@ MasterModel.getOSDataCust = async (limit, offset, q, do_num) => {
             );
             return {
                 data: dataComp,
-                count: rows[0].ctr,
+                count: rowCount,
             };
         } catch (error) {
             throw error;
