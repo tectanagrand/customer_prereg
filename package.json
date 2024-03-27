@@ -25,6 +25,7 @@
     "nodemailer": "^6.9.11",
     "oracledb": "^6.4.0",
     "otp-generator": "^4.0.1",
+    "pdfkit": "^0.15.0",
     "pg": "^8.11.3",
     "uuidv4": "^6.2.13"
   },
