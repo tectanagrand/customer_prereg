@@ -2,6 +2,8 @@ const User = require("../models/UserModel");
 const Page = require("../models/PageModel");
 const db = require("../config/connection");
 const jwt = require("jsonwebtoken");
+const ncrypt = require("ncrypt-js");
+const EmailModel = require("../models/EmailModel");
 
 const UserController = {};
 UserController.registerUser = async (req, res) => {
@@ -268,6 +270,39 @@ UserController.getAllAuth = async (req, res) => {
     try {
         const { data: authData } = await User.getAllAuth(role_id);
         res.status(200).send(authData);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+UserController.sendEmailCredentials = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const id_user = req.body.id_user;
+        const ncryption = new ncrypt(process.env.TOKEN_KEY);
+        try {
+            const { rows } = await client.query(
+                "SELECT username, email, enc_pwd FROM mst_user where id_user = $1",
+                [id_user]
+            );
+            const dataUser = rows[0];
+            const password = ncryption.decrypt(dataUser.enc_pwd);
+            await EmailModel.newUserNotify(
+                dataUser.email,
+                dataUser.username,
+                password
+            );
+            res.status(200).send({
+                message: "Email sent",
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
     } catch (error) {
         console.error(error);
         res.status(500).send({
