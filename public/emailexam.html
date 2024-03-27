@@ -1,0 +1,547 @@
+<!doctype html>
+  <html lang=3D"en">
+      <head>
+          <meta charset=3D"UTF-8" />
+          <meta name=3D"viewport" content=3D"width=3Ddevice-width" />
+          <title>Email Notification</title>
+          <link
+              href=3D"https://fonts.googleapis.com/css2?family=3DMontserrat=
+:wght@400;500;700&display=3Dswap"
+              rel=3D"stylesheet"
+          />
+          <style>
+              html,
+              body {
+                  margin: 0 auto !important;
+                  padding: 0 !important;
+                  height: 100% !important;
+                  width: 100% !important;
+                  background: #f1f1f1;
+              }
+ =20
+              /* What it does: Stops email clients resizing small text. */
+              * {
+                  -ms-text-size-adjust: 100%;
+                  -webkit-text-size-adjust: 100%;
+              }
+ =20
+              /* What it does: Centers email on Android 4.4 */
+              div[style*=3D"margin: 16px 0"] {
+                  margin: 0 !important;
+              }
+ =20
+              /* What it does: Stops Outlook from adding extra spacing to t=
+ables. */
+              table,
+              td {
+                  mso-table-lspace: 0pt !important;
+                  mso-table-rspace: 0pt !important;
+              }
+ =20
+              /* What it does: Fixes webkit padding issue. */
+              table {
+                  border-spacing: 0 !important;
+                  border-collapse: collapse !important;
+                  table-layout: fixed !important;
+                  margin: 0 auto !important;
+              }
+ =20
+              /* What it does: Uses a better rendering method when resizing=
+ images in IE. */
+              img {
+                  -ms-interpolation-mode: bicubic;
+              }
+ =20
+              /* What it does: Prevents Windows 10 Mail from underlining li=
+nks despite inline CSS. Styles for underlined links should be inline. */
+              a {
+                  text-decoration: none;
+              }
+ =20
+              /* What it does: A work-around for email clients meddling in =
+triggered links. */
+              *[x-apple-data-detectors],  /* iOS */
+          .unstyle-auto-detected-links *,
+          .aBn {
+                  border-bottom: 0 !important;
+                  cursor: default !important;
+                  color: inherit !important;
+                  text-decoration: none !important;
+                  font-size: inherit !important;
+                  font-family: inherit !important;
+                  font-weight: inherit !important;
+                  line-height: inherit !important;
+              }
+ =20
+              /* What it does: Prevents Gmail from displaying a download bu=
+tton on large, non-linked images. */
+              .a6S {
+                  display: none !important;
+                  opacity: 0.01 !important;
+              }
+ =20
+              /* What it does: Prevents Gmail from changing the text color =
+in conversation threads. */
+              .im {
+                  color: inherit !important;
+              }
+ =20
+              /* If the above doesn't work, add a .g-img class to any image=
+ in question. */
+              img.g-img + div {
+                  display: none !important;
+              }
+ =20
+              /* What it does: Removes right gutter in Gmail iOS app: https=
+://github.com/TedGoas/Cerberus/issues/89  */
+              /* Create one of these media queries for each additional view=
+port size you'd like to fix */
+ =20
+              /* iPhone 4, 4S, 5, 5S, 5C, and 5SE */
+              @media only screen and (min-device-width: 320px) and (max-dev=
+ice-width: 374px) {
+                  u ~ div .email-container {
+                      min-width: 320px !important;
+                  }
+              }
+              /* iPhone 6, 6S, 7, 8, and X */
+              @media only screen and (min-device-width: 375px) and (max-dev=
+ice-width: 413px) {
+                  u ~ div .email-container {
+                      min-width: 375px !important;
+                  }
+              }
+              /* iPhone 6+, 7+, and 8+ */
+              @media only screen and (min-device-width: 414px) {
+                  u ~ div .email-container {
+                      min-width: 414px !important;
+                  }
+              }
+          </style>
+ =20
+          <!-- CSS Reset : END -->
+ =20
+          <!-- Progressive Enhancements : BEGIN -->
+          <style>
+              .primary {
+                  background: #2f89fc;
+              }
+              .bg_white {
+                  background: #ffffff;
+              }
+              .bg_light {
+                  background: #fafafa;
+              }
+              .bg_black {
+                  background: #000000;
+              }
+              .bg_dark {
+                  background: rgba(0, 0, 0, 0.8);
+              }
+              .email-section {
+                  padding: 2.5em;
+              }
+ =20
+              /*BUTTON*/
+              .btn {
+                  padding: 5px 15px;
+                  display: inline-block;
+              }
+              .btn.btn-primary {
+                  border-radius: 5px;
+                  background: #2f89fc;
+                  color: #ffffff;
+              }
+              .btn.btn-white {
+                  border-radius: 5px;
+                  background: #ffffff;
+                  color: #000000;
+              }
+              .btn.btn-white-outline {
+                  border-radius: 5px;
+                  background: transparent;
+                  border: 1px solid #fff;
+                  color: #fff;
+              }
+ =20
+              h1,
+              h2,
+              h3,
+              h4,
+              h5,
+              h6 {
+                  font-family: "Montserrat", sans-serif;
+                  color: #000000;
+                  margin-top: 0;
+                  font-weight: 400;
+              }
+ =20
+              body {
+                  font-family: "Montserrat", sans-serif;
+                  font-weight: 400;
+                  font-size: 15px;
+                  line-height: 1.8;
+                  color: #000000;
+              }
+ =20
+              a {
+                  color: #2f89fc;
+              }
+ =20
+              table {
+              }
+ =20
+              #tabledet {
+                  width: 100%;
+              }
+ =20
+              #tabledet th {
+                  padding-top: 12px;
+                  padding-bottom: 12px;
+                  padding-left: 10px;
+                  padding-right: 10px;
+                  text-align: center;
+                  font-size: 8pt;
+                  background-color: #800000;
+                  color: white;
+              }
+ =20
+              #tabledet td {
+                  font-size: 8pt;
+              }
+ =20
+              #tabledet tr:nth-child(even) {
+                  background-color: #f2f2f2;
+              }
+              /*LOGO*/
+ =20
+              .logo h1 {
+                  margin: 0;
+              }
+              .logo h1 a {
+                  color: #000000;
+                  font-size: 20px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  font-family: "Montserrat", sans-serif;
+              }
+ =20
+              .navigation {
+                  padding: 0;
+              }
+              .navigation li {
+                  list-style: none;
+                  display: inline-block;
+                  margin-left: 5px;
+                  font-size: 13px;
+                  font-weight: 500;
+              }
+              .navigation li a {
+                  color: rgba(0, 0, 0, 0.4);
+              }
+ =20
+              /*HERO*/
+              .hero {
+                  position: relative;
+                  z-index: 0;
+              }
+ =20
+              .hero .text {
+                  color: rgba(0, 0, 0, 0.3);
+              }
+              .hero .text h2 {
+                  color: #000;
+                  font-size: 30px;
+                  margin-bottom: 0;
+                  font-weight: 300;
+              }
+              .hero .text h2 span {
+                  font-weight: 600;
+                  color: #2f89fc;
+              }
+ =20
+              /*HEADING SECTION*/
+              .heading-section {
+              }
+              .heading-section h2 {
+                  color: #000000;
+                  font-size: 28px;
+                  margin-top: 0;
+                  line-height: 1.4;
+                  font-weight: 400;
+              }
+              .heading-section .subheading {
+                  margin-bottom: 20px !important;
+                  display: inline-block;
+                  font-size: 13px;
+                  text-transform: uppercase;
+                  letter-spacing: 2px;
+                  color: rgba(0, 0, 0, 0.4);
+                  position: relative;
+              }
+              .heading-section .subheading::after {
+                  position: absolute;
+                  left: 0;
+                  right: 0;
+                  bottom: -10px;
+                  content: "";
+                  width: 100%;
+                  height: 2px;
+                  background: #2f89fc;
+                  margin: 0 auto;
+              }
+ =20
+              .heading-section-white {
+                  color: rgba(255, 255, 255, 0.8);
+              }
+              .heading-section-white h2 {
+                  line-height: 1;
+                  padding-bottom: 0;
+              }
+              .heading-section-white h2 {
+                  color: #ffffff;
+              }
+              .heading-section-white .subheading {
+                  margin-bottom: 0;
+                  display: inline-block;
+                  font-size: 13px;
+                  text-transform: uppercase;
+                  letter-spacing: 2px;
+                  color: rgba(255, 255, 255, 0.4);
+              }
+ =20
+              /*FOOTER*/
+ =20
+              .footer {
+                  color: rgba(255, 255, 255, 0.5);
+              }
+              .footer .heading {
+                  color: #ffffff;
+                  font-size: 20px;
+              }
+              .footer ul {
+                  margin: 0;
+                  padding: 0;
+              }
+              .footer ul li {
+                  list-style: none;
+                  margin-bottom: 10px;
+              }
+              .footer ul li a {
+                  color: rgba(255, 255, 255, 1);
+              }
+ =20
+              @media screen and (max-width: 500px) {
+              }
+          </style>
+      </head>
+      <body
+          width=3D"100%"
+          style=3D"
+              margin: 0;
+              padding: 0 !important;
+              mso-line-height-rule: exactly;
+              background-color: #222222;
+          "
+      >
+          <center style=3D"width: 100%; background-color: #f1f1f1">
+              <div
+                  style=3D"max-width: 600px; margin: 0 auto"
+                  class=3D"email-container"
+              >
+                  <table
+                      align=3D"center"
+                      role=3D"presentation"
+                      cellspacing=3D"0"
+                      cellpadding=3D"0"
+                      border=3D"0"
+                      width=3D"100%"
+                      style=3D"margin: auto"
+                      class=3D"bg_white"
+                  >
+                      <tr>
+                          <td
+                              valign=3D"top"
+                              class=3D"bg_white"
+                              style=3D"padding: 1em 2.5em"
+                          >
+                              <table
+                                  role=3D"presentation"
+                                  border=3D"0"
+                                  cellpadding=3D"0"
+                                  cellspacing=3D"0"
+                                  width=3D"100%"
+                              >
+                                  <tr>
+                                      <td class=3D"logo" style=3D"text-alig=
+n: left">
+                                          <img
+                                              width=3D"40%"
+                                              src=3D"https://safetyfirstind=
+onesia.co.id/assets/uploads/images/9f09b-kpn-corp.png"
+                                          />
+                                      </td>
+                                  </tr>
+                              </table>
+                          </td>
+                      </tr>
+                      <tr>
+                          <table style=3D"width: 100%">
+                              <tr>
+                                  <td
+                                      valign=3D"top"
+                                      class=3D"bg_white"
+                                      style=3D"padding: 1em 2.5em"
+                                  >
+                                      <h4>
+                                          Kepada Yth. Bapak/Ibu <br />
+                                          Request Loading Note sudah dipros=
+es
+                                          dengan detail berikut
+                                      </h4>
+                                  </td>
+                              </tr>
+                          </table>
+                      </tr>
+                      <tr>
+                          <table id=3D"tabledet">
+                              <tr>
+                                  <th>DO Number</th>
+                                  <th>Customer</th>
+                                  <th>Create Date</th>
+                                  <th>Planning Quantity</th>
+                                  <th>Loading Note Number</th>
+                                  <th>Keterangan</th>
+                              </tr>
+                             =20
+                    <tr>
+                      <td>
+                       1011100643
+                      </td>
+                      <td>
+                      CU00010000 - PT. JUJUR SENTOSA
+                      </td>
+                      <td>
+                      03-26-2024
+                      </td>
+                      <td>
+                      200 KG
+                      </td>
+                      <td>
+                      000000001 - MUSTOFA
+                      </td>
+                      <td>
+                      A 8032 NN
+                      </td>
+                      <td>
+                     =20
+                      </td>
+                      <td>
+                      Planning Quantity exceed O/S Quantity
+                      </td>
+                    </tr>
+                    =20
+                    <tr>
+                      <td>
+                       1011100659
+                      </td>
+                      <td>
+                      CU00010000 - PT. JUJUR SENTOSA
+                      </td>
+                      <td>
+                      03-25-2024
+                      </td>
+                      <td>
+                      200 KG
+                      </td>
+                      <td>
+                      00000000000003 - MUKIYAR
+                      </td>
+                      <td>
+                      A 8032 NN
+                      </td>
+                      <td>
+                     =20
+                      </td>
+                      <td>
+                      DO 1011100659 Doesn`t Receive Incoming Payment Profor=
+ma Invoice, Please Contact Commercial Team to b
+                      </td>
+                    </tr>
+                    =20
+                    <tr>
+                      <td>
+                       1011100643
+                      </td>
+                      <td>
+                      CU00010000 - PT. JUJUR SENTOSA
+                      </td>
+                      <td>
+                      03-25-2024
+                      </td>
+                      <td>
+                      1000 KG
+                      </td>
+                      <td>
+                      001113300089 - M IKBAL FADILAH ROSI
+                      </td>
+                      <td>
+                      A 8271 KB
+                      </td>
+                      <td>
+                     =20
+                      </td>
+                      <td>
+                      Storage Location RT51 is not allowed for rule 1B on O=
+ther Party plant PS21
+                      </td>
+                    </tr>
+                   =20
+                              <!-- <tr>
+                                  <td>XXXXXX</td>
+                                  <td>Hello World</td>
+                                  <td>01-01-1997</td>
+                                  <td>100 KG</td>
+                                  <td>10XXXXXXXX</td>
+                                  <td>Lorem Ipsum</td>
+                              </tr> -->
+                          </table>
+                      </tr>
+                      <tr>
+                          <table style=3D"width: 100%">
+                              <tr>
+                                  <td
+                                      valign=3D"top"
+                                      class=3D"bg_white"
+                                      style=3D"padding: 1em 2.5em"
+                                  ></td>
+                              </tr>
+                          </table>
+                      </tr>
+                  </table>
+                  <table
+                      align=3D"center"
+                      role=3D"presentation"
+                      cellspacing=3D"0"
+                      cellpadding=3D"0"
+                      border=3D"0"
+                      width=3D"100%"
+                      style=3D"margin: auto"
+                  >
+                      <tr>
+                          <td
+                              valign=3D"middle"
+                              class=3D"bg_black footer email-section"
+                          >
+                              <table>
+                                  <tr>
+                                      <td>KPN Corp Copyright 2023</td>
+                                  </tr>
+                              </table>
+                          </td>
+                      </tr>
+                  </table>
+              </div>
+          </center>
+      </body>
+  </html>
