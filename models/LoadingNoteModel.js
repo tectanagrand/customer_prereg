@@ -751,7 +751,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     HEAD_ID: item.hd_id,
                     DET_ID: item.id,
                     BUKRS: item.company,
-                    UPLOAD_ID: "1",
+                    UPLOADID: "1",
                     DOTYPE: "S",
                     ITEMRULE: item.rules,
                     VBELN_REF: item.id_do,
