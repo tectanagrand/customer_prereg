@@ -8,7 +8,8 @@ router.get("/truck", MasterController.getTruck);
 router.get("/do", MasterController.getSOData);
 router.get("/cust", MasterController.getDataCustDB);
 router.get("/oscust", MasterController.getOSDataCust);
-router.get("/sloc", MasterController.getDataSLoc);
+router.get("/sloc", MasterController.getDataSLocDB);
+router.get("/valtype", MasterController.getDataValTypeDB);
 router.get("/dolist", MasterController.getDataDOList);
 router.get("/seedcust", MasterController.seedDataCust);
 
