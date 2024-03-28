@@ -5,16 +5,19 @@ import {
     Edit,
     SystemUpdate,
     ForwardToInbox,
+    DeleteOutline,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 // import useAxiosPrivate from 'src/hooks/useAxiosPrivate';
 import { Axios } from "../../api/axios";
+import { useTheme } from "@mui/material/styles";
 
 export default function User() {
     // const axiosPrivate = useAxiosPrivate();
     const [allUserDt, setAllUsr] = useState();
     const [load, setLoad] = useState(false);
+    const theme = useTheme();
 
     const navigate = useNavigate();
 
@@ -49,38 +52,16 @@ export default function User() {
                     },
                 }
             );
-        } else if (action === "deactivate") {
-            if (confirm("are you sure want to deactivate ?")) {
+        } else if (action === "delete") {
+            if (confirm("are you sure want to delete ?")) {
                 try {
                     // const updateUser = await axiosPrivate.post('/user/updatestat', {
                     //   id: data.id,
                     //   role: data.role,
                     //   is_active: false,
                     // });
-                    const updateUser = await Axios.post("/user/updatestat", {
-                        id: data.id,
-                        role: data.role,
-                        is_active: false,
-                    });
-                    alert(`${updateUser.data.message}`);
-                    setLoad(false);
-                } catch (error) {
-                    alert(`${error.response.data.message}`);
-                    setLoad(false);
-                }
-            }
-        } else if (action === "activate") {
-            if (confirm("are you sure want to activate ?")) {
-                try {
-                    // const updateUser = await axiosPrivate.post('/user/updatestat', {
-                    //   id: data.id,
-                    //   role: data.role,
-                    //   is_active: true,
-                    // });
-                    const updateUser = await Axios.post("/user/updatestat", {
-                        id: data.id,
-                        role: data.role,
-                        is_active: true,
+                    const updateUser = await Axios.post("/user/delete", {
+                        id_user: data.id,
                     });
                     alert(`${updateUser.data.message}`);
                     setLoad(false);
@@ -138,7 +119,14 @@ export default function User() {
                 buttons.push(
                     <Tooltip title={<Typography>Edit</Typography>}>
                         <IconButton
-                            sx={{ backgroundColor: "primary.light", mx: 1 }}
+                            sx={{
+                                backgroundColor: "primary.light",
+                                color: theme.palette.primary.contrastText,
+                                mx: 1,
+                                ":hover": {
+                                    color: theme.palette.grey[800],
+                                },
+                            }}
                             onClick={() => buttonAction("edit", item.row)}
                         >
                             <Edit></Edit>
@@ -147,17 +135,24 @@ export default function User() {
                 );
                 if (is_active) {
                     buttons.push(
-                        <Tooltip title={<Typography>Deactivate</Typography>}>
+                        <Tooltip title={<Typography>Delete</Typography>}>
                             <IconButton
-                                sx={{ backgroundColor: "#f2573f", mx: 1 }}
+                                sx={{
+                                    backgroundColor: "#f2573f",
+                                    color: theme.palette.primary.contrastText,
+                                    mx: 1,
+                                    ":hover": {
+                                        color: theme.palette.grey[800],
+                                    },
+                                }}
                                 onClick={() =>
-                                    buttonAction("deactivate", {
+                                    buttonAction("delete", {
                                         id: item.row.id,
                                         role: item.row.role,
                                     })
                                 }
                             >
-                                <DoDisturb></DoDisturb>
+                                <DeleteOutline></DeleteOutline>
                             </IconButton>
                         </Tooltip>
                     );
@@ -165,7 +160,14 @@ export default function User() {
                     buttons.push(
                         <Tooltip title={<Typography>Activate</Typography>}>
                             <IconButton
-                                sx={{ backgroundColor: "#4ef542", mx: 1 }}
+                                sx={{
+                                    backgroundColor: "#4ef542",
+                                    color: theme.palette.primary.contrastText,
+                                    mx: 1,
+                                    ":hover": {
+                                        color: theme.palette.grey[800],
+                                    },
+                                }}
                                 onClick={() =>
                                     buttonAction("activate", {
                                         id: item.row.id,
@@ -181,7 +183,14 @@ export default function User() {
                 buttons.push(
                     <Tooltip title={<Typography>Send Email</Typography>}>
                         <IconButton
-                            sx={{ backgroundColor: "#4ea500", mx: 1 }}
+                            sx={{
+                                backgroundColor: "#4ea500",
+                                color: theme.palette.primary.contrastText,
+                                mx: 1,
+                                ":hover": {
+                                    color: theme.palette.grey[800],
+                                },
+                            }}
                             onClick={() =>
                                 buttonAction("email", {
                                     id: item.row.id,
