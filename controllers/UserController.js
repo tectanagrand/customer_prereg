@@ -313,4 +313,36 @@ UserController.sendEmailCredentials = async (req, res) => {
         });
     }
 };
+
+UserController.deleteUser = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const id_user = req.body.id_user;
+        try {
+            const { rows } = await client.query(
+                "SELECT * FROM MST_USER WHERE id_user = $1",
+                [id_user]
+            );
+            if (rows.length < 0) {
+                throw error("User not found");
+            }
+            const deleteUser = await client.query(
+                "DELETE FROM MST_USER WHERE id_user = $1",
+                [id_user]
+            );
+            res.status(200).send({
+                message: `User ${rows[0].username} deleted`,
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
 module.exports = UserController;
