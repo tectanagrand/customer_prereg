@@ -159,6 +159,11 @@ export default function TableParentCustDashboard() {
                                 <IconButton
                                     sx={{
                                         backgroundColor: "primary.light",
+                                        color: theme.palette.primary
+                                            .contrastText,
+                                        ":hover": {
+                                            color: theme.palette.grey[800],
+                                        },
                                         mx: 1,
                                     }}
                                     onClick={() =>
@@ -183,6 +188,11 @@ export default function TableParentCustDashboard() {
                                 <IconButton
                                     sx={{
                                         backgroundColor: "primary.light",
+                                        color: theme.palette.primary
+                                            .contrastText,
+                                        ":hover": {
+                                            color: theme.palette.grey[800],
+                                        },
                                         mx: 1,
                                     }}
                                     onClick={() =>

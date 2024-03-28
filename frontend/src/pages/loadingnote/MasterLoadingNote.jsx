@@ -6,11 +6,13 @@ import { useNavigate } from "react-router";
 import { DataGrid } from "@mui/x-data-grid";
 import { Axios } from "../../api/axios";
 import ProgressStat from "../../component/common/ProgressStat";
+import { useTheme } from "@mui/material/styles";
 
 export default function MasterLoadingNote() {
     const [loadNote, setLoadNote] = useState();
     const [load, setLoad] = useState(false);
     const { getPermission } = useSession();
+    const theme = useTheme();
 
     const navigate = useNavigate();
 
@@ -121,7 +123,14 @@ export default function MasterLoadingNote() {
                     buttons.push(
                         <Tooltip title={<Typography>Edit</Typography>}>
                             <IconButton
-                                sx={{ backgroundColor: "primary.light", mx: 1 }}
+                                sx={{
+                                    backgroundColor: "primary.light",
+                                    color: theme.palette.primary.contrastText,
+                                    ":hover": {
+                                        color: theme.palette.grey[800],
+                                    },
+                                    mx: 1,
+                                }}
                                 onClick={() =>
                                     buttonAction("edit", { id: item.row.id })
                                 }
