@@ -68,11 +68,7 @@ export default function TableChildCustLN({ dataChild }) {
     });
     return (
         <>
-            <TableContainer
-                sx={{
-                    height: "10rem",
-                }}
-            >
+            <TableContainer>
                 <Table>
                     <TableHead>
                         {table.getHeaderGroups().map(headerGroup => {
