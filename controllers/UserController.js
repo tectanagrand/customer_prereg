@@ -285,7 +285,7 @@ UserController.sendEmailCredentials = async (req, res) => {
         const ncryption = new ncrypt(process.env.TOKEN_KEY);
         try {
             const { rows } = await client.query(
-                "SELECT username, email, enc_pwd FROM mst_user where id_user = $1",
+                "SELECT username, email, enc_pwd, url_web FROM mst_user where id_user = $1",
                 [id_user]
             );
             const dataUser = rows[0];
@@ -296,7 +296,8 @@ UserController.sendEmailCredentials = async (req, res) => {
             await EmailModel.newUserNotify(
                 dataUser.email,
                 dataUser.username,
-                password
+                password,
+                dataUser.url_web
             );
             res.status(200).send({
                 message: "Email sent",

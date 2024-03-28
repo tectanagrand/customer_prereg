@@ -24,7 +24,7 @@ EmailModel.NotifyEmail = async email_list => {
     }
 };
 
-EmailModel.newUserNotify = async (email, username, pass) => {
+EmailModel.newUserNotify = async (email, username, pass, url_web) => {
     try {
         const tp = EmailTP.Transporter();
         const setup = {
@@ -39,7 +39,8 @@ EmailModel.newUserNotify = async (email, username, pass) => {
             Username : ${username}
             Password : ${pass}
 
-            Mohon untuk dapat login dengan credential berikut,
+            Mohon untuk dapat login dengan credential berikut :
+            ${url_web}
             Terimakasih
 
             Hormat kami,
