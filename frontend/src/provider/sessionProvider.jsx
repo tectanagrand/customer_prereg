@@ -14,7 +14,6 @@ const SessionProvider = ({ children }) => {
             Cookies.get("username") === undefined
                 ? ""
                 : Cookies.get("username"),
-        email: Cookies.get("email") === undefined ? "" : Cookies.get("email"),
         access_token:
             Cookies.get("access_token") === undefined
                 ? ""
@@ -24,12 +23,6 @@ const SessionProvider = ({ children }) => {
         role: Cookies.get("role") === undefined ? "" : Cookies.get("role"),
         role_id:
             Cookies.get("role_id") === undefined ? "" : Cookies.get("role_id"),
-        sap_code:
-            Cookies.get("sap_code") === undefined
-                ? ""
-                : Cookies.get("sap_code"),
-        id_sap:
-            Cookies.get("id_sap") === undefined ? "" : Cookies.get("id_sap"),
         permission:
             localStorage.getItem("permission") === undefined
                 ? {}
@@ -43,27 +36,25 @@ const SessionProvider = ({ children }) => {
     const setSession = data => {
         Cookies.set("access_token", data.access_token);
         Cookies.set("fullname", data.fullname);
-        Cookies.set("email", data.email);
         Cookies.set("username", data.username);
         Cookies.set("id_user", data.id_user);
         Cookies.set("role", data.role);
         Cookies.set("role_id", data.role_id);
-        Cookies.set("sap_code", data.sap_code);
-        Cookies.set("id_sap", data.id_sap);
         localStorage.setItem("permission", JSON.stringify(data.permission));
         localStorage.setItem("auth", JSON.stringify(data.auth));
+        console.log(Cookies.get("newpass"));
+        if (Cookies.get("newpass")) {
+            Cookies.remove("newpass");
+        }
         setSession_({
             fullname: data.fullname,
             username: data.username,
-            email: data.email,
             access_token: data.access_token,
             id_user: data.id_user,
             role: data.role,
             role_id: data.role_id,
             permission: data.permission,
             auth: data.auth,
-            sap_code: data.sap_code,
-            id_sap: data.id_sap,
         });
     };
 
@@ -86,17 +77,13 @@ const SessionProvider = ({ children }) => {
     const logOut = () => {
         localStorage.clear();
         Cookies.remove("fullname");
-        Cookies.remove("email");
         Cookies.remove("username");
         Cookies.remove("id_user");
         Cookies.remove("role");
         Cookies.remove("access_token");
-        Cookies.remove("groupid");
         Cookies.remove("auth");
         Cookies.remove("permission");
-        Cookies.remove("sap_code");
         Cookies.remove("role_id");
-        Cookies.remove("id_sap");
     };
 
     const getPermission = page => {
@@ -120,13 +107,10 @@ const SessionProvider = ({ children }) => {
                 "Bearer " + session.access_token;
             Cookies.set("access_token", session.access_token);
             Cookies.set("fullname", session.fullname);
-            Cookies.set("email", session.email);
             Cookies.set("username", session.username);
             Cookies.set("id_user", session.id_user);
             Cookies.set("role", session.role);
-            Cookies.set("sap_code", session.sap_code);
             Cookies.set("role_id", session.role_id);
-            Cookies.set("id_sap", session.id_sap);
             localStorage.setItem(
                 "permission",
                 JSON.stringify(session.permission)
