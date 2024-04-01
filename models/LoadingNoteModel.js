@@ -267,6 +267,8 @@ LoadingNoteModel.sendToLogistic = async id_header => {
             };
         } catch (error) {
             throw error;
+        } finally {
+            client.release();
         }
     } catch (error) {
         console.error(error);
@@ -898,6 +900,8 @@ LoadingNoteModel.getAllDataLNbyUser = async session => {
             return rows;
         } catch (error) {
             throw error;
+        } finally {
+            client.release();
         }
     } catch (error) {
         throw error;
