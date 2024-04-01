@@ -104,7 +104,7 @@ export default function LoginPage() {
                             }}
                         >
                             <TextFieldComp
-                                label="Username / Email"
+                                label="Username"
                                 control={control}
                                 name="username"
                                 sx={{ my: 2 }}
@@ -124,14 +124,14 @@ export default function LoginPage() {
                                 alignItems: "center",
                             }}
                         >
-                            {/* <Link
+                            <Link
                                 sx={{ mr: "3rem" }}
                                 onClick={() => {
-                                    navigate("/register");
+                                    navigate("/newverif");
                                 }}
                             >
-                                Sign Up
-                            </Link> */}
+                                Already Registered?
+                            </Link>
                             <LoadingButton
                                 variant="contained"
                                 type="submit"
