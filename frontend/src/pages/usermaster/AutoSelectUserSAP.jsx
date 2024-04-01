@@ -8,6 +8,7 @@ export default function AutoSelectUserSAP({
     label,
     control,
     rules,
+    onChangeControlOvr,
     ...props
 }) {
     const limit = 10;
@@ -107,8 +108,13 @@ export default function AutoSelectUserSAP({
                 control={control}
                 rules={rules}
                 defaultValue={null}
+                onControlChgOvr={onChangeControlOvr}
                 onChangeovr={debounce(e => {
-                    setQuery(e.target.value);
+                    if (!e.hasOwnProperty("target")) {
+                        setQuery("");
+                    } else {
+                        setQuery(e.target.value);
+                    }
                 }, 1000)}
                 onBlurovr={debounce(e => {
                     setQuery(e.target.value);
