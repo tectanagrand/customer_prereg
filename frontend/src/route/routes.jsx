@@ -12,6 +12,9 @@ import MasterLoadingNote from "../pages/loadingnote/MasterLoadingNote";
 import FormCreateLoadingNote from "../pages/osreq/FormCreateLoadingNote";
 import TableParentCustDashboard from "../component/table/TableParentCustDashboardLN";
 import RecapLoadingNote from "../pages/recap/RecapLoadingNote";
+import NewUserRegFormPage from "../pages/usermaster/NewUserRegFormPage";
+import NewUserValidateOTP from "../pages/usermaster/NewUserValidateOTP";
+import NewUserPass from "../pages/usermaster/NewUserPass";
 
 export const routes = createBrowserRouter([
     {
@@ -22,10 +25,14 @@ export const routes = createBrowserRouter([
         path: "login",
         element: <LoginPage />,
     },
-    // {
-    //     path: "register",
-    //     element: <RegistrationPage />,
-    // },
+    {
+        path: "newverif",
+        element: <NewUserValidateOTP />,
+    },
+    {
+        path: "setnewpwd",
+        element: <NewUserPass />,
+    },
     {
         path: "dashboard",
         element: <Dashboard />,
@@ -36,7 +43,7 @@ export const routes = createBrowserRouter([
             },
             {
                 path: "users/create",
-                element: <FormUserPage />,
+                element: <NewUserRegFormPage />,
             },
             {
                 path: "rolegroup",
