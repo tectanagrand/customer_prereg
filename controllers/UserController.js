@@ -4,26 +4,133 @@ const db = require("../config/connection");
 const jwt = require("jsonwebtoken");
 const ncrypt = require("ncrypt-js");
 const EmailModel = require("../models/EmailModel");
+const crud = require("../helper/crudquery");
+const OTP = require("../helper/OTPHandler");
+const { hashPassword } = require("../helper/hashpass");
 
 const UserController = {};
-UserController.registerUser = async (req, res) => {
-    const payload = req.body;
+// UserController.registerUser = async (req, res) => {
+//     const payload = req.body;
+//     try {
+//         const regUser = await User.registerNew(payload);
+//         res.status(200).send({
+//             message: "User Registered, OTP Sent",
+//             id_user: regUser.id_user,
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         if (error.message === "CRED EXIST") {
+//             res.status(400).send({
+//                 message:
+//                     "User already registered, please verify OTP or resend new OTP",
+//             });
+//         } else {
+//             res.status(500).send({ message: error.message });
+//         }
+//     }
+// };
+
+UserController.registerNewUser = async (req, res) => {
     try {
-        const regUser = await User.registerNew(payload);
+        const payload = req.body;
+        const session = req.cookies;
+        const registerNew = await User.registerNew_2({
+            ...payload,
+            session: session,
+        });
         res.status(200).send({
-            message: "User Registered, OTP Sent",
-            id_user: regUser.id_user,
+            message: "New User Registered",
         });
     } catch (error) {
         console.error(error);
-        if (error.message === "CRED EXIST") {
-            res.status(400).send({
-                message:
-                    "User already registered, please verify OTP or resend new OTP",
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+UserController.validateNewUser = async (req, res) => {
+    try {
+        const username = req.body.username;
+        const otp = req.body.otp;
+        const validateUser = await OTP.validateNewOTP(otp, username);
+        res.cookie("newpass", validateUser, {
+            httpOnly: true,
+            secure: false,
+            sameSite: false,
+        });
+        res.status(200).send({
+            message: "OTP Validated",
+        });
+    } catch (error) {
+        res.status(500).send({ message: error.message });
+    }
+};
+
+UserController.setNewPassword = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const username = req.body.username;
+            const password = req.body.newpass;
+            const newpassToken = req.cookies.newpass;
+            const { username: tokenUname } = jwt.verify(
+                newpassToken,
+                process.env.TOKEN_KEY
+            );
+            if (tokenUname !== username) {
+                throw new Error("Token invalid");
+            }
+            const { rows } = await client.query(
+                "SELECT is_active FROM MST_USER WHERE username = $1",
+                [username]
+            );
+            if (rows[0].is_active) {
+                throw new Error("User already active, cannot set new password");
+            }
+            const hashPass = await hashPassword(password);
+            const payloadNewPass = {
+                password: hashPass,
+                is_active: true,
+                otp_value: null,
+                otp_validto: null,
+            };
+            const [queUp, valUp] = crud.updateItem(
+                "mst_user",
+                payloadNewPass,
+                { username: username },
+                "id_user"
+            );
+            const updatePass = await client.query(queUp, valUp);
+            res.status(200).send({
+                message: "Password Set",
             });
-        } else {
-            res.status(500).send({ message: error.message });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
         }
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+UserController.editUser = async (req, res) => {
+    const payload = req.body;
+    console.log(payload);
+    const session = req.cookies;
+    try {
+        const verif = await User.editUser(payload, session);
+        res.status(200).send({
+            message: "User Edited",
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
     }
 };
 
@@ -74,7 +181,7 @@ UserController.login = async (req, res) => {
     const password = req.body.password;
     try {
         const { data, accessToken } = await User.login({
-            uemail: usernameoremail,
+            username: usernameoremail,
             password: password,
         });
         const authorize = await Page.showAll(data.role_id);
@@ -157,12 +264,32 @@ UserController.showById = async (req, res) => {
     const client = await db.connect();
     try {
         const { rows: userData } = await client.query(
-            `SELECT fullname, username, email, phone_num, role, id_user,
-            sap_code, id_sap
-            FROM mst_user WHERE id_user = $1`,
+            `SELECT USERNAME,
+            FULLNAME,
+            TO_CHAR(U.CREATED_DATE,
+        
+                'YYYY-MM-DD T HH24:MI:SS') AS CREATED_DATE,
+            RL.ROLE_NAME,
+            U.ROLE,
+            EM.EMAIL,
+            TE.TELF
+        FROM MST_USER U
+        LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = U.ROLE
+        LEFT JOIN 
+        (SELECT STRING_AGG(EMAIL, ',') AS EMAIL, ID_USER FROM MST_EMAIL GROUP BY ID_USER) EM ON EM.ID_USER = U.ID_USER 
+        LEFT JOIN (SELECT STRING_AGG(TELF, ',') AS TELF, ID_USER FROM MST_TELF GROUP BY ID_USER) TE ON TE.ID_USER = U.ID_USER
+        WHERE U.id_user = $1`,
             [id_user]
         );
-        res.status(200).send(userData[0]);
+        const dataUser = userData[0];
+        const responseData = {
+            fullname: dataUser.fullname,
+            role: dataUser.role,
+            username: dataUser.username,
+            email: dataUser.email?.split(",").map(item => item.trim()) ?? [],
+            telf: dataUser.telf?.split(",").map(item => item.trim()) ?? [],
+        };
+        res.status(200).send(responseData);
     } catch (error) {
         console.error(error);
         res.status(500).send({

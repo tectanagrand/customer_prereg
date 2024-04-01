@@ -2,7 +2,11 @@ const express = require("express");
 const UserController = require("../controllers/UserController");
 const router = express.Router();
 
-router.post("/register", UserController.registerUser);
+// router.post("/register", UserController.registerUser);
+router.post("/register", UserController.registerNewUser);
+router.post("/edituser", UserController.editUser);
+router.post("/validatenew", UserController.validateNewUser);
+router.post("/setpwdnew", UserController.setNewPassword);
 router.post("/verifotp", UserController.verifNewUser);
 router.post("/resendotp", UserController.resendOTP);
 router.post("/login", UserController.login);

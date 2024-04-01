@@ -29,18 +29,16 @@ EmailModel.newUserNotify = async (email, username, pass, url_web) => {
         const tp = EmailTP.Transporter();
         const setup = {
             from: process.env.SMTP_USERNAME,
-            to: email,
-            subject: "New Logistic Account Prereg App Credentials",
+            to: email.join(", "),
+            subject: "New Logistic Account Prereg App Verification",
             text: `
             Dengan hormat Bapak/Ibu,
-            Akun web app Customer Preregistration anda sudah dibuat dengan credentials sebagai berikut :
+            Akun web app Customer Preregistration anda sudah dibuat dan perlu diverifikasi dengan credentials sebagai berikut :
             
-            Email : ${email}
             Username : ${username}
-            Password : ${pass}
+            OTP : ${pass}
 
-            Mohon untuk dapat login dengan credential berikut :
-            ${url_web}
+            Mohon untuk dapat memverifikasi akun di ${url_web}
             Terimakasih
 
             Hormat kami,

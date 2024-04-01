@@ -8,6 +8,7 @@ const OTP = require("../helper/OTPHandler");
 const jwt = require("jsonwebtoken");
 const ncrypt = require("ncrypt-js");
 const moment = require("moment");
+const EmailModel = require("./EmailModel");
 
 const UserModel = {};
 
@@ -63,6 +64,202 @@ UserModel.registerNew = async ({
         throw error;
     } finally {
         client.release();
+    }
+};
+
+UserModel.registerNew_2 = async ({
+    username,
+    fullname,
+    email,
+    phonenum,
+    role,
+    session,
+}) => {
+    try {
+        const client = await db.connect();
+        const id_user = uuid.uuid();
+        try {
+            await client.query(TRANS.BEGIN);
+            //get email and phonenum check if exist
+            const { rowCount } = await client.query(
+                "SELECT username from mst_user where username = $1",
+                [username]
+            );
+            if (rowCount > 0) {
+                throw new Error("Username has been taken");
+            }
+            //create otp validation
+            const [otpCode, encodedOTP, validUntil] = OTP.createOTP(15, {
+                digits: true,
+                lowerCaseAlphabets: true,
+                upperCaseAlphabets: true,
+                specialChars: true,
+            });
+            const payloadUser = {
+                id_user: id_user,
+                username: username,
+                fullname: fullname,
+                role: role,
+                is_active: false,
+                otp_value: encodedOTP,
+                otp_validto: validUntil,
+                create_by: session.id_user,
+            };
+            const [queUsr, valUsr] = crud.insertItem(
+                "mst_user",
+                payloadUser,
+                "id_user"
+            );
+            const insertUser = await client.query(queUsr, valUsr);
+            for (const e of email) {
+                const { rowCount } = await client.query(
+                    "SELECT email from mst_email where email = $1",
+                    [e]
+                );
+                if (rowCount > 0) {
+                    throw new Error("an email has been taken");
+                }
+                const valPayload = {
+                    email: e,
+                    id_user: id_user,
+                    create_by: session.id_user,
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_email",
+                    valPayload,
+                    "id"
+                );
+                const insertEmail = await client.query(que, val);
+            }
+            for (const p of phonenum) {
+                const { rowCount } = await client.query(
+                    "SELECT telf from mst_telf where telf = $1",
+                    [p]
+                );
+                if (rowCount > 0) {
+                    throw new Error("an phone number has been taken");
+                }
+                const valPayload = {
+                    telf: p,
+                    id_user: id_user,
+                    create_by: session.id_user,
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_telf",
+                    valPayload,
+                    "id"
+                );
+                const insertTelf = await client.query(que, val);
+            }
+            await EmailModel.newUserNotify(
+                email,
+                username,
+                otpCode,
+                "http://0"
+            );
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+UserModel.editUser = async (payload, session) => {
+    try {
+        const client = await db.connect();
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rowCount } = await client.query(
+                "SELECT id_user from MST_USER WHERE id_user = $1",
+                [payload.id_user]
+            );
+            if (rowCount < 0) {
+                throw new Error("User not found");
+            }
+            if (payload.password !== "") {
+                const hashedPass = await hashPassword(payload.password);
+                payload.password = hashedPass;
+                const [que, val] = crud.updateItem(
+                    "mst_user",
+                    {
+                        password: payload.password,
+                    },
+                    { id_user: payload.id_user },
+                    "id_user"
+                );
+                const updateDataUser = await client.query(que, val);
+            }
+            //check if email or phone exist
+            if (payload.email.length > 0) {
+                const { rowCount: emailCount } = await client.query(
+                    "SELECT email from mst_email where email in ($1) AND id_user <> $2",
+                    [payload.email.join(", "), payload.id_user]
+                );
+                if (emailCount > 0) {
+                    throw new Error("email already taken by another user");
+                }
+                const cleanseAll = await client.query(
+                    "DELETE FROM MST_EMAIL WHERE id_user = $1",
+                    [payload.id_user]
+                );
+                for (const e of payload.email) {
+                    const valPayload = {
+                        email: e,
+                        id_user: payload.id_user,
+                        create_by: session.id_user,
+                    };
+                    const [queIns, valIns] = crud.insertItem(
+                        "mst_email",
+                        valPayload,
+                        "id"
+                    );
+                    const insertEmail = await client.query(queIns, valIns);
+                }
+            }
+            if (payload.phonenum.length > 0) {
+                const { rowCount: phonenumCount } = await client.query(
+                    "SELECT telf from mst_telf where telf in ($1) AND id_user <> $2",
+                    [payload.phonenum.join(", "), payload.id_user]
+                );
+                if (phonenumCount > 0) {
+                    throw new Error(
+                        "phone number already taken by another user"
+                    );
+                }
+                console.log(payload.id_user);
+                const cleanseAll = await client.query(
+                    "DELETE FROM MST_TELF WHERE id_user = $1",
+                    [payload.id_user]
+                );
+                for (const p of payload.phonenum) {
+                    const valPayload = {
+                        telf: p,
+                        id_user: payload.id_user,
+                        create_by: session.id_user,
+                    };
+                    const [queIns, valIns] = crud.insertItem(
+                        "mst_telf",
+                        valPayload,
+                        "id"
+                    );
+                    const insertPhone = await client.query(queIns, valIns);
+                }
+            }
+            await client.query(TRANS.COMMIT);
+            return "User updated";
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
     }
 };
 
@@ -139,16 +336,23 @@ UserModel.resendOTP = async ({ email, type }) => {
     }
 };
 
-UserModel.login = async ({ uemail, password }) => {
+UserModel.login = async ({ username, password }) => {
     const client = await db.connect();
     try {
         await client.query(TRANS.BEGIN);
         const { rows: userData, rowCount } = await client.query(
-            ` SELECT fullname, email, username, id_user, rl.role_name as role, rl.role_id, password, sap_code, id_sap 
-            FROM mst_user usr
-            LEFT JOIN mst_role rl on usr.role = rl.role_id
-            WHERE email = $1 OR username = $2`,
-            [uemail, uemail]
+            ` SELECT USERNAME,
+            FULLNAME,
+            RL.ROLE_NAME AS ROLE,
+            U.ROLE as ROLE_ID,
+            U.PASSWORD,
+            U.IS_ACTIVE,
+            U.ID_USER,
+            U.ID_USER AS ID
+        FROM MST_USER U
+        LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = U.ROLE
+        WHERE U.USERNAME = $1`,
+            [username]
         );
         if (rowCount <= 0) {
             throw new Error("NOT EXIST");
@@ -203,11 +407,30 @@ UserModel.login = async ({ uemail, password }) => {
 UserModel.showAllUser = async () => {
     const client = await db.connect();
     try {
+        // const { rows: userData } = await client.query(`
+        // SELECT USR.fullname, USR.username, USR.email, RL.role_name, USR.created_date, USR.id_user, USR.id_user as id, USR.is_active
+        // FROM MST_USER USR
+        // LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = USR.ROLE
+        // ORDER BY USR.created_date desc
+        // `);
         const { rows: userData } = await client.query(`
-        SELECT USR.fullname, USR.username, USR.email, RL.role_name, USR.created_date, USR.id_user, USR.id_user as id, USR.is_active
-        FROM MST_USER USR
-        LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = USR.ROLE
-        ORDER BY USR.created_date desc
+        SELECT USERNAME,
+            FULLNAME,
+            TO_CHAR(U.CREATED_DATE,
+
+                'YYYY-MM-DD T HH24:MI:SS') AS CREATED_DATE,
+            RL.ROLE_NAME,
+            EM.EMAIL,
+            TE.TELF,
+            U.IS_ACTIVE,
+            U.ID_USER,
+            U.ID_USER AS ID
+        FROM MST_USER U
+        LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = U.ROLE
+        LEFT JOIN 
+        (SELECT STRING_AGG(EMAIL, ',') AS EMAIL, ID_USER FROM MST_EMAIL GROUP BY ID_USER) EM ON EM.ID_USER = U.ID_USER 
+        LEFT JOIN (SELECT STRING_AGG(TELF, ',') AS TELF, ID_USER FROM MST_TELF GROUP BY ID_USER) TE ON TE.ID_USER = U.ID_USER
+        ORDER BY U.CREATED_DATE DESC
         `);
         return userData;
     } catch (error) {
