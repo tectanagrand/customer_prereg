@@ -48,7 +48,10 @@ export const TextFieldComp = ({
                         sx={{ ...sx }}
                         {...props}
                         variant="outlined"
-                        inputProps={{ readOnly: readOnly }}
+                        inputProps={{
+                            readOnly: readOnly,
+                            disabled: props?.disabled,
+                        }}
                         fullWidth
                     />
                 )}
