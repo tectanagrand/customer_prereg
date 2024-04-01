@@ -33,6 +33,7 @@ export const LazySelectComp = ({
     name,
     rules,
     onChangeovr,
+    onControlChgOvr,
     onBlurovr,
     defaultValue,
     ...props
@@ -54,7 +55,6 @@ export const LazySelectComp = ({
             name={name}
             control={control}
             rules={rules}
-            onChange={([, data]) => data}
             defaultValue={defaultValue}
             render={({
                 field: { onChange, value, ref },
@@ -63,7 +63,12 @@ export const LazySelectComp = ({
                 <Autocomplete
                     options={options}
                     loading={loading}
-                    onChange={(e, newValue) => onChange(newValue)}
+                    onChange={(e, newValue) => {
+                        if (onControlChgOvr) {
+                            onControlChgOvr(newValue);
+                        }
+                        onChange(newValue);
+                    }}
                     value={value}
                     error={error}
                     fullWidth
@@ -98,6 +103,7 @@ export const LazySelectComp = ({
                             inputRef={ref}
                             onChange={onChangeovr}
                             onBlur={onBlurovr}
+                            onFocus={onChangeovr}
                         />
                     )}
                     {...props}
