@@ -88,31 +88,36 @@ export default function User() {
         {
             field: "fullname",
             headerName: "Full Name",
-            flex: 0.08,
+            width: 300,
         },
         {
             field: "username",
             headerName: "Username",
-            flex: 0.06,
+            width: 200,
         },
         {
             field: "email",
             headerName: "Email",
-            flex: 0.1,
+            width: 300,
+        },
+        {
+            field: "telf",
+            headerName: "Phone Number",
+            width: 300,
         },
         {
             field: "role_name",
             headerName: "Role",
-            flex: 0.05,
+            width: 100,
         },
         {
             field: "created_date",
             headerName: "Created At",
-            flex: 0.08,
+            width: 200,
         },
         {
             headerName: "Action",
-            flex: 0.05,
+
             renderCell: item => {
                 let is_active = item.row.is_active;
                 let buttons = [];
@@ -224,7 +229,7 @@ export default function User() {
                     initialState={{
                         pagination: {
                             paginationModel: {
-                                pageSize: 5,
+                                pageSize: 10,
                             },
                         },
                     }}
@@ -232,12 +237,21 @@ export default function User() {
                     disableColumnFilter
                     disableColumnSelector
                     disableDensitySelector
+                    getRowHeight={() => "auto"}
+                    getEstimatedRowHeight={() => 200}
                     slotProps={{
                         toolbar: {
                             csvOptions: { disableToolbarButton: true },
                             printOptions: { disableToolbarButton: true },
                             showQuickFilter: true,
                         },
+                    }}
+                    sx={{
+                        "&.MuiDataGrid-root--densityStandard .MuiDataGrid-cell":
+                            {
+                                py: "15px",
+                            },
+                        height: "70vh",
                     }}
                 />
             ) : (
