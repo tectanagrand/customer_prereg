@@ -250,11 +250,11 @@ MasterModel.getCustDataDB = async (limit, offset, q) => {
                 WHERE (lower(name_1) like $1 or lower(kunnr) like $2) 
                 AND kunnr like '%000'
                 LIMIT $3 OFFSET $4`,
-                [`${q}%`, `%${q}%`, limit, offset]
+                [`%${q}%`, `%${q}%`, limit, offset]
             );
             const { rows } = await client.query(
                 "SELECT COUNT(*) AS ctr FROM MST_CUSTOMER WHERE (lower(name_1) like $1 or lower(kunnr) like $2) AND kunnr like '%000'",
-                [`${q}%`, `%${q}%`]
+                [`%${q}%`, `%${q}%`]
             );
             return {
                 data: dataComp,
