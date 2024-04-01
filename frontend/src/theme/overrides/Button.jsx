@@ -10,12 +10,14 @@ export default function Button(theme) {
                     "&:hover": {
                         boxShadow: "none",
                     },
-                    height: "4rem",
-                    width: "8rem",
+                    minHeight: "4rem",
+                    minWidth: "6rem",
+                    maxWidth: "10rem",
                 },
                 sizeLarge: {
-                    height: "4rem",
-                    width: "5rem",
+                    minHeight: "4rem",
+                    minWidth: "6rem",
+                    maxWidth: "10rem",
                 },
                 containedInherit: {
                     color: theme.palette.grey[800],
