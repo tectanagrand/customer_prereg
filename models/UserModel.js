@@ -108,9 +108,9 @@ UserModel.registerNew_2 = async ({
             const [queUsr, valUsr] = crud.insertItem(
                 "mst_user",
                 payloadUser,
-                "id_user"
+                "url_web"
             );
-            const insertUser = await client.query(queUsr, valUsr);
+            const { rows: dataUserInsert } = await client.query(queUsr, valUsr);
             for (const e of email) {
                 const { rowCount } = await client.query(
                     "SELECT email from mst_email where email = $1",
@@ -155,7 +155,7 @@ UserModel.registerNew_2 = async ({
                 email,
                 username,
                 otpCode,
-                "http://0"
+                dataUserInsert[0].url_web
             );
             await client.query(TRANS.COMMIT);
         } catch (error) {
