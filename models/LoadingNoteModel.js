@@ -811,6 +811,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     DCHARG_1: item.company,
                     RCHARG_1: item.id_do,
                     RBWTAR_1: oth_valtype,
+                    DBWTAR: fac_valtype,
                     CREATE_BY: session.id_user,
                     CREATE_AT: `TO_DATE('${moment(today).format("YYYY-MM-DD")}', 'yyyy-mm-dd')`,
                     ISACTIVE: "TRUE",
