@@ -15,6 +15,7 @@ import RecapLoadingNote from "../pages/recap/RecapLoadingNote";
 import NewUserRegFormPage from "../pages/usermaster/NewUserRegFormPage";
 import NewUserValidateOTP from "../pages/usermaster/NewUserValidateOTP";
 import NewUserPass from "../pages/usermaster/NewUserPass";
+import VehicleDashboard from "../pages/vehicle/VehicleDashboard";
 
 export const routes = createBrowserRouter([
     {
@@ -72,6 +73,10 @@ export const routes = createBrowserRouter([
             {
                 path: "lnview",
                 element: <RecapLoadingNote />,
+            },
+            {
+                path: "vehicle",
+                element: <VehicleDashboard />,
             },
         ],
     },
