@@ -12,5 +12,6 @@ router.get("/sloc", MasterController.getDataSLocDB);
 router.get("/valtype", MasterController.getDataValTypeDB);
 router.get("/dolist", MasterController.getDataDOList);
 router.get("/seedcust", MasterController.seedDataCust);
+router.get("/vhcl", MasterController.getVehicleDataDB);
 
 module.exports = router;
