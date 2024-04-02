@@ -214,4 +214,24 @@ MasterController.getDataValTypeDB = async (req, res) => {
     }
 };
 
+MasterController.getVehicleDataDB = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(
+                "SELECT VHCL_ID, FOTO_STNK, UUID AS ID, IS_SEND  FROM MST_VEHICLE"
+            );
+            res.status(200).send(rows);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = MasterController;
