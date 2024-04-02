@@ -29,6 +29,7 @@ export default function PatternFieldComp({
     readOnly,
     isNumString,
     patternChar,
+    ...props
 }) {
     return (
         <Controller
@@ -56,6 +57,7 @@ export default function PatternFieldComp({
                             readOnly: readOnly,
                         }}
                         fullWidth
+                        {...props}
                     />
                     <HelperText message={error?.message} />
                 </FormControl>
