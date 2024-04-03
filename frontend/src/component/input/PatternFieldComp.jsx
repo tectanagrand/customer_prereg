@@ -37,7 +37,7 @@ export default function PatternFieldComp({
             control={control}
             rules={rules}
             render={({ field, fieldState: { error } }) => (
-                <FormControl fullWidth>
+                <FormControl {...props}>
                     <PatternFormat
                         value={field.value}
                         format={format}
@@ -56,7 +56,6 @@ export default function PatternFieldComp({
                         inputProps={{
                             readOnly: readOnly,
                         }}
-                        fullWidth
                         {...props}
                     />
                     <HelperText message={error?.message} />

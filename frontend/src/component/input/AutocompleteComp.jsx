@@ -26,7 +26,7 @@ export default function AutocompleteComp({
                         options={options}
                         onChange={(e, newValue) => onChange(newValue)}
                         value={value}
-                        error={error}
+                        error={!!error}
                         fullWidth
                         getOptionLabel={option => {
                             if (
@@ -43,8 +43,9 @@ export default function AutocompleteComp({
                         renderInput={params => (
                             <TextField
                                 {...params}
+                                error={error}
+                                helperText={!!error && error.message}
                                 label={label}
-                                error={!!error}
                                 inputRef={ref}
                             />
                         )}
