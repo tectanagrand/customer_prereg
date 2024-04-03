@@ -15,5 +15,6 @@ router.get("/seedcust", MasterController.seedDataCust);
 router.get("/vhcl", MasterController.getVehicleDataDB);
 router.get("/drvr", MasterController.getDriverDataDB);
 router.get("/city", MasterController.getDataCities);
+router.get("/plt", MasterController.getCompanyPlant);
 
 module.exports = router;

@@ -300,4 +300,26 @@ MasterController.getDataCities = async (req, res) => {
     }
 };
 
+MasterController.getCompanyPlant = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } =
+                await client.query(`SELECT plant_code as value, CONCAT(company_name, ' - ', plant_code) as label 
+            FROM mst_company_plant 
+            WHERE category = 'CHILD'`);
+            res.status(200).send(rows);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = MasterController;
