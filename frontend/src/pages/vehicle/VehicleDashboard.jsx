@@ -110,7 +110,13 @@ export default function VehicleDashboard() {
     };
 
     const onChangePlateNum = value => {
-        setPlate(value.replace(" ", "").replace(/-/g, " ").replace(/_/g, ""));
+        setPlate(
+            value
+                .replace(" ", "")
+                .replace(/-/g, " ")
+                .replace(/_/g, "")
+                .toUpperCase()
+        );
     };
 
     const uploadTempFile = e => {
@@ -126,7 +132,11 @@ export default function VehicleDashboard() {
         form.append("file_atth", file, file.name);
         form.append(
             "plate_num",
-            values.plate.replace(" ", "").replace(/-/g, " ").replace(/_/g, "")
+            values.plate
+                .replace(" ", "")
+                .replace(/-/g, " ")
+                .replace(/_/g, "")
+                .toUpperCase()
         );
         form.append("id_row", id_row);
         try {
@@ -201,7 +211,7 @@ export default function VehicleDashboard() {
                                 control={control}
                                 mask="AA-9999-AAA"
                                 formatChars={{
-                                    A: /[A-Z ]/,
+                                    A: /[A-Za-z ]/,
                                     9: /[0-9 ]/,
                                 }}
                                 maskPlaceHolder={"_"}
