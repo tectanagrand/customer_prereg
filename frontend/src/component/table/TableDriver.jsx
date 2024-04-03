@@ -14,6 +14,7 @@ import {
     IconButton,
     Tooltip,
     Typography,
+    Box,
 } from "@mui/material";
 import { useState, useEffect, useMemo } from "react";
 import { Edit, Delete } from "@mui/icons-material";
@@ -63,6 +64,17 @@ export default function TableDriver({ refresh, editData, deleteData }) {
                 header: "Foto SIM",
                 accessorKey: "foto_sim",
                 cell: props => props.getValue(),
+            },
+            {
+                header: "Status",
+                accessorKey: "is_send",
+                cell: ({ row }) => {
+                    if (row.original.is_send) {
+                        return <p>Sudah Dikirim Email</p>;
+                    } else {
+                        return "";
+                    }
+                },
             },
             {
                 id: "action",

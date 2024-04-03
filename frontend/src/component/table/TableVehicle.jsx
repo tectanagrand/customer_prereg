@@ -40,6 +40,17 @@ export default function TableVehicle({ refresh, editData, deleteData }) {
                 cell: props => props.getValue(),
             },
             {
+                header: "Status",
+                accessorKey: "is_send",
+                cell: ({ row }) => {
+                    if (row.original.is_send) {
+                        return <p>Sudah Dikirim Email</p>;
+                    } else {
+                        return "";
+                    }
+                },
+            },
+            {
                 id: "action",
                 cell: ({ row }) => {
                     let buttons = [];
