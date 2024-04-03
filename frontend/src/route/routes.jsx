@@ -16,6 +16,8 @@ import NewUserRegFormPage from "../pages/usermaster/NewUserRegFormPage";
 import NewUserValidateOTP from "../pages/usermaster/NewUserValidateOTP";
 import NewUserPass from "../pages/usermaster/NewUserPass";
 import VehicleDashboard from "../pages/vehicle/VehicleDashboard";
+import DriverDashboard from "../pages/driver/DriverDashboard";
+import SendEmail from "../pages/sendemail/SendEmail";
 
 export const routes = createBrowserRouter([
     {
@@ -77,6 +79,14 @@ export const routes = createBrowserRouter([
             {
                 path: "vehicle",
                 element: <VehicleDashboard />,
+            },
+            {
+                path: "driver",
+                element: <DriverDashboard />,
+            },
+            {
+                path: "sendemail",
+                element: <SendEmail />,
             },
         ],
     },
