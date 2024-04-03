@@ -304,7 +304,7 @@ export default function VehicleDashboard() {
                                 onChange={uploadTempFile}
                                 color={errors?.foto_sim ? "error" : "primary"}
                             >
-                                Upload File SIM
+                                {"Upload File SIM (.pdf)"}
                                 <input
                                     type="file"
                                     accept=".pdf"
@@ -321,7 +321,7 @@ export default function VehicleDashboard() {
                         </div>
                         <input
                             {...register("foto_sim", {
-                                required: "Please attach foto sim",
+                                required: "Please attach foto sim (pdf format)",
                             })}
                             hidden
                         />

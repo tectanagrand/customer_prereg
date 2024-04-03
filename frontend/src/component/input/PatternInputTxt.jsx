@@ -41,6 +41,7 @@ export default function PatternInputComp({
                                 label={label}
                                 inputRef={ref}
                                 error={!!error}
+                                helperText={error?.message}
                                 {...props}
                             />
                         )}

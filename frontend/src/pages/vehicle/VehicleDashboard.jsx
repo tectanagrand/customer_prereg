@@ -206,7 +206,9 @@ export default function VehicleDashboard() {
                                 }}
                                 maskPlaceHolder={"_"}
                                 onChangeovr={onChangePlateNum}
-                                rules={{ required: true }}
+                                rules={{
+                                    required: "Please insert plate number",
+                                }}
                             />
                             <Typography variant="h6" sx={{ ml: 4 }}>
                                 {plateVal}
@@ -220,7 +222,7 @@ export default function VehicleDashboard() {
                             onChange={uploadTempFile}
                             color={errors?.filename ? "error" : "primary"}
                         >
-                            Upload File STNK
+                            {"Upload File STNK (.pdf)"}
                             <input
                                 type="file"
                                 accept=".pdf"
@@ -231,7 +233,8 @@ export default function VehicleDashboard() {
                         </LoadingButton>
                         <input
                             {...register("filename", {
-                                required: "please attach foto stnk",
+                                required:
+                                    "please attach foto stnk (pdf format)",
                             })}
                             hidden
                         />
