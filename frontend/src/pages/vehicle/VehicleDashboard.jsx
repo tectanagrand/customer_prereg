@@ -25,13 +25,20 @@ export default function VehicleDashboard() {
     const [file, setFile] = useState();
     const [plateVal, setPlate] = useState("");
     const [deleteDg, setDelDg] = useState(false);
-    const { control, handleSubmit, register, setValue, reset, clearErrors } =
-        useForm({
-            defaultValues: {
-                plate: "",
-                filename: "",
-            },
-        });
+    const {
+        control,
+        handleSubmit,
+        register,
+        setValue,
+        reset,
+        clearErrors,
+        formState: { errors },
+    } = useForm({
+        defaultValues: {
+            plate: "",
+            filename: "",
+        },
+    });
 
     console.log(refresh);
 
