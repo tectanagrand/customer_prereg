@@ -25,12 +25,13 @@ export default function VehicleDashboard() {
     const [file, setFile] = useState();
     const [plateVal, setPlate] = useState("");
     const [deleteDg, setDelDg] = useState(false);
-    const { control, handleSubmit, register, setValue, reset } = useForm({
-        defaultValues: {
-            plate: "",
-            filename: "",
-        },
-    });
+    const { control, handleSubmit, register, setValue, reset, clearErrors } =
+        useForm({
+            defaultValues: {
+                plate: "",
+                filename: "",
+            },
+        });
 
     console.log(refresh);
 
@@ -108,6 +109,7 @@ export default function VehicleDashboard() {
     const uploadTempFile = e => {
         const files = e.target.files;
         setValue("filename", files[0].name);
+        clearErrors("filename");
         setFile(files[0]);
     };
 
@@ -209,6 +211,7 @@ export default function VehicleDashboard() {
                             variant="outlined"
                             sx={{ height: 50, minWidth: "15rem", margin: 1 }}
                             onChange={uploadTempFile}
+                            color={errors?.filename ? "error" : "primary"}
                         >
                             Upload File STNK
                             <input
@@ -220,9 +223,16 @@ export default function VehicleDashboard() {
                             />
                         </LoadingButton>
                         <input
-                            {...register("filename", { required: true })}
+                            {...register("filename", {
+                                required: "please attach foto stnk",
+                            })}
                             hidden
                         />
+                        {errors.filename && (
+                            <p style={{ color: "red" }}>
+                                {errors.filename.message}
+                            </p>
+                        )}
                         <Typography>File Uploaded : {file?.name}</Typography>
                         {!file ? (
                             <Box
