@@ -218,6 +218,7 @@ MasterController.getVehicleDataDB = async (req, res) => {
     try {
         const is_send = req.query?.is_send;
         const client = await db.connect();
+        let where = "";
         if (is_send) {
             where = " WHERE IS_SEND = false";
         }
