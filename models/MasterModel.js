@@ -341,4 +341,5 @@ MasterModel.getDataTP = async rule => {
         throw error;
     }
 };
+
 module.exports = MasterModel;

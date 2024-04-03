@@ -216,10 +216,14 @@ MasterController.getDataValTypeDB = async (req, res) => {
 
 MasterController.getVehicleDataDB = async (req, res) => {
     try {
+        const is_send = req.query?.is_send;
         const client = await db.connect();
+        if (is_send) {
+            where = " WHERE IS_SEND = false";
+        }
         try {
             const { rows } = await client.query(
-                "SELECT VHCL_ID, FOTO_STNK, UUID AS ID, IS_SEND  FROM MST_VEHICLE"
+                `SELECT VHCL_ID, FOTO_STNK, UUID AS ID, IS_SEND  FROM MST_VEHICLE ${where}`
             );
             res.status(200).send(rows);
         } catch (error) {
@@ -228,6 +232,66 @@ MasterController.getVehicleDataDB = async (req, res) => {
             client.release();
         }
     } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getDriverDataDB = async (req, res) => {
+    const is_send = req.query?.is_send;
+    let where = "";
+    try {
+        const client = await db.connect();
+        if (is_send) {
+            where = " WHERE IS_SEND = false";
+        }
+        try {
+            const { rows } = await client.query(
+                `SELECT DRIVER_ID, DRIVER_NAME, UUID AS ID,
+                 IS_SEND,
+                 ALAMAT, 
+                 CT.city AS TEMPAT_LAHIR,
+                 TO_CHAR(TANGGAL_LAHIR, 'DD-MM-YYYY') AS TANGGAL_LAHIR,
+                 NO_TELP,
+                 FOTO_SIM
+                 FROM MST_DRIVER DRV
+                 LEFT JOIN MST_CITIES CT ON CT.CODE = DRV.TEMPAT_LAHIR
+                 ${where}`
+            );
+            res.status(200).send(rows);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getDataCities = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(
+                "SELECT code, city FROM mst_cities"
+            );
+            res.status(200).send(
+                rows.map(item => ({
+                    value: item.code,
+                    label: item.city,
+                }))
+            );
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
         res.status(500).send({
             message: error.message,
         });
