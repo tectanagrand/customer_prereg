@@ -24,12 +24,15 @@ export default function VehicleDashboard() {
     const [id_row, setIdRow] = useState("");
     const [file, setFile] = useState();
     const [plateVal, setPlate] = useState("");
+    const [deleteDg, setDelDg] = useState(false);
     const { control, handleSubmit, register, setValue, reset } = useForm({
         defaultValues: {
             plate: "",
             filename: "",
         },
     });
+
+    console.log(refresh);
 
     const parsingDataSTNK = stnk => {
         const ruleNum = /[0-9]/;
@@ -78,18 +81,23 @@ export default function VehicleDashboard() {
         }
     };
 
+    const openDelete = id => {
+        setDelDg(true);
+        setIdRow(id);
+    };
+
     const DeleteData = async id => {
-        if (confirm("Are you sure want to delete?")) {
-            try {
-                const { data } = await Axios.post("/file/deletestnk", {
-                    id: id,
-                });
-                toast.success(data.message);
-                setRefresh(!refresh);
-            } catch (error) {
-                console.error("Error:", error);
-                toast.error(error.response.data.message);
-            }
+        try {
+            const { data } = await Axios.post("/file/deletestnk", {
+                id: id,
+            });
+            toast.success(data.message);
+            setRefresh(!refresh);
+            setDelDg(false);
+            setIdRow("");
+        } catch (error) {
+            console.error("Error:", error);
+            toast.error(error.response.data.message);
         }
     };
 
@@ -143,7 +151,7 @@ export default function VehicleDashboard() {
                 <TableVehicle
                     refresh={refresh}
                     editData={EditData}
-                    deleteData={DeleteData}
+                    deleteData={openDelete}
                 />
                 <Button
                     onClick={() => {
@@ -255,6 +263,47 @@ export default function VehicleDashboard() {
                         </LoadingButton>
                     </DialogActions>
                 </form>
+            </Dialog>
+            <Dialog maxWidth="lg" open={deleteDg}>
+                <Box sx={{ width: "40rem", height: "20rem", p: 10 }}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <Typography variant="h4">
+                            Are you sure want to delete ?
+                        </Typography>
+                    </Box>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            mt: 5,
+                            gap: 5,
+                        }}
+                    >
+                        <Button
+                            color="error"
+                            variant="contained"
+                            onClick={() => {
+                                setDelDg(false);
+                            }}
+                        >
+                            No
+                        </Button>
+                        <Button
+                            color="primary"
+                            variant="contained"
+                            onClick={() => {
+                                DeleteData(id_row);
+                            }}
+                        >
+                            Yes
+                        </Button>
+                    </Box>
+                </Box>
             </Dialog>
         </>
     );
