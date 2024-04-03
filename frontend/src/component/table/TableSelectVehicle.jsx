@@ -18,7 +18,7 @@ import { useTheme } from "@mui/material/styles";
 import { checkboxClasses } from "@mui/material";
 // import PaginationActionButton from "./PaginationActionButton";
 
-export default function TableSelectVehicle({ setLoading, setSelectedRowsUp }) {
+export default function TableSelectVehicle({ refresh, setSelectedRowsUp }) {
     const theme = useTheme();
     const [rows, setRows] = useState([]);
     const rowData = useMemo(() => rows, [rows]);
@@ -92,7 +92,7 @@ export default function TableSelectVehicle({ setLoading, setSelectedRowsUp }) {
                 // setLoading(false);
             }
         })();
-    }, []);
+    }, [refresh]);
 
     // useEffect(() => {
     //     console.log(rows);

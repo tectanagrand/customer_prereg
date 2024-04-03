@@ -6,6 +6,8 @@ const os = require("os");
 const path = require("path");
 const FileUploadController = {};
 const TRANS = require("../config/transaction");
+const crud = require("../helper/crudquery");
+const EmailModel = require("../models/EmailModel");
 
 FileUploadController.uploadSTNK = async (req, res) => {
     try {
@@ -257,6 +259,121 @@ FileUploadController.deleteDataSIM = async (req, res) => {
             await client.query(TRANS.COMMIT);
             res.status(200).send({
                 message: rows[0].driver_id + " Data Deleted",
+            });
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+FileUploadController.sendEmailCreateDrvnVeh = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const driverData = req.body.driver;
+        let driverHTML = [];
+        let driverAtth = [];
+        const vehData = req.body.vehicle;
+        let vehHTML = [];
+        let vehAtth = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            if (driverData.length > 0) {
+                for (const d of driverData) {
+                    let idDriver = d.id;
+                    const [que, val] = crud.updateItem(
+                        "mst_driver",
+                        { is_send: true },
+                        { uuid: idDriver },
+                        "driver_id"
+                    );
+                    await client.query(que, val);
+                    driverHTML.push(`
+                    <tr>
+                        <td>${d.driver_id}</td>
+                        <td>${d.driver_name}</td>
+                        <td>${d.tempat_lahir}</td>
+                        <td>${d.tanggal_lahir}</td>
+                        <td>${d.no_telp}</td>
+                        <td>${d.alamat}</td>
+                    </tr>
+                    `);
+                    let pathStream = "";
+                    if (os.platform() === "win32") {
+                        pathStream =
+                            path.join(path.resolve(), "public\\license") +
+                            "\\" +
+                            d.foto_sim;
+                    } else {
+                        pathStream =
+                            path.join(path.resolve(), "public/license") +
+                            "/" +
+                            d.foto_sim;
+                    }
+                    driverAtth.push({
+                        filename: d.foto_sim,
+                        content: fs.createReadStream(pathStream),
+                    });
+                }
+            }
+            if (vehData.length > 0) {
+                for (const v of vehData) {
+                    let idVeh = v.id;
+                    const [que, val] = crud.updateItem(
+                        "mst_vehicle",
+                        { is_send: true },
+                        { uuid: idVeh },
+                        "vhcl_id"
+                    );
+                    await client.query(que, val);
+                    vehHTML.push(`
+                    <tr>
+                        <td>${v.vhcl_id}</td>
+                    </tr>
+                    `);
+                    let pathStream = "";
+                    if (os.platform() === "win32") {
+                        pathStream =
+                            path.join(path.resolve(), "public\\stnk") +
+                            "\\" +
+                            v.foto_stnk;
+                    } else {
+                        pathStream =
+                            path.join(path.resolve(), "public/stnk") +
+                            "/" +
+                            v.foto_stnk;
+                    }
+                    vehAtth.push({
+                        filename: v.foto_stnk,
+                        content: fs.createReadStream(pathStream),
+                    });
+                }
+            }
+            const { rows } = await client.query(`
+            SELECT STRING_AGG(E.EMAIL, ', ') as EMAIL, R.ROLE_NAME FROM MST_EMAIL E
+            LEFT JOIN MST_USER U ON E.ID_USER = U.ID_USER
+            LEFT JOIN MST_ROLE R ON R.ROLE_ID = U.ROLE
+            WHERE R.ROLE_NAME = 'ADMIN' OR R.ROLE_NAME = 'LOGISTIC'
+            GROUP BY R.ROLE_NAME
+            `);
+            const emailTarget = rows.map(item => item.email).join(", ");
+            await EmailModel.NotifyCreateDriverNVehi(
+                driverHTML.join(""),
+                vehHTML.join(""),
+                emailTarget,
+                driverAtth,
+                vehAtth
+            );
+            await client.query(TRANS.COMMIT);
+            res.status(200).send({
+                message: "Email Sent",
             });
         } catch (error) {
             await client.query(TRANS.ROLLBACK);

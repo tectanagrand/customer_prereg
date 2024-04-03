@@ -10,5 +10,6 @@ router.post("/sim", FileUploadController.uploadSIM);
 router.get("/sim", FileUploadController.getDataSIM);
 router.get("/filesim", FileUploadController.getFileSIM);
 router.post("/deletesim", FileUploadController.deleteDataSIM);
+router.post("/sendemail", FileUploadController.sendEmailCreateDrvnVeh);
 
 module.exports = router;

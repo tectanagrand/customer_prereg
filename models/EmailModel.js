@@ -80,4 +80,27 @@ EmailModel.notifyRequestSend = async (
         throw error;
     }
 };
+
+EmailModel.NotifyCreateDriverNVehi = async (
+    driver,
+    vehicle,
+    target,
+    driver_atth,
+    veh_atth
+) => {
+    try {
+        const tp = EmailTP.Transporter();
+        const EmailHTML = EmailGen.RequestDrivernVehic(driver, vehicle);
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: target,
+            subject: `Request Create New Driver / Vehicle`,
+            html: EmailHTML,
+            attachments: [...driver_atth, ...veh_atth],
+        };
+        await tp.sendMail(setup);
+    } catch (error) {
+        throw error;
+    }
+};
 module.exports = EmailModel;
