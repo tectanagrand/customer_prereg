@@ -224,7 +224,7 @@ MasterController.getVehicleDataDB = async (req, res) => {
         }
         try {
             const { rows } = await client.query(
-                `SELECT VHCL_ID, FOTO_STNK, UUID AS ID, IS_SEND  FROM MST_VEHICLE ${where}`
+                `SELECT VHCL_ID, FOTO_STNK, UUID AS ID, IS_SEND  FROM MST_VEHICLE ${where} ORDER BY ID DESC`
             );
             res.status(200).send(rows);
         } catch (error) {
@@ -258,7 +258,8 @@ MasterController.getDriverDataDB = async (req, res) => {
                  FOTO_SIM
                  FROM MST_DRIVER DRV
                  LEFT JOIN MST_CITIES CT ON CT.CODE = DRV.TEMPAT_LAHIR
-                 ${where}`
+                 ${where}
+                 ORDER BY ID DESC`
             );
             res.status(200).send(rows);
         } catch (error) {
