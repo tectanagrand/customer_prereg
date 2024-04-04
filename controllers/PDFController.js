@@ -18,7 +18,7 @@ PDFController.exportSuratJalan = async (req, res) => {
                 DET.vhcl_id,
                 DET.fac_plant,
                 DET.ln_num,
-                TO_CHAR(DET.cre_date, 'MM-DD-YYYY') as CRE_DATE,
+                TO_CHAR(DET.cre_date, 'DD-MM-YYYY') as CRE_DATE,
                 DET.plan_qty,
                 HD.UOM,
                 HD.DESC_CON,
@@ -26,18 +26,19 @@ PDFController.exportSuratJalan = async (req, res) => {
                 HD.material,
                 CO.name as comp_name,
                 HD.company,
-                CUST.NAME_1
+                CUST.NAME_1,
+                CUST.KUNNR
                 FROM LOADING_NOTE_DET DET
                 LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
                 LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
-                LEFT JOIN MST_CUSTOMER CUST ON USR.SAP_CODE = CUST.KUNNR
+                LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
                 LEFT JOIN MST_COMPANY CO ON CO.SAP_CODE = HD.COMPANY             
                  WHERE DET.DET_ID = $1
       `,
                 [load_noteid]
             );
             const dt = rows[0];
-            doc.fontSize(20).text(dt.name_1, 100, 90);
+            doc.fontSize(20).text(`${dt.name_1} (${dt.kunnr})`, 100, 90);
             doc.fontSize(20).text("Surat Jalan", 400, 50);
             // doc.fontSize(12).text("No LN :", 380, 120);
             // doc.fontSize(12).text(dt.ln_num, 420, 120);
@@ -45,7 +46,7 @@ PDFController.exportSuratJalan = async (req, res) => {
             doc.fontSize(12).text(dt.ln_num, 180, 140);
 
             doc.fontSize(12).text("Tgl. Pengambilan :", 300, 140);
-            doc.fontSize(12).text(moment().format("MM-DD-YYYY"), 420, 140, {
+            doc.fontSize(12).text(moment().format("DD-MM-YYYY"), 420, 140, {
                 width: 120,
             });
             // doc.fontSize(12).text("Tanggal Pengambilan :", 100, 140);
