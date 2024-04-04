@@ -40,7 +40,6 @@ export const LazySelectCompNoCont = ({
     ...props
 }) => {
     const observer = useRef();
-    const [value, setValue] = useState(null);
 
     // useEffect(() => {
     //     console.log("value changed :" + value);
@@ -63,10 +62,6 @@ export const LazySelectCompNoCont = ({
             <Autocomplete
                 options={options}
                 loading={loading}
-                onChange={(e, newValue) => {
-                    setValue(newValue);
-                }}
-                value={value}
                 fullWidth
                 getOptionLabel={option => {
                     if (option !== null) return option.value;
