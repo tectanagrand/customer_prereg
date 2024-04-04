@@ -297,7 +297,7 @@ export default function FormCreateLoadingNote() {
                             p: 3,
                             display: "flex",
                             flexWrap: "wrap",
-                            minWidth: "40rem",
+                            minWidth: "45rem",
                             gap: 2,
                             mb: 2,
                         }}
@@ -329,31 +329,6 @@ export default function FormCreateLoadingNote() {
                             rules={{ required: "Please Insert" }}
                         />
                         <AutocompleteComp
-                            name="fac_valtype"
-                            label="Factory Val. Type"
-                            control={control}
-                            options={valtypeOp}
-                            rules={{ required: "Please Insert" }}
-                            sx={{
-                                maxWidth: "15rem",
-                                input: {
-                                    "&.MuiOutlinedInput-input.Mui-disabled": {
-                                        WebkitTextFillColor:
-                                            theme.palette.grey[500],
-                                        color: theme.palette.grey[500],
-                                    },
-                                },
-                                label: {
-                                    "&.Mui-disabled": {
-                                        WebkitTextFillColor:
-                                            theme.palette.grey[500],
-                                        color: theme.palette.grey[500],
-                                    },
-                                },
-                            }}
-                            disabled={who === "log"}
-                        />
-                        <AutocompleteComp
                             name="oth_sloc"
                             label="Other Party Store Loc."
                             control={control}
@@ -379,12 +354,37 @@ export default function FormCreateLoadingNote() {
                             rules={{ required: "Please Insert" }}
                         />
                         <AutocompleteComp
+                            name="fac_valtype"
+                            label="Factory Val. Type"
+                            control={control}
+                            options={valtypeOp}
+                            rules={{ required: "Please Insert" }}
+                            sx={{
+                                maxWidth: "20rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            disabled={who === "log"}
+                        />
+                        <AutocompleteComp
                             name="oth_valtype"
                             label="Other Party Val. Type"
                             control={control}
                             options={valtypeOp}
                             sx={{
-                                maxWidth: "15rem",
+                                maxWidth: "20rem",
                                 input: {
                                     "&.MuiOutlinedInput-input.Mui-disabled": {
                                         WebkitTextFillColor:
