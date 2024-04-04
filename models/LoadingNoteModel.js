@@ -559,13 +559,19 @@ LoadingNoteModel.getRequestedLoadNote = async (
     }
 };
 
-LoadingNoteModel.getRequestedLoadNote2 = async (filters = []) => {
+LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
     try {
         const client = await db.connect();
         try {
             let filter_que = [];
             let filter_val = [];
             let filterStr = "";
+            let whoFilter = "";
+            if (who !== "wb") {
+                whoFilter = `WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA'`;
+            } else {
+                whoFilter = `WHERE DET.PUSH_SAP_DATE IS NOT NULL AND (DET.IS_WB_EDIT IS NULL OR DET.IS_WB_EDIT < 5)  AND HD.CUR_POS = 'FINA'`;
+            }
             if (filters.length !== 0) {
                 let idx = 1;
                 filters.forEach((item, index) => {
@@ -588,9 +594,13 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = []) => {
                 HD.material,
                 DET.fac_plant,
                 DET.oth_plant,
+                DET.fac_sloc,
+                DET.oth_sloc,
+                DET.fac_valtype,
+                DET.oth_valtype,
                 DET.media_tp,
                 DET.driver_id,
-                USR.SAP_CODE as cust_code,
+                CUST.KUNNR as cust_code,
                 CUST.name_1 as cust_name,
                 CONCAT(DET.DRIVER_ID,
 
@@ -604,10 +614,12 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = []) => {
             FROM LOADING_NOTE_HD HD
             LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
             LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
-            LEFT JOIN MST_CUSTOMER CUST ON CUST.kunnr = USR.SAP_CODE
+            LEFT JOIN MST_CUSTOMER CUST ON CUST.kunnr = USR.USERNAME
             LEFT JOIN MST_KEY MKY ON MKY.key_item = DET.media_tp
-            WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA'`;
+            ${whoFilter}
+            `;
             const que = `SELECT * FROM (${baseQ}) A ${filterStr} ;`;
+            // console.log(que);
             const { rows } = await client.query(que, filter_val);
             return {
                 data: rows,
@@ -654,6 +666,90 @@ LoadingNoteModel.getOSLoadingNoteNum = async (limit, offset, q) => {
     }
 };
 
+LoadingNoteModel.getOSLoadingNoteNum2 = async (limit, offset, cust) => {
+    try {
+        const client = await db.connect();
+
+        try {
+            const { rows: dataComp } = await client.query(
+                `
+                SELECT distinct hd.id_do FROM loading_note_hd hd
+                LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
+				LEFT JOIN mst_user u on u.id_user = hd.create_by
+				LEFT JOIN mst_customer c on c.kunnr = u.username
+                WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
+                AND c.kunnr = $1
+                LIMIT $2 OFFSET $3
+                `,
+                [cust, limit, offset]
+            );
+            const { rows, rowCount } = await client.query(
+                `SELECT distinct hd.id_do FROM loading_note_hd hd
+                LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
+				LEFT JOIN mst_user u on u.id_user = hd.create_by
+				LEFT JOIN mst_customer c on c.kunnr = u.username
+                WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
+                AND c.kunnr = $1`,
+                [cust]
+            );
+            return {
+                data: dataComp,
+                count: rowCount,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.getOSLoadingNoteNumWB = async (limit, offset, cust) => {
+    try {
+        const client = await db.connect();
+
+        try {
+            const { rows: dataComp } = await client.query(
+                `
+                SELECT distinct hd.id_do FROM loading_note_hd hd
+                LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
+				LEFT JOIN mst_user u on u.id_user = hd.create_by
+				LEFT JOIN mst_customer c on c.kunnr = u.username
+                WHERE  
+                DET.PUSH_SAP_DATE IS NOT NULL 
+                AND (DET.IS_WB_EDIT IS NULL)   
+                AND hd.cur_pos = 'FINA'
+                AND c.kunnr = $1
+                LIMIT $2 OFFSET $3
+                `,
+                [cust, limit, offset]
+            );
+            const { rows, rowCount } = await client.query(
+                `SELECT distinct hd.id_do FROM loading_note_hd hd
+                LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
+				LEFT JOIN mst_user u on u.id_user = hd.create_by
+				LEFT JOIN mst_customer c on c.kunnr = u.username
+                WHERE DET.PUSH_SAP_DATE IS NOT NULL 
+                AND (DET.IS_WB_EDIT IS NULL)   
+                AND hd.cur_pos = 'FINA'
+                AND c.kunnr = $1`,
+                [cust]
+            );
+            return {
+                data: dataComp,
+                count: rowCount,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
 LoadingNoteModel.finalizeLoadingNote_2 = async (params, session) => {
     try {
         const client = await db.connect();
@@ -771,15 +867,20 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
         const fac_valtype = params.fac_valtype;
         const oth_sloc = params.oth_sloc;
         const oth_valtype = params.oth_valtype;
+        let queIns, valIns;
         try {
             await client.query(TRANS.BEGIN);
             for (item of uploadData) {
+                let method = "";
                 const { rowCount } = await client.query(
                     `SELECT * FROM loading_note_det WHERE det_id = $1 and push_sap_date is not null`,
                     [item.id]
                 );
                 if (rowCount > 0) {
-                    throw new Error("Request already pushed");
+                    method = "update";
+                    // throw new Error("Request already pushed");
+                } else {
+                    method = "insert";
                 }
                 const param = {
                     HEAD_ID: item.hd_id,
@@ -792,7 +893,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     POSNR: "000010",
                     EBELN_REF: "",
                     // CREDAT: moment(item.create_date).format("DD.MM.YYYY"),
-                    CREDAT: `TO_DATE('${moment(item.create_date).format("YYYY-MM-DD")}', 'yyyy-mm-dd')`,
+                    CREDAT: new Date(item.create_date),
                     MATNR: item.material,
                     PLN_LFIMG: parseInt(item.plan_qty),
                     DWERKS: item.fac_plant,
@@ -813,17 +914,31 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     RBWTAR_1: oth_valtype,
                     DBWTAR: fac_valtype,
                     CREATE_BY: session.id_user,
-                    CREATE_AT: `TO_DATE('${moment(today).format("YYYY-MM-DD")}', 'yyyy-mm-dd')`,
+                    CREATE_AT: new Date(),
                     ISACTIVE: "TRUE",
                     FLAG: "I",
                     ISRETRIVEDBYSAP: "FALSE",
-                    USERSAP: session.id_sap,
+                    USERSAP: session.username,
                 };
-                const [queIns, valIns] = crud.insertItemOra(
-                    "PREREG_LOADING_NOTE_SAP",
-                    param
-                );
-                const paramDb = {
+                console.log(param);
+                if (method === "insert") {
+                    [queIns, valIns] = crud.insertItemOra(
+                        "PREREG_LOADING_NOTE_SAP",
+                        param
+                    );
+                } else {
+                    [queIns, valIns] = crud.updateItemOra(
+                        "PREREG_LOADING_NOTE_SAP",
+                        param,
+                        {
+                            DET_ID: item.id,
+                        }
+                    );
+                }
+                console.log(queIns);
+                console.log(valIns);
+                let paramDb = {
+                    is_pushed: true,
                     push_sap_date: today,
                     update_by: session.id_user,
                     fac_sloc: fac_sloc,
@@ -832,6 +947,9 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     oth_valtype: oth_valtype,
                     plan_qty: parseInt(item.plan_qty),
                 };
+                if (method === "update") {
+                    paramDb.is_wb_edit = 1;
+                }
                 const whereDb = {
                     det_id: item.id,
                 };

@@ -145,7 +145,8 @@ LoadingNoteController.showOSReqLN = async (req, res) => {
 LoadingNoteController.showOSReqLN2 = async (req, res) => {
     try {
         const filter = req.body.filters;
-        const data = await LoadNote.getRequestedLoadNote2(filter);
+        const who = req.body.who;
+        const data = await LoadNote.getRequestedLoadNote2(filter, who);
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
@@ -157,10 +158,31 @@ LoadingNoteController.showOSReqLN2 = async (req, res) => {
 
 LoadingNoteController.getOSLoadingNoteNum = async (req, res) => {
     try {
-        const q = req.query.q;
+        const cust = req.query.cust;
         const limit = req.query.limit;
         const offset = req.query.offset;
-        const dataLN = await LoadNote.getOSLoadingNoteNum(limit, offset, q);
+        const who = req.query.who;
+        const dataLN = await LoadNote.getOSLoadingNoteNum2(limit, offset, cust);
+        res.status(200).send(dataLN);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.getOSLoadingNoteNumWB = async (req, res) => {
+    try {
+        const cust = req.query.cust;
+        const limit = req.query.limit;
+        const offset = req.query.offset;
+        const who = req.query.who;
+        const dataLN = await LoadNote.getOSLoadingNoteNumWB(
+            limit,
+            offset,
+            cust
+        );
         res.status(200).send(dataLN);
     } catch (error) {
         console.error(error);
@@ -283,6 +305,29 @@ LoadingNoteController.generateExcel = async (req, res) => {
         console.error(error);
         res.status(500).send({
             messsage: error.message,
+        });
+    }
+};
+
+LoadingNoteController.getDefValtypeSloc = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const plantcode = req.query.plant;
+            const { rows } = await client.query(
+                `SELECT fac_sloc, oth_sloc, fac_valtype, oth_valtype from MST_DEFAULT_SLOC_VALTYPE WHERE plant = $1`,
+                [plantcode]
+            );
+            res.status(200).send(rows[0]);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
         });
     }
 };

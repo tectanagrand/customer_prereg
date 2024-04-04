@@ -16,6 +16,7 @@ router.get("/id", LoadNote.getById);
 router.get("/sloc", LoadNote.showSLoc);
 router.post("/osreq", LoadNote.showOSReqLN2);
 router.get("/osdo", LoadNote.getOSLoadingNoteNum);
+router.get("/osdowb", LoadNote.getOSLoadingNoteNumWB);
 router.get("/lnuser", LoadNote.getAllDataLNbyUser);
 router.post("/tolog", LoadNote.sendToLogistic);
 router.get("/lastos", LoadNote.getDataOSUser);
@@ -24,5 +25,6 @@ router.get("/recap", LoadNote.getDataRecap);
 router.post("/recapss", LoadNote.getDataRecapSS);
 router.post("/genxls", LoadNote.generateExcel);
 router.post("/pdf", PDF.exportSuratJalan);
+router.get("/defslocvtp", LoadNote.getDefValtypeSloc);
 
 module.exports = router;
