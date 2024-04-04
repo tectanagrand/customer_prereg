@@ -11,12 +11,14 @@ const EmailModel = require("../models/EmailModel");
 
 FileUploadController.uploadSTNK = async (req, res) => {
     try {
+        const id_session = req.cookies.id_user;
         const { plate_num, filename, id_row } =
             await FileUploadModel.uploadFile(req, "stnk");
         const nump = await FileUploadModel.submitSTNK(
             plate_num,
             filename,
-            id_row
+            id_row,
+            id_session
         );
         res.status(200).send({
             message: nump + " is Uploaded",
@@ -31,7 +33,9 @@ FileUploadController.uploadSTNK = async (req, res) => {
 
 FileUploadController.uploadSIM = async (req, res) => {
     try {
-        const dataUp = await FileUploadModel.uploadSIM(req, "license");
+        const id_session = req.cookies.id_user;
+        let dataUp = await FileUploadModel.uploadSIM(req, "license");
+        dataUp.id_session = id_session;
         const nump = await FileUploadModel.submitSIM(dataUp);
         res.status(200).send({
             message: nump + " is Uploaded",

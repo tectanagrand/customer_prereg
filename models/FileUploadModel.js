@@ -90,7 +90,7 @@ FileUploadModel.uploadSIM = async (req, pathtarget) => {
     }
 };
 
-FileUploadModel.submitSTNK = async (plate_num, stnk, id_row) => {
+FileUploadModel.submitSTNK = async (plate_num, stnk, id_row, id_session) => {
     try {
         const client = await db.connect();
         let que, val;
@@ -101,6 +101,7 @@ FileUploadModel.submitSTNK = async (plate_num, stnk, id_row) => {
                 vhcl_id: plate_num,
                 foto_stnk: stnk,
                 is_send: false,
+                create_by: id_session,
             };
             if (id === "") {
                 payload.uuid = uuid.uuid();
@@ -137,6 +138,7 @@ FileUploadModel.submitSIM = async ({
     alamat,
     filename,
     id_row,
+    id_session,
 }) => {
     try {
         const client = await db.connect();
@@ -152,6 +154,7 @@ FileUploadModel.submitSIM = async ({
                 tanggal_lahir: tanggal_lahir,
                 no_telp: no_telp,
                 foto_sim: filename,
+                create_by: id_session,
                 is_send: false,
             };
             if (id === "") {
