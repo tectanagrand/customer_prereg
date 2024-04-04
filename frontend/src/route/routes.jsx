@@ -74,7 +74,7 @@ export const routes = createBrowserRouter([
             },
             {
                 path: "account/edit",
-                element: <FormUserPage />,
+                element: <NewUserRegFormPage />,
             },
             {
                 path: "lnview",
