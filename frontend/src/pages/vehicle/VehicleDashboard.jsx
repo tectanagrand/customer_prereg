@@ -140,7 +140,9 @@ export default function VehicleDashboard() {
         );
         form.append("id_row", id_row);
         try {
-            const { data } = await Axios.post("/file/stnk", form);
+            const { data } = await Axios.post("/file/stnk", form, {
+                withCredentials: true,
+            });
             onCloseModal();
             toast.success(data.message);
             setRefresh(!refresh);

@@ -126,7 +126,9 @@ export default function VehicleDashboard() {
         form.append("alamat", values.alamat);
         form.append("id_row", id_row);
         try {
-            const { data } = await Axios.post("/file/sim", form);
+            const { data } = await Axios.post("/file/sim", form, {
+                withCredentials: true,
+            });
             onCloseModal();
             toast.success(data.message);
 
