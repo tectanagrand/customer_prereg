@@ -719,7 +719,7 @@ LoadingNoteModel.getOSLoadingNoteNumWB = async (limit, offset, cust) => {
 				LEFT JOIN mst_customer c on c.kunnr = u.username
                 WHERE  
                 DET.PUSH_SAP_DATE IS NOT NULL 
-                AND (DET.IS_WB_EDIT IS NULL)   
+                AND (DET.IS_WB_EDIT IS NULL OR DET.IS_WB_EDIT <> 0)   
                 AND hd.cur_pos = 'FINA'
                 AND c.kunnr = $1
                 LIMIT $2 OFFSET $3
@@ -732,7 +732,7 @@ LoadingNoteModel.getOSLoadingNoteNumWB = async (limit, offset, cust) => {
 				LEFT JOIN mst_user u on u.id_user = hd.create_by
 				LEFT JOIN mst_customer c on c.kunnr = u.username
                 WHERE DET.PUSH_SAP_DATE IS NOT NULL 
-                AND (DET.IS_WB_EDIT IS NULL)   
+                AND (DET.IS_WB_EDIT IS NULL OR DET.IS_WB_EDIT <> 0)   
                 AND hd.cur_pos = 'FINA'
                 AND c.kunnr = $1`,
                 [cust]
@@ -920,13 +920,13 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     ISRETRIVEDBYSAP: "FALSE",
                     USERSAP: session.username,
                 };
-                console.log(param);
                 if (method === "insert") {
                     [queIns, valIns] = crud.insertItemOra(
                         "PREREG_LOADING_NOTE_SAP",
                         param
                     );
                 } else {
+                    param.FLAG = "U";
                     [queIns, valIns] = crud.updateItemOra(
                         "PREREG_LOADING_NOTE_SAP",
                         param,
@@ -935,8 +935,6 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                         }
                     );
                 }
-                console.log(queIns);
-                console.log(valIns);
                 let paramDb = {
                     is_pushed: true,
                     push_sap_date: today,
@@ -1038,8 +1036,8 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow) => {
             HD.ID_DO,
             HD.RULES,
             HD.CON_NUM,
-            CONCAT(HD.CON_QTY,
-                HD.UOM) AS CON_QTY,
+            HD.CON_QTY,
+            HD.UOM,
             HD.PLANT,
             HD.COMPANY,
             DET.CTROS,
@@ -1098,7 +1096,8 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow) => {
                 DET.DRIVER_NAME,
                 DET.VHCL_ID,
                 MKY.key_desc as media_tp,
-                CONCAT(DET.PLAN_QTY, ' ', HD.UOM) AS PLAN_QTY,
+                DET.PLAN_QTY,
+                HD.UOM,
                 DET.ERROR_MSG,
                 CASE 
                     WHEN HD.CUR_POS = 'INIT' THEN 'CUSTOMER'
@@ -1262,7 +1261,7 @@ LoadingNoteModel.getRecap = async customer_id => {
     }
 };
 
-LoadingNoteModel.getSSRecap = async (filters, customer_id) => {
+LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
     const getRecapData = `SELECT
             DET.LN_NUM,
             HD.ID_DO,
@@ -1274,12 +1273,12 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id) => {
             HD.CON_QTY,
             CUST.KUNNR,
             CUST.NAME_1,
-            DET.HD_FK,
-            DET.DET_ID AS ID,
+           ${!skipid ? "DET.DET_ID AS ID," : ""}
             DET.DRIVER_ID,
             DET.DRIVER_NAME,
             DET.VHCL_ID,
             DET.PLAN_QTY,
+            TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
             HD.UOM,
             DET.BRUTO,
             DET.TARRA,
@@ -1324,6 +1323,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id) => {
     }
     let que = `${getRecapData} ${whereQue}`;
     let val = whereVal;
+    console.log(que);
     try {
         const client = await db.connect();
         try {
@@ -1341,7 +1341,11 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id) => {
 
 LoadingNoteModel.generateExcel = async (filters, customer_id) => {
     try {
-        const rowData = await LoadingNoteModel.getSSRecap(filters, customer_id);
+        const rowData = await LoadingNoteModel.getSSRecap(
+            filters,
+            customer_id,
+            true
+        );
         const bookRecap = new ExcelJS.Workbook();
         const recapSheet = bookRecap.addWorksheet("Recap Loading Note");
         const firstData = rowData[0];
