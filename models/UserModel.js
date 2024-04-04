@@ -72,6 +72,7 @@ UserModel.registerNew_2 = async ({
     fullname,
     email,
     phonenum,
+    plant_code,
     role,
     session,
 }) => {
@@ -103,6 +104,7 @@ UserModel.registerNew_2 = async ({
                 is_active: false,
                 otp_value: encodedOTP,
                 otp_validto: validUntil,
+                plant_code: plant_code,
                 create_by: session.id_user,
             };
             const [queUsr, valUsr] = crud.insertItem(
@@ -116,9 +118,9 @@ UserModel.registerNew_2 = async ({
                     "SELECT email from mst_email where email = $1",
                     [e]
                 );
-                if (rowCount > 0) {
-                    throw new Error("an email has been taken");
-                }
+                // if (rowCount > 0) {
+                //     throw new Error("an email has been taken");
+                // }
                 const valPayload = {
                     email: e,
                     id_user: id_user,
@@ -181,28 +183,30 @@ UserModel.editUser = async (payload, session) => {
             if (rowCount < 0) {
                 throw new Error("User not found");
             }
+            let payloaduser = {
+                plant_code: payload.plant_code,
+            };
+
             if (payload.password !== "") {
                 const hashedPass = await hashPassword(payload.password);
-                payload.password = hashedPass;
-                const [que, val] = crud.updateItem(
-                    "mst_user",
-                    {
-                        password: payload.password,
-                    },
-                    { id_user: payload.id_user },
-                    "id_user"
-                );
-                const updateDataUser = await client.query(que, val);
+                payloaduser.password = hashedPass;
             }
+            const [que, val] = crud.updateItem(
+                "mst_user",
+                payloaduser,
+                { id_user: payload.id_user },
+                "id_user"
+            );
+            const updateDataUser = await client.query(que, val);
             //check if email or phone exist
             if (payload.email.length > 0) {
                 const { rowCount: emailCount } = await client.query(
                     "SELECT email from mst_email where email in ($1) AND id_user <> $2",
                     [payload.email.join(", "), payload.id_user]
                 );
-                if (emailCount > 0) {
-                    throw new Error("email already taken by another user");
-                }
+                // if (emailCount > 0) {
+                //     throw new Error("email already taken by another user");
+                // }
                 const cleanseAll = await client.query(
                     "DELETE FROM MST_EMAIL WHERE id_user = $1",
                     [payload.id_user]
@@ -346,6 +350,7 @@ UserModel.login = async ({ username, password }) => {
             RL.ROLE_NAME AS ROLE,
             U.ROLE as ROLE_ID,
             U.PASSWORD,
+            U.plant_code,
             U.IS_ACTIVE,
             U.ID_USER,
             U.ID_USER AS ID

@@ -272,7 +272,8 @@ UserController.showById = async (req, res) => {
             RL.ROLE_NAME,
             U.ROLE,
             EM.EMAIL,
-            TE.TELF
+            TE.TELF,
+            U.PLANT_CODE
         FROM MST_USER U
         LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = U.ROLE
         LEFT JOIN 
@@ -286,6 +287,7 @@ UserController.showById = async (req, res) => {
             fullname: dataUser.fullname,
             role: dataUser.role,
             username: dataUser.username,
+            plant_code: dataUser.plant_code,
             email: dataUser.email?.split(",").map(item => item.trim()) ?? [],
             telf: dataUser.telf?.split(",").map(item => item.trim()) ?? [],
         };
