@@ -19,12 +19,12 @@ SAPGetterChores.LoadingNoteSync = async () => {
             await psqlclient.query(TRANS.BEGIN);
             const { rows } = await psqlclient.query(
                 `SELECT DET.DET_ID,
-                USR_CR.EMAIL AS EMAIL_CREATOR,
+                EM_CR.EMAIL AS EMAIL_CREATOR,
                 USR_CR.id_user AS ID_CREATOR,
-                USR_UP.EMAIL AS EMAIL_UPDATER,
+                EM_UP.EMAIL AS EMAIL_UPDATER,
                 USR_UP.id_user AS ID_UPDATER,
                 HD.ID_DO,
-                USR_CR.SAP_CODE,
+                CUS.KUNNR,
                 TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE,
                 CUS.NAME_1,
                 DET.DRIVER_ID,
@@ -36,7 +36,13 @@ SAPGetterChores.LoadingNoteSync = async () => {
               LEFT JOIN MST_USER USR_CR ON DET.CREATE_BY = USR_CR.ID_USER
               LEFT JOIN MST_USER USR_UP ON DET.UPDATE_BY = USR_UP.ID_USER
               LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
-              LEFT JOIN MST_CUSTOMER CUS ON CUS.KUNNR = USR_CR.SAP_CODE 
+			  LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, US.id_user FROM MST_USER US
+                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
+                GROUP BY US.id_user) EM_UP ON EM_UP.id_user = USR_UP.id_user
+			LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, US.id_user FROM MST_USER US
+			LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
+			GROUP BY US.id_user) EM_CR ON EM_CR.id_user = USR_CR.id_user
+              LEFT JOIN MST_CUSTOMER CUS ON CUS.KUNNR = USR_CR.USERNAME
               WHERE LN_NUM IS NULL`
             );
 
@@ -46,7 +52,7 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 let orapayload = {};
                 const { metaData, rows } = await oraclient.execute(
                     `SELECT DET_ID, LOADING_NOTE_NUM, ERRORDESCRIPTION FROM PREREG_LOADING_NOTE_SAP 
-                WHERE FLAG_WEB_PULL IS NULL AND ISRETRIVEDBYSAP = 'TRUE'
+                WHERE ISRETRIVEDBYSAP = 'TRUE'
                 AND DET_ID = :0`,
                     [row.det_id]
                 );
@@ -75,7 +81,7 @@ SAPGetterChores.LoadingNoteSync = async () => {
                        ${row.id_do}
                       </td>
                       <td>
-                      ${row.sap_code + " - " + row.name_1}
+                      ${row.kunnr + " - " + row.name_1}
                       </td>
                       <td>
                       ${row.cre_date}
