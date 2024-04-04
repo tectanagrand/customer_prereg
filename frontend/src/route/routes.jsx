@@ -69,6 +69,10 @@ export const routes = createBrowserRouter([
                 element: <FormCreateLoadingNote />,
             },
             {
+                path: "editln/",
+                element: <FormCreateLoadingNote />,
+            },
+            {
                 path: "account/edit",
                 element: <FormUserPage />,
             },
