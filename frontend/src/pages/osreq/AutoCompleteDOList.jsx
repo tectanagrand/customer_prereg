@@ -3,7 +3,12 @@ import { LazySelectCompNoCont } from "../../component/input/LazySelectCompNoCont
 import { useState, useRef, useEffect } from "react";
 import { debounce } from "lodash";
 
-export default function AutoCompleteDOList({ onChangeovr, ...props }) {
+export default function AutoCompleteDOList({
+    onChangeovr,
+    cust,
+    who,
+    ...props
+}) {
     const limit = 10;
     const [dataRow, setDataRow] = useState([]);
     let paginationRef = useRef({
@@ -21,9 +26,17 @@ export default function AutoCompleteDOList({ onChangeovr, ...props }) {
     const fetchData = async (limit, offset, q) => {
         setLoading(true);
         try {
-            const { data: rowData } = await Axios.get(
-                `ln/osdo?q=${q}&limit=${limit}&offset=${offset}`
-            );
+            let doData;
+            if (who === "wb") {
+                doData = await Axios.get(
+                    `ln/osdowb?cust=${cust}&limit=${limit}&offset=${offset}`
+                );
+            } else {
+                doData = await Axios.get(
+                    `ln/osdo?cust=${cust}&limit=${limit}&offset=${offset}`
+                );
+            }
+            const { data: rowData } = doData;
             return {
                 list: rowData.data,
                 pagination: {
@@ -90,7 +103,7 @@ export default function AutoCompleteDOList({ onChangeovr, ...props }) {
                 console.error(error);
             }
         })();
-    }, [searchQuery]);
+    }, [cust]);
 
     return (
         <>
@@ -100,10 +113,10 @@ export default function AutoCompleteDOList({ onChangeovr, ...props }) {
                 onFetchMore={fetchMore}
                 hasMore={paginationRef.current.hasMore}
                 defaultValue={null}
-                onChangeovr={e => {
-                    onChangeovr(e.target.value);
-                    overrideChange(e);
-                }}
+                // onChangeovr={e => {
+                //     onChangeovr(e.target.value);
+                //     overrideChange(e);
+                // }}
                 onBlurovr={e => {
                     onChangeovr(e.target.value);
                     overrideChange(e);

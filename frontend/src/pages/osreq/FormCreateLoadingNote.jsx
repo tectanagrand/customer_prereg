@@ -20,7 +20,10 @@ import { Axios } from "../../api/axios";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import AutocompleteComp from "../../component/input/AutocompleteComp";
-
+import { debounce } from "lodash";
+import { useLocation } from "react-router-dom";
+import { useTheme } from "@mui/material/styles";
+import { useSession } from "../../provider/sessionProvider";
 const ValuationTypeOp = [
     { value: "TR-SALES", label: "TR-SALES" },
     { value: "LIQD", label: "LIQD" },
@@ -40,6 +43,7 @@ export default function FormCreateLoadingNote() {
         setValue,
         getValues,
         reset,
+        clearErrors,
         formState: { errors, isValid },
     } = useForm({
         defaultValues: {
@@ -60,19 +64,27 @@ export default function FormCreateLoadingNote() {
     const [selectedRows, _setSelected] = useState([]);
     const [resetRow, setResetRow] = useState(false);
     const [modalSuccess, setModalscs] = useState(false);
+    const [firstRow, setFirstRow] = useState(null);
     const navigate = useNavigate();
+    const location = useLocation();
+    const { getPermission } = useSession();
+    const [who, setWho] = useState("");
+    const isWb = getPermission("Edit Loading Note").fread;
+    const isLog = getPermission("Push SAP Req.").fread;
+    const theme = useTheme();
 
     const setdataDo = useCallback(value => {
         setDoNum(value);
     }, []);
-    const setdataCust = useCallback(value => {
-        setCustNum(value);
-    }, []);
+    const setdataCust = debounce(value => {
+        setCustNum(value?.split("-")[1]?.trim());
+    }, 1000);
     const setLoading = value => {
         _setLoading(value);
     };
     const setSelected = value => {
         setValue("selected_req", value);
+        setFirstRow(value[0] ?? null);
         _setSelected(value);
     };
 
@@ -83,20 +95,10 @@ export default function FormCreateLoadingNote() {
     const DoNumVal = useMemo(() => DoNum, [DoNum]);
     const CustNumVal = useMemo(() => CustNum, [CustNum]);
 
-    // useEffect(() => {
-    //     if (selectedRows.length > 0) {
-    //         (async () => {
-    //             const rules = selectedRows[0].rules;
-    //             const plant = selectedRows[0].plant;
-    //             const { data } = await Axios.get(
-    //                 `/master/sloc?plant=${plant}&rule=${rules}`
-    //             );
-    //             setSlocop(data);
-    //         })();
-    //     } else {
-    //         setSlocop([{ value: "", label: "" }]);
-    //     }
-    // }, [selectedRows]);
+    useEffect(() => {
+        const path = location.pathname.split("/");
+        setWho(path[path.length - 1] === "editln" ? "wb" : "log");
+    }, [location]);
 
     useEffect(() => {
         (async () => {
@@ -119,6 +121,62 @@ export default function FormCreateLoadingNote() {
             }
         })();
     }, []);
+
+    useEffect(() => {
+        (async () => {
+            if (!firstRow) {
+                reset({
+                    fac_sloc: "",
+                    fac_valtype: "",
+                    oth_sloc: "",
+                    oth_valtype: "",
+                    selected_req: [],
+                });
+            } else {
+                let fac_sloc, fac_valtype, oth_sloc, oth_valtype;
+                try {
+                    _setLoading(true);
+                    if (who === "wb") {
+                        fac_sloc = firstRow.fac_sloc;
+                        fac_valtype = firstRow.fac_valtype;
+                        oth_sloc = firstRow.oth_sloc;
+                        oth_valtype = firstRow.oth_valtype;
+                    } else {
+                        const { data } = await Axios.get(
+                            `/ln/defslocvtp?plant=${firstRow.plant}`
+                        );
+                        fac_sloc = data.fac_sloc;
+                        fac_valtype = data.fac_valtype;
+                        oth_sloc = data.oth_sloc;
+                        oth_valtype = data.oth_valtype;
+                    }
+                    {
+                        setValue("fac_sloc", {
+                            value: fac_sloc,
+                            label: fac_sloc,
+                        });
+                    }
+                    setValue("fac_valtype", {
+                        value: fac_valtype,
+                        label: fac_valtype,
+                    });
+                    setValue("oth_valtype", {
+                        value: oth_valtype,
+                        label: oth_valtype,
+                    });
+                    setValue("oth_sloc", {
+                        value: oth_sloc,
+                        label: oth_sloc,
+                    });
+                    clearErrors();
+                } catch (error) {
+                    console.error(error);
+                } finally {
+                    _setLoading(false);
+                }
+            }
+        })();
+    }, [firstRow]);
 
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
@@ -164,249 +222,337 @@ export default function FormCreateLoadingNote() {
         }
     };
 
-    return (
-        <>
-            <Toaster />
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    flexWrap: "wrap",
-                }}
-            >
-                <Paper
-                    sx={{
-                        p: 3,
+    if ((isWb && who === "wb") || (isLog && who === "log")) {
+        return (
+            <>
+                <Toaster />
+                <div
+                    style={{
                         display: "flex",
-                        gap: 2,
-                        mb: 2,
-                        maxWidth: "40rem",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
                     }}
-                    elevation={4}
                 >
-                    <AutoCompleteDOList
-                        sx={{ minWidth: "12rem", maxWidth: "15rem" }}
-                        label="Nomor DO"
-                        onChangeovr={setdataDo}
-                    />
-                    <AutoCompleteCustomer
-                        sx={{ minWidth: "18rem", maxWidth: "15rem" }}
-                        label="Customer Code"
-                        onChangeovr={setdataCust}
-                        do_num={DoNum}
-                    />
-                </Paper>
-            </div>
-            {!!errors.selected_req && (
-                <p style={{ color: "red" }}>{errors.selected_req.message}</p>
-            )}
-            <TableLoadingNoteReq
-                DoNum={DoNumVal}
-                CustNum={CustNumVal}
-                setLoading={setLoading}
-                setSelectedRowsUp={setSelected}
-                resetRows={resetRow}
-            />
-            <form
-                style={{ display: "flex" }}
-                onKeyDown={e => checkKeyDown(e)}
-                onSubmit={handleSubmit(submitItem)}
-            >
-                <Paper
-                    sx={{
-                        p: 3,
-                        display: "flex",
-                        gap: 2,
-                        mb: 2,
-                    }}
-                    elevation={4}
+                    <Paper
+                        sx={{
+                            p: 3,
+                            display: "flex",
+                            gap: 2,
+                            mb: 2,
+                            maxWidth: "60rem",
+                        }}
+                        elevation={4}
+                    >
+                        {/* <AutoCompleteDOList
+                            sx={{ minWidth: "12rem", maxWidth: "15rem" }}
+                            label="Nomor DO"
+                            onChangeovr={setdataDo}
+                        />
+                        <AutoCompleteCustomer
+                            sx={{ minWidth: "18rem", maxWidth: "15rem" }}
+                            label="Customer Code"
+                            onChangeovr={setdataCust}
+                            do_num={DoNum}
+                        /> */}
+                        <AutoCompleteCustomer
+                            sx={{ minWidth: "30rem", maxWidth: "15rem" }}
+                            label="Customer Code"
+                            onChangeovr={setdataCust}
+                            who={who}
+                        />
+                        <AutoCompleteDOList
+                            sx={{ minWidth: "12rem", maxWidth: "15rem" }}
+                            label="Nomor DO"
+                            onChangeovr={setdataDo}
+                            cust={CustNum}
+                            who={who}
+                        />
+                    </Paper>
+                </div>
+                {!!errors.selected_req && (
+                    <p style={{ color: "red" }}>
+                        {errors.selected_req.message}
+                    </p>
+                )}
+                <TableLoadingNoteReq
+                    DoNum={DoNumVal}
+                    CustNum={CustNumVal}
+                    setLoading={setLoading}
+                    setSelectedRowsUp={setSelected}
+                    resetRows={resetRow}
+                    who={who}
+                />
+                <form
+                    style={{ display: "flex" }}
+                    onKeyDown={e => checkKeyDown(e)}
+                    onSubmit={handleSubmit(submitItem)}
                 >
-                    {/* <SelectComp
+                    <Paper
+                        sx={{
+                            p: 3,
+                            display: "flex",
+                            gap: 2,
+                            mb: 2,
+                        }}
+                        elevation={4}
+                    >
+                        {/* <SelectComp
+                                name="fac_sloc"
+                                label="Facility Store Loc."
+                                control={control}
+                                options={slocop}
+                                sx={{ minWidth: "13rem" }}
+                                rules={{ required: "Please Insert" }}
+                            /> */}
+                        <AutocompleteComp
                             name="fac_sloc"
-                            label="Facility Store Loc."
+                            label="Factory Store Loc."
                             control={control}
                             options={slocop}
-                            sx={{ minWidth: "13rem" }}
+                            sx={{
+                                minWidth: "13rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            disabled={who === "log"}
                             rules={{ required: "Please Insert" }}
-                        /> */}
-                    <AutocompleteComp
-                        name="fac_sloc"
-                        label="Facility Store Loc."
-                        control={control}
-                        options={slocop}
-                        sx={{ minWidth: "13rem" }}
-                        rules={{ required: "Please Insert" }}
-                    />
-                    {/* <SelectComp
+                        />
+                        {/* <SelectComp
+                                name="fac_valtype"
+                                label="Facility Val. Type"
+                                control={control}
+                                options={ValuationTypeOp}
+                                sx={{ minWidth: "13rem" }}
+                                rules={{ required: "Please Insert" }}
+                            /> */}
+                        <AutocompleteComp
                             name="fac_valtype"
-                            label="Facility Val. Type"
+                            label="Factory Val. Type"
                             control={control}
-                            options={ValuationTypeOp}
-                            sx={{ minWidth: "13rem" }}
+                            options={valtypeOp}
                             rules={{ required: "Please Insert" }}
-                        /> */}
-                    <AutocompleteComp
-                        name="fac_valtype"
-                        label="Facility Val. Type"
-                        control={control}
-                        options={valtypeOp}
-                        sx={{ minWidth: "13rem" }}
-                        rules={{ required: "Please Insert" }}
-                    />
-                    {/* <SelectComp
+                            sx={{
+                                minWidth: "13rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            disabled={who === "log"}
+                        />
+                        {/* <SelectComp
+                                name="oth_sloc"
+                                label="Other Party Store Loc."
+                                control={control}
+                                options={slocop}
+                                sx={{ minWidth: "13rem" }}
+                                rules={{ required: "Please Insert" }}
+                            /> */}
+                        <AutocompleteComp
                             name="oth_sloc"
                             label="Other Party Store Loc."
                             control={control}
                             options={slocop}
-                            sx={{ minWidth: "13rem" }}
+                            sx={{
+                                minWidth: "13rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            disabled={who === "log"}
                             rules={{ required: "Please Insert" }}
-                        /> */}
-                    <AutocompleteComp
-                        name="oth_sloc"
-                        label="Other Party Store Loc."
-                        control={control}
-                        options={slocop}
-                        sx={{ minWidth: "13rem" }}
-                        rules={{ required: "Please Insert" }}
-                    />
-                    {/* <SelectComp
+                        />
+                        {/* <SelectComp
+                                name="oth_valtype"
+                                label="Other Party Val. Type"
+                                control={control}
+                                options={ValuationTypeOp}
+                                sx={{ minWidth: "13rem" }}
+                                rules={{ required: "Please Insert" }}
+                            /> */}
+                        <AutocompleteComp
                             name="oth_valtype"
                             label="Other Party Val. Type"
                             control={control}
-                            options={ValuationTypeOp}
-                            sx={{ minWidth: "13rem" }}
+                            options={valtypeOp}
+                            sx={{
+                                minWidth: "13rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            disabled={who === "log"}
                             rules={{ required: "Please Insert" }}
-                        /> */}
-                    <AutocompleteComp
-                        name="oth_valtype"
-                        label="Other Party Val. Type"
-                        control={control}
-                        options={valtypeOp}
-                        sx={{ minWidth: "13rem" }}
-                        rules={{ required: "Please Insert" }}
+                        />
+                    </Paper>
+                    <input
+                        {...register("selected_req", {
+                            validate: selected => {
+                                return (
+                                    selected.length > 0 ||
+                                    "Please check data below at least 1"
+                                );
+                            },
+                        })}
+                        hidden
                     />
-                </Paper>
-                <input
-                    {...register("selected_req", {
-                        validate: selected => {
-                            return (
-                                selected.length > 0 ||
-                                "Please check data below at least 1"
-                            );
-                        },
-                    })}
-                    hidden
-                />
-                <LoadingButton
-                    variant="contained"
-                    sx={{ m: 3, minWidth: "10rem" }}
-                    loading={isLoading}
-                    // onClick={() => {
-                    //     if (isValid) {
-                    //         setModalOpen(true);
-                    //     }
-                    // }}
-                    type="submit"
-                >
-                    Push To Staging
-                </LoadingButton>
-            </form>
-            <Dialog
-                open={modalOpen}
-                maxWidth="xl"
-                sx={{ zIndex: theme => theme.zIndex.drawer - 2 }}
-            >
-                <DialogTitle>SAP Generate Loading Note</DialogTitle>
-
-                <Box
-                    sx={{
-                        width: "80em",
-                        height: "30rem",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 5,
-                        p: 2,
-                        mb: 3,
-                    }}
-                >
-                    <Typography variant="h4">Data send to SAP :</Typography>
-                    <div
-                        style={{
-                            display: "flex",
-                            gap: "3rem",
-                            paddingLeft: "1rem",
-                        }}
-                    >
-                        <div>
-                            <div style={{ display: "flex", gap: "1rem" }}>
-                                <p>Factory Store Loc :</p>{" "}
-                                <p>{getValues("fac_sloc").label}</p>
-                            </div>
-                            <div style={{ display: "flex", gap: "1rem" }}>
-                                <p>Factory Val. Type :</p>{" "}
-                                <p>{getValues("fac_valtype").label}</p>
-                            </div>
-                        </div>
-                        <div>
-                            <div style={{ display: "flex", gap: "1rem" }}>
-                                <p>Other Party Store Loc :</p>{" "}
-                                <p>{getValues("oth_sloc").label}</p>
-                            </div>
-                            <div style={{ display: "flex", gap: "1rem" }}>
-                                <p>Other Party Val. Type :</p>{" "}
-                                <p>{getValues("oth_valtype").label}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <TableSelectedLNReq rowsData={selectedRows} />
-                </Box>
-                <DialogActions>
                     <LoadingButton
-                        onClick={() => pushSAP()}
-                        color="primary"
                         variant="contained"
-                        loading={loadingPush}
+                        sx={{ m: 3, minWidth: "10rem" }}
+                        loading={isLoading}
+                        // onClick={() => {
+                        //     if (isValid) {
+                        //         setModalOpen(true);
+                        //     }
+                        // }}
+                        type="submit"
                     >
-                        Push
+                        Push To SAP
                     </LoadingButton>
-                    <Button
-                        variant="contained"
-                        color="error"
-                        onClick={() => setModalOpen(false)}
-                    >
-                        Cancel
-                    </Button>
-                </DialogActions>
-            </Dialog>
-            <Dialog
-                open={modalSuccess}
-                maxWidth="sm"
-                onClose={onCloseModal}
-                sx={{ zIndex: theme => theme.zIndex.drawer - 2 }}
-            >
-                <Box
-                    sx={{
-                        minWidth: "30rem",
-                        minHeight: "15rem",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 5,
-                        p: 4,
-                    }}
+                </form>
+                <Dialog
+                    open={modalOpen}
+                    maxWidth="xl"
+                    sx={{ zIndex: theme => theme.zIndex.drawer - 2 }}
                 >
-                    <CheckCircleOutline
+                    <DialogTitle>SAP Generate Loading Note</DialogTitle>
+
+                    <Box
                         sx={{
-                            height: "4rem",
-                            width: "4rem",
-                            color: "green",
+                            width: "80em",
+                            height: "30rem",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 5,
+                            p: 2,
+                            mb: 3,
                         }}
-                    />
-                    <Typography variant="h4">
-                        Loading Note Pushed to Staging
-                    </Typography>
-                </Box>
-            </Dialog>
-        </>
-    );
+                    >
+                        <Typography variant="h4">Data send to SAP :</Typography>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: "3rem",
+                                paddingLeft: "1rem",
+                            }}
+                        >
+                            <div>
+                                <div style={{ display: "flex", gap: "1rem" }}>
+                                    <p>Factory Store Loc :</p>{" "}
+                                    <p>{getValues("fac_sloc")?.value}</p>
+                                </div>
+                                <div style={{ display: "flex", gap: "1rem" }}>
+                                    <p>Factory Val. Type :</p>{" "}
+                                    <p>{getValues("fac_valtype")?.value}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <div style={{ display: "flex", gap: "1rem" }}>
+                                    <p>Other Party Store Loc :</p>{" "}
+                                    <p>{getValues("oth_sloc")?.value}</p>
+                                </div>
+                                <div style={{ display: "flex", gap: "1rem" }}>
+                                    <p>Other Party Val. Type :</p>{" "}
+                                    <p>{getValues("oth_valtype")?.value}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <TableSelectedLNReq rowsData={selectedRows} />
+                    </Box>
+                    <DialogActions>
+                        <LoadingButton
+                            onClick={() => pushSAP()}
+                            color="primary"
+                            variant="contained"
+                            loading={loadingPush}
+                        >
+                            Push
+                        </LoadingButton>
+                        <Button
+                            variant="contained"
+                            color="error"
+                            onClick={() => setModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+                <Dialog
+                    open={modalSuccess}
+                    maxWidth="sm"
+                    onClose={onCloseModal}
+                    sx={{ zIndex: theme => theme.zIndex.drawer - 2 }}
+                >
+                    <Box
+                        sx={{
+                            minWidth: "30rem",
+                            minHeight: "15rem",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 5,
+                            p: 4,
+                        }}
+                    >
+                        <CheckCircleOutline
+                            sx={{
+                                height: "4rem",
+                                width: "4rem",
+                                color: "green",
+                            }}
+                        />
+                        <Typography variant="h4">
+                            Loading Note Pushed to Staging
+                        </Typography>
+                    </Box>
+                </Dialog>
+            </>
+        );
+    } else {
+        return <></>;
+    }
 }

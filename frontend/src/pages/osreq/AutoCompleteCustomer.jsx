@@ -6,6 +6,7 @@ import { debounce } from "lodash";
 export default function AutoCompleteCustomer({
     onChangeovr,
     do_num,
+    who,
     ...props
 }) {
     const limit = 10;
@@ -25,9 +26,17 @@ export default function AutoCompleteCustomer({
     const fetchData = async (limit, offset, q) => {
         setLoading(true);
         try {
-            const { data: rowData } = await Axios.get(
-                `master/oscust?q=${q}&limit=${limit}&offset=${offset}&do_num=${do_num}`
-            );
+            let custData;
+            if (who === "wb") {
+                custData = await Axios.get(
+                    `master/oscustwb?q=${q}&limit=${limit}&offset=${offset}`
+                );
+            } else {
+                custData = await Axios.get(
+                    `master/oscust?q=${q}&limit=${limit}&offset=${offset}`
+                );
+            }
+            const { data: rowData } = custData;
             return {
                 list: rowData.data,
                 pagination: {
@@ -53,9 +62,9 @@ export default function AutoCompleteCustomer({
             );
             const dataList = list?.map(item => ({
                 ...item,
-                value: item.sap_code,
+                value: item.name_1 + " - " + item.sap_code,
                 id: item.sap_code,
-                label: item.sap_code + " - " + item.name_1,
+                label: item.name_1 + " - " + item.sap_code,
             }));
 
             setDataRow(prev => [
@@ -84,9 +93,9 @@ export default function AutoCompleteCustomer({
                 );
                 const dataList = list?.map(item => ({
                     ...item,
-                    value: item.sap_code,
+                    value: item.name_1 + " - " + item.sap_code,
                     id: item.sap_code,
-                    label: item.sap_code + " - " + item.name_1,
+                    label: item.name_1 + " - " + item.sap_code,
                 }));
                 setDataRow([...dataList]);
                 paginationRef.current = resPagination;
@@ -94,7 +103,7 @@ export default function AutoCompleteCustomer({
                 console.error(error);
             }
         })();
-    }, [searchQuery, do_num]);
+    }, [searchQuery]);
 
     return (
         <>
