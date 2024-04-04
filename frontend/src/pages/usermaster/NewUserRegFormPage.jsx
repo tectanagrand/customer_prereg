@@ -17,7 +17,12 @@ import { useSession } from "../../provider/sessionProvider";
 import { useTheme } from "@mui/material/styles";
 import { Cancel, Password } from "@mui/icons-material";
 import { Axios } from "../../api/axios";
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import {
+    useSearchParams,
+    useNavigate,
+    useLocation,
+    Navigate,
+} from "react-router-dom";
 import { LoadingButton } from "@mui/lab";
 import toast, { Toaster } from "react-hot-toast";
 import AutocompleteComp from "../../component/input/AutocompleteComp";
@@ -26,11 +31,12 @@ export default function NewUserRegFormPage() {
     // const [customerID, setCustID] = useState("");
     // const [customerName, setCustName] = useState("");
     const navigate = useNavigate();
+    const location = useLocation();
     const [role, _setRole] = useState("");
     const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(false);
     const [plantOp, setPlantop] = useState([]);
-    const { session } = useSession();
+    const { session, getPermission } = useSession();
     const theme = useTheme();
     const [roleOp, setRoleOp] = useState([{ value: "", label: "" }]);
     const currentRole = roleOp.find(({ value }) => value === role)?.label;
@@ -192,6 +198,17 @@ export default function NewUserRegFormPage() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
+
+    const pathname = location.pathname.split("/")[2];
+    const isallowup = getPermission("User Master").fupdate;
+
+    if (!(pathname === "account" || isallowup)) {
+        return (
+            <>
+                <Navigate to="/404" />
+            </>
+        );
+    }
 
     return (
         <form
@@ -427,7 +444,11 @@ export default function NewUserRegFormPage() {
                         variant="contained"
                         color="error"
                         onClick={() => {
-                            navigate("/dashboard/users");
+                            if (pathname === "users") {
+                                navigate("/dashboard/users");
+                            } else {
+                                navigate("/dashboard/loadingnote");
+                            }
                         }}
                     >
                         Cancel
