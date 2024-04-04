@@ -271,7 +271,6 @@ MasterModel.getCustDataDB = async (limit, offset, q) => {
 };
 
 MasterModel.getOSDataCust = async (limit, offset, q, do_num) => {
-    console.log(do_num);
     try {
         const client = await db.connect();
         let do_numCheck = "";
@@ -307,6 +306,88 @@ MasterModel.getOSDataCust = async (limit, offset, q, do_num) => {
                 ${do_numCheck2}
                 AND DET.ln_num is null`,
                 do_numCheck2 !== "" ? [`%${q}%`, do_num] : [`%${q}%`]
+            );
+            return {
+                data: dataComp,
+                count: rowCount,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.getOSDataCust2 = async (limit, offset, q) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows: dataComp } = await client.query(
+                `SELECT distinct USR.sap_code, cust.name_1 FROM loading_note_det DET
+                LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
+                LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
+                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.sap_code 
+                WHERE( USR.sap_code like $1 OR cust.name_1 like $2)
+                AND DET.ln_num is null
+                AND DET.push_sap_date is null
+                AND hed.cur_pos = 'FINA'
+                LIMIT $3 OFFSET $4`,
+                [`%${q}%`, `%${q}%`, limit, offset]
+            );
+            const { rows, rowCount } = await client.query(
+                `SELECT distinct USR.sap_code, cust.name_1 FROM loading_note_det DET
+                LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
+                LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
+                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.sap_code 
+                WHERE( USR.sap_code like $1 OR cust.name_1 like $2)
+                AND DET.ln_num is null
+                AND DET.push_sap_date is null
+                AND hed.cur_pos = 'FINA'`,
+                [`%${q}%`, `%${q}%`]
+            );
+            return {
+                data: dataComp,
+                count: rowCount,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.getOSDataCustWB = async (limit, offset, q) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows: dataComp } = await client.query(
+                `SELECT distinct USR.sap_code, cust.name_1 FROM loading_note_det DET
+                LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
+                LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
+                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.sap_code 
+                WHERE( USR.sap_code like $1 OR cust.name_1 like $2)
+                AND DET.PUSH_SAP_DATE IS NOT NULL 
+                AND (DET.IS_WB_EDIT IS NULL)  
+                AND hed.cur_pos = 'FINA'
+                LIMIT $3 OFFSET $4`,
+                [`%${q}%`, `%${q}%`, limit, offset]
+            );
+            const { rows, rowCount } = await client.query(
+                `SELECT distinct USR.sap_code, cust.name_1 FROM loading_note_det DET
+                LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
+                LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
+                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.sap_code 
+                WHERE( USR.sap_code like $1 OR cust.name_1 like $2)
+                AND DET.PUSH_SAP_DATE IS NOT NULL 
+                AND (DET.IS_WB_EDIT IS NULL OR DET.IS_WB_EDIT < 5)  
+                AND hed.cur_pos = 'FINA'`,
+                [`%${q}%`, `%${q}%`]
             );
             return {
                 data: dataComp,
