@@ -214,32 +214,63 @@ LoadingNoteModel.sendToLogistic = async id_header => {
     try {
         const client = await db.connect();
         try {
+            let tabledet = [];
+            const { rows: hostname } = await client.query(
+                `SELECT hostname from hostname where phase = 'development'`
+            );
             const { rows, rowCount } = await client.query(
                 `SELECT HD.HD_ID,
                 HD.ID_DO,
                 HD.CUR_POS,
                 CONCAT(HD.MATERIAL, ' - ', HD.DESC_CON) AS MATERIAL,
                 HD.PLANT,
-                USR.EMAIL,
+                HD.UOM,
+                EM.EMAIL,
                 CONCAT(CUS.KUNNR,
             
                     ' - ',
                     CUS.NAME_1) AS CUSTOMER
             FROM LOADING_NOTE_HD HD
             LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
-            LEFT JOIN MST_CUSTOMER CUS ON USR.SAP_CODE = CUS.KUNNR
+            LEFT JOIN MST_CUSTOMER CUS ON USR.USERNAME = CUS.KUNNR
+            LEFT JOIN
+            (
+                SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, US.id_user FROM MST_USER US
+                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
+                LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = US.ROLE
+                GROUP BY US.id_user
+            ) EM ON EM.id_user = USR.id_user
             WHERE HD.HD_ID = $1`,
                 [id_header]
             );
-            const dataEmail = rows[0];
-            const { rows: dataLogistic } = await client.query(
-                `SELECT USR.EMAIL FROM MST_USER USR
-                LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = USR.ROLE
-                WHERE RL.ROLE_NAME = 'LOGISTIC'`
+            const { rows: dataDetail } = await client.query(
+                `SELECT DRIVER_NAME, DRIVER_ID, VHCL_ID, 
+                TO_CHAR(CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE, PLAN_QTY FROM LOADING_NOTE_DET
+                WHERE HD_FK = $1`,
+                [id_header]
             );
-            const email_target = dataLogistic
-                .map(item => item.email)
-                .join(", ");
+            const dataEmail = rows[0];
+            for (d of dataDetail) {
+                tabledet.push(`
+                <tr>
+                    <td>${d.driver_name} (${d.driver_id})</td>
+                    <td>${d.vhcl_id}</td>
+                    <td>${d.cre_date}</td>
+                    <td>${d.plan_qty?.replace(
+                        /\B(?=(\d{3})+(?!\d))/g,
+                        ","
+                    )} ${dataEmail.uom}</td>
+                </tr>
+                `);
+            }
+            const { rows: dataLogistic } = await client.query(
+                `SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, RL.ROLE_NAME FROM MST_EMAIL EM
+                LEFT JOIN MST_USER US ON EM.ID_USER = US.ID_USER
+                LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = US.ROLE
+                WHERE RL.ROLE_NAME = 'LOGISTIC'
+                GROUP BY RL.ROLE_NAME`
+            );
+            const email_target = dataLogistic[0].email;
             const cc_target = rows[0].email;
             if (rowCount < 0) {
                 throw new Error("Loading Note Header not Found");
@@ -259,8 +290,10 @@ LoadingNoteModel.sendToLogistic = async id_header => {
                 dataEmail.customer,
                 dataEmail.material,
                 dataEmail.plant,
+                tabledet.join(" "),
                 email_target,
-                cc_target
+                cc_target,
+                hostname[0].hostname
             );
             return {
                 message: "Success updating loading note ",
@@ -570,7 +603,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
             if (who !== "wb") {
                 whoFilter = `WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA'`;
             } else {
-                whoFilter = `WHERE DET.PUSH_SAP_DATE IS NOT NULL AND (DET.IS_WB_EDIT IS NULL OR DET.IS_WB_EDIT < 5)  AND HD.CUR_POS = 'FINA'`;
+                whoFilter = `WHERE DET.PUSH_SAP_DATE IS NOT NULL AND DET.LN_NUM IS NOT NULL AND HD.CUR_POS = 'FINA'`;
             }
             if (filters.length !== 0) {
                 let idx = 1;
@@ -719,7 +752,7 @@ LoadingNoteModel.getOSLoadingNoteNumWB = async (limit, offset, cust) => {
 				LEFT JOIN mst_customer c on c.kunnr = u.username
                 WHERE  
                 DET.PUSH_SAP_DATE IS NOT NULL 
-                AND (DET.IS_WB_EDIT IS NULL OR DET.IS_WB_EDIT <> 0)   
+                AND DET.LN_NUM IS NOT NULL
                 AND hd.cur_pos = 'FINA'
                 AND c.kunnr = $1
                 LIMIT $2 OFFSET $3
@@ -731,8 +764,8 @@ LoadingNoteModel.getOSLoadingNoteNumWB = async (limit, offset, cust) => {
                 LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
 				LEFT JOIN mst_user u on u.id_user = hd.create_by
 				LEFT JOIN mst_customer c on c.kunnr = u.username
-                WHERE DET.PUSH_SAP_DATE IS NOT NULL 
-                AND (DET.IS_WB_EDIT IS NULL OR DET.IS_WB_EDIT <> 0)   
+                WHERE  DET.PUSH_SAP_DATE IS NOT NULL 
+                AND DET.LN_NUM IS NOT NULL
                 AND hd.cur_pos = 'FINA'
                 AND c.kunnr = $1`,
                 [cust]
@@ -1289,7 +1322,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
         LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
         LEFT JOIN MST_CUSTOMER CUST ON USR.SAP_CODE = CUST.KUNNR
-        WHERE DET.LN_NUM IS NOT NULL `;
+        WHERE DET.PUSH_SAP_DATE IS NOT NULL`;
     let where = [];
     let whereVal = [];
     let ltindex = 0;
