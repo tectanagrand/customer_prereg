@@ -79,14 +79,10 @@ MasterController.getDataCust = async (req, res) => {
 };
 MasterController.getDataSLoc = async (req, res) => {
     const plant = req.query.plant;
-    const rule = req.query.rule;
+    const material = req.query.material;
     try {
-        const { I_SLOC } = await Master.getStoreLoc(plant, rule);
-        const dataRFC = I_SLOC.map(item => ({
-            value: item.LGORT,
-            label: item.LGORT + " - " + item.LGOBE,
-        }));
-        res.status(200).send(dataRFC);
+        const data = await Master.getStoreLoc(plant, material);
+        res.status(200).send(data);
     } catch (error) {
         console.error(error);
         res.status(500).send(error);

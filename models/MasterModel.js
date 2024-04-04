@@ -152,17 +152,28 @@ MasterModel.getCustData = async () => {
 //     }
 // };
 
-MasterModel.getStoreLoc = async (plant, rule) => {
-    console.log(plant, rule);
+MasterModel.getStoreLoc = async (plant, material) => {
     try {
         const rfcclient = new noderfc.Client({ dest: "Q13" });
         await rfcclient.open();
         try {
-            const datarfc = rfcclient.call("ZRFC_PRE_REGISTRA_STORELOC", {
-                I_PLANT: plant,
-                I_ITEMRULE: rule,
-            });
-            return datarfc;
+            const { I_SLOC, I_VALTYPE } = await rfcclient.call(
+                "ZRFC_PRE_REGISTRA_STORELOC",
+                {
+                    I_PLANT: plant,
+                    I_MATERIAL: material,
+                }
+            );
+            const dataSloc = I_SLOC.map(item => ({
+                value: item.LGORT,
+                label: item.LGORT + " - " + item.LGOBE,
+            }));
+            const dataVtype = I_VALTYPE.map(item => ({
+                value: item.BWTAR,
+                label: item.BWTAR,
+            }));
+
+            return { sloc: dataSloc, valtype: dataVtype };
         } catch (error) {
             throw error;
         }
@@ -373,7 +384,7 @@ MasterModel.getOSDataCustWB = async (limit, offset, q) => {
                 LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.sap_code 
                 WHERE( USR.sap_code like $1 OR cust.name_1 like $2)
                 AND DET.PUSH_SAP_DATE IS NOT NULL 
-                AND (DET.IS_WB_EDIT IS NULL)  
+                AND (DET.IS_WB_EDIT IS NULL OR DET.IS_WB_EDIT <> 0)  
                 AND hed.cur_pos = 'FINA'
                 LIMIT $3 OFFSET $4`,
                 [`%${q}%`, `%${q}%`, limit, offset]
@@ -385,7 +396,7 @@ MasterModel.getOSDataCustWB = async (limit, offset, q) => {
                 LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.sap_code 
                 WHERE( USR.sap_code like $1 OR cust.name_1 like $2)
                 AND DET.PUSH_SAP_DATE IS NOT NULL 
-                AND (DET.IS_WB_EDIT IS NULL OR DET.IS_WB_EDIT < 5)  
+                AND (DET.IS_WB_EDIT IS NULL OR DET.IS_WB_EDIT <> 0)  
                 AND hed.cur_pos = 'FINA'`,
                 [`%${q}%`, `%${q}%`]
             );
