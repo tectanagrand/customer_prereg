@@ -43,7 +43,7 @@ export default function AutocompleteComp({
                         renderInput={params => (
                             <TextField
                                 {...params}
-                                error={error}
+                                error={!!error}
                                 helperText={!!error && error.message}
                                 label={label}
                                 inputRef={ref}

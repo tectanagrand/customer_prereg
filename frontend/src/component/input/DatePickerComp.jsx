@@ -18,6 +18,7 @@ export default function DatePickerComp({
                 <DatePicker
                     {...props}
                     onChange={onChange}
+                    format="DD-MM-YYYY"
                     value={moment(value)}
                     label={label}
                     slotProps={{

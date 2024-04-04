@@ -12,6 +12,8 @@ export const TextFieldComp = ({
     toUpperCase,
     toLowerCase,
     sx,
+    endAdornment,
+    thousandSeparator,
     ...props
 }) => {
     return (
@@ -51,6 +53,9 @@ export const TextFieldComp = ({
                         inputProps={{
                             readOnly: readOnly,
                             disabled: props?.disabled,
+                        }}
+                        InputProps={{
+                            endAdornment: endAdornment,
                         }}
                         fullWidth
                     />

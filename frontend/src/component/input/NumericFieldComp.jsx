@@ -12,6 +12,7 @@ export default function NumericFieldComp({
     readOnly,
     disabled,
     thousandSeparator,
+    ...props
 }) {
     return (
         <>
@@ -31,12 +32,17 @@ export default function NumericFieldComp({
                         inputRef={ref}
                         customInput={TextField}
                         prefix={currency && `${currency} `}
-                        error={error}
+                        error={!!error}
                         fullWidth
                         inputProps={{
                             readOnly: readOnly,
                             disabled: disabled,
                         }}
+                        sx={props.sx}
+                        InputProps={{
+                            endAdornment: props.endAdornment,
+                        }}
+                        helperText={error?.message}
                     />
                 )}
             />

@@ -36,7 +36,6 @@ export default function SelectDOComp({ control, name, label, preop }) {
                 options={doOP}
                 onOpen={() => getDataDO()}
                 sx={{
-                    mb: 3,
                     mr: 3,
                     maxWidth: "16rem",
                     minWidth: "10rem",
