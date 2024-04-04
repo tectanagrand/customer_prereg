@@ -20,6 +20,7 @@ import { Axios } from "../../api/axios";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { LoadingButton } from "@mui/lab";
 import toast, { Toaster } from "react-hot-toast";
+import AutocompleteComp from "../../component/input/AutocompleteComp";
 
 export default function NewUserRegFormPage() {
     // const [customerID, setCustID] = useState("");
@@ -28,9 +29,11 @@ export default function NewUserRegFormPage() {
     const [role, _setRole] = useState("");
     const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(false);
+    const [plantOp, setPlantop] = useState([]);
     const { session } = useSession();
     const theme = useTheme();
     const [roleOp, setRoleOp] = useState([{ value: "", label: "" }]);
+    const currentRole = roleOp.find(({ value }) => value === role)?.label;
     const {
         control,
         handleSubmit,
@@ -45,6 +48,7 @@ export default function NewUserRegFormPage() {
             customer_id: { value: "", label: "" },
             telfList: [{ telf: "" }],
             emailList: [{ email: "" }],
+            plant_code: { value: "", label: "" },
         },
         resetOptions: {
             keepErrors: true, // input errors will be retained with value update
@@ -107,6 +111,10 @@ export default function NewUserRegFormPage() {
                     username: data.username,
                     fullname: data.fullname,
                     role: data.role,
+                    plant_code: {
+                        value: data.plant_code,
+                        label: data.plant_code,
+                    },
                     password: "",
                     emailList: data.email.map(item => ({ email: item })),
                     telfList: data.telf.map(item => ({ telf: item })),
@@ -115,6 +123,17 @@ export default function NewUserRegFormPage() {
                 reset(dataUser);
             })();
         }
+    }, []);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data } = await Axios.get("/master/plt");
+                setPlantop(data);
+            } catch (error) {
+                console.error(error);
+            }
+        })();
     }, []);
 
     const setRole = valueOv => {
@@ -128,12 +147,11 @@ export default function NewUserRegFormPage() {
         }
     };
 
-    console.log(dirtyFields.password);
-
     const submitUser = async values => {
         const payload = {
             fullname: values.fullname,
             username: values.username,
+            plant_code: values.plant_code.value,
             role: values.role,
             email: values.emailList.map(item => item.email),
             phonenum: values.telfList.map(item => item.telf),
@@ -215,8 +233,10 @@ export default function NewUserRegFormPage() {
                                 onChangeControlOvr={onChangeControlOvrCust}
                                 fullWidth={true}
                                 disabled={
-                                    roleOp.find(({ value }) => value === role)
-                                        ?.label === "LOGISTIC"
+                                    !(
+                                        currentRole === "CUSTOMER" ||
+                                        currentRole === "ADMIN"
+                                    )
                                 }
                                 sx={{
                                     label: {
@@ -236,8 +256,7 @@ export default function NewUserRegFormPage() {
                             label="Username"
                             name="username"
                             disabled={
-                                roleOp.find(({ value }) => value === role)
-                                    ?.label === "CUSTOMER" ||
+                                currentRole === "CUSTOMER" ||
                                 !!searchParams.get("iduser")
                             }
                             rules={{ required: true }}
@@ -249,13 +268,23 @@ export default function NewUserRegFormPage() {
                             label="Full Name"
                             name="fullname"
                             disabled={
-                                roleOp.find(({ value }) => value === role)
-                                    ?.label === "CUSTOMER" ||
+                                currentRole === "CUSTOMER" ||
                                 !!searchParams.get("iduser")
                             }
                             rules={{ required: true }}
                         />
                     </Grid>
+                    {(currentRole === "ADMINWB" || currentRole === "ADMIN") && (
+                        <Grid item xs={6}>
+                            <AutocompleteComp
+                                name="plant_code"
+                                control={control}
+                                label="Plant Code"
+                                options={plantOp}
+                                rules={{ required: true }}
+                            />
+                        </Grid>
+                    )}
                     {!!searchParams.get("iduser") && (
                         <Grid item xs={6}>
                             <PasswordWithEyes
