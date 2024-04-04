@@ -362,6 +362,7 @@ export default function LoadingNoteForm() {
                                     handleCheckSO(getValues("do_num"))
                                 }
                                 loading={isLoading}
+                                sx={{ height: "2rem" }}
                             >
                                 Check Payment
                             </LoadingButton>
