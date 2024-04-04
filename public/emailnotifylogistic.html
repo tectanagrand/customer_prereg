@@ -296,6 +296,28 @@
                 color: rgba(255, 255, 255, 1);
             }
 
+            #tabledet {
+                width: 100%;
+            }
+
+            #tabledet th {
+                padding-top: 12px;
+                padding-bottom: 12px;
+                padding-left: 10px;
+                padding-right: 10px;
+                text-align: left;
+                font-size: 8pt;
+                background-color: #800000;
+                color: white;
+            }
+
+            #tabledet td {
+                font-size: 10pt;
+            }
+
+            #tabledet tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
             @media screen and (max-width: 500px) {
             }
         </style>
@@ -311,7 +333,7 @@
     >
         <center style="width: 100%; background-color: #f1f1f1">
             <div
-                style="max-width: 600px; margin: 0 auto"
+                style="max-width: 100vw; margin: 0 auto"
                 class="email-container"
             >
                 <table
@@ -397,6 +419,55 @@
                             </tr>
                             <tr>
                                 <td style="padding-top: 1rem"></td>
+                            </tr>
+                        </table>
+                    </tr>
+                    <tr>
+                        <table style="width: 100%">
+                            <tr>
+                                <td
+                                    valign="top"
+                                    class="bg_white"
+                                    style="padding: 2em 2.5em 0 2.5em"
+                                >
+                                    <h4>Data Detail :</h4>
+                                </td>
+                            </tr>
+                        </table>
+                    </tr>
+                    <tr>
+                        <table id="tabledet">
+                            <tr>
+                                <th>Driver</th>
+                                <th>Plat Nomor</th>
+                                <th>Tanggal Loading</th>
+                                <th>Material</th>
+                                <th>Planned Quantity</th>
+                            </tr>
+                            ${rowtruck}
+                            <!-- <tr>
+                                <td>XXXXXX</td>
+                                <td>Hello World</td>
+                                <td>01-01-1997</td>
+                                <td>100 KG</td>
+                                <td>10XXXXXXXX</td>
+                                <td>Lorem Ipsum</td>
+                            </tr> -->
+                        </table>
+                    </tr>
+                    <tr>
+                        <table style="width: 100%">
+                            <tr>
+                                <td
+                                    valign="top"
+                                    class="bg_white"
+                                    style="padding: 1em 2.5em"
+                                >
+                                    <h4>
+                                        Loading Note dapat diproses melalui link
+                                        berikut : ${url_web}
+                                    </h4>
+                                </td>
                             </tr>
                         </table>
                     </tr>

@@ -57,8 +57,10 @@ EmailModel.notifyRequestSend = async (
     customer,
     material,
     plant,
+    table_det,
     email_target,
-    email_cc
+    email_cc,
+    hostname
 ) => {
     try {
         const tp = EmailTP.Transporter();
@@ -66,7 +68,9 @@ EmailModel.notifyRequestSend = async (
             id_do,
             customer,
             material,
-            plant
+            plant,
+            table_det,
+            hostname
         );
         const setup = {
             from: process.env.SMTP_USERNAME,
