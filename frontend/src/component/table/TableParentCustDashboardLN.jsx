@@ -130,7 +130,11 @@ export default function TableParentCustDashboard() {
             {
                 header: "Contract Quantity",
                 accessorKey: "con_qty",
-                cell: props => props.getValue(),
+                cell: ({ row }) =>
+                    `${row.original.con_qty?.replace(
+                        /\B(?=(\d{3})+(?!\d))/g,
+                        ","
+                    )} ${row.original.uom}`,
             },
             {
                 header: "Plant",

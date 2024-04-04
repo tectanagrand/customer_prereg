@@ -46,7 +46,11 @@ export default function TableChildCustLN({ dataChild }) {
             {
                 header: "Planning Quantity",
                 accessorKey: "plan_qty",
-                cell: props => props.getValue(),
+                cell: ({ row }) =>
+                    `${row.original.plan_qty?.replace(
+                        /\B(?=(\d{3})+(?!\d))/g,
+                        ","
+                    )} ${row.original.uom}`,
             },
             {
                 header: "Error Message",

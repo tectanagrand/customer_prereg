@@ -37,12 +37,10 @@ export default function TableRecapReport({ onsetFilterData }) {
                 },
                 { responseType: "blob", withCredentials: true }
             );
-            console.log(response);
             const filename = response.headers
                 .get("Content-Disposition")
                 .split("filename=")[1]
                 .replace(/['"]+/g, "");
-            console.log(filename);
             const url = window.URL.createObjectURL(new Blob([response.data]));
 
             // Create a link element and simulate a click to trigger the download
@@ -81,6 +79,10 @@ export default function TableRecapReport({ onsetFilterData }) {
                 accessorKey: "ln_num",
             },
             {
+                header: "Loading Note Date",
+                accessorKey: "cre_date",
+            },
+            {
                 header: "Do Number",
                 accessorKey: "id_do",
             },
@@ -108,7 +110,11 @@ export default function TableRecapReport({ onsetFilterData }) {
             },
             {
                 header: "Contract Quantity",
-                accessorFn: row => `${row.con_qty}  ${row.uom}`,
+                accessorFn: row =>
+                    `${row.con_qty?.replace(
+                        /\B(?=(\d{3})+(?!\d))/g,
+                        ","
+                    )}  ${row.uom}`,
                 cell: props => props.getValue(),
             },
             {
@@ -128,7 +134,11 @@ export default function TableRecapReport({ onsetFilterData }) {
             },
             {
                 header: "Planning Quantity",
-                accessorFn: row => `${row.plan_qty}  ${row.uom}`,
+                accessorFn: row =>
+                    `${row.plan_qty?.replace(
+                        /\B(?=(\d{3})+(?!\d))/g,
+                        ","
+                    )}  ${row.uom}`,
                 cell: props => props.getValue(),
             },
             {
