@@ -1,7 +1,13 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
 import AutoSelectDriver from "./AutoselectDriver";
-import { Typography, Divider, Button, IconButton } from "@mui/material";
+import {
+    Typography,
+    Divider,
+    Button,
+    IconButton,
+    InputAdornment,
+} from "@mui/material";
 import { Cancel, Replay } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import AutoSelectVehicle from "./AutoselectVehicle";
@@ -10,6 +16,7 @@ import { useRef, useState, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import SelectComp from "../../component/input/SelectComp";
 import DatePickerComp from "../../component/input/DatePickerComp";
+import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
@@ -46,8 +53,9 @@ export default function LoadingNoteForm() {
     const [click, setClick] = useState(false);
     const [slocOP, setSloc] = useState([]);
     const [medtpOP, setMedTPOP] = useState([]);
+    const [restData, setRestData] = useState({});
     const [preOp, setPreOp] = useState("");
-    const [pltRule, setPltRule] = useState({ plant: "", rule: "" });
+    const [pltRule, setPltRule] = useState({ plant: "", material: "" });
     const lastIdx = useRef(0);
     const navigate = useNavigate();
     const { session, getPermission } = useSession();
@@ -110,6 +118,8 @@ export default function LoadingNoteForm() {
     const uuidLN = useRef("");
     const theme = useTheme();
 
+    console.log(getValues());
+
     useEffect(() => {
         (async () => {
             try {
@@ -125,6 +135,9 @@ export default function LoadingNoteForm() {
                     }));
                     reset({
                         ...data.data,
+                        con_qty: data.data.con_qty
+                            .split(".")[0]
+                            .replace(/\B(?=(\d{3})+(?!\d))/g, ","),
                         load_detail: load_detail,
                     });
                     setPreOp(data.data.do_num);
@@ -132,7 +145,7 @@ export default function LoadingNoteForm() {
                     position.current = data.cur_pos;
                     setPltRule({
                         plant: data.data.plant,
-                        rule: data.data.rules,
+                        rule: data.data.material,
                     });
                     setPaid(data.is_paid);
                     // const { data: slocList } = await Axios.get(
@@ -165,9 +178,9 @@ export default function LoadingNoteForm() {
     useEffect(() => {
         (async () => {
             const { data } = await Axios.get(
-                `master/sloc?plant=${pltRule.plant}&rule=${pltRule.rule}`
+                `master/sloc?plant=${pltRule.plant}&material=${pltRule.material}`
             );
-            setSloc(data);
+            setSloc(data.sloc);
         })();
     }, [pltRule]);
 
@@ -183,7 +196,7 @@ export default function LoadingNoteForm() {
                 : "",
             vehicle: item.vehicle ? item.vehicle.value : "",
             loading_date: moment(item.loading_date).format("YYYY-MM-DD"),
-            planned_qty: item.planned_qty,
+            planned_qty: item.planned_qty.replace(/,/g, ""),
             media_tp: item.media_tp,
             method: item.method,
         }));
@@ -198,6 +211,7 @@ export default function LoadingNoteForm() {
             id_header: uuidLN.current,
             company: values.company,
             load_detail: load_detail,
+            con_qty: values.con_qty.replace(/,/g, ""),
         };
         delete payload.incoterms;
         setLoading(true);
@@ -242,6 +256,7 @@ export default function LoadingNoteForm() {
         try {
             const { data } = await Axios.get(`/master/do?do_num=${value}`);
             const slip = data.SLIP;
+            console.log(slip);
             const dataMap = {
                 do_num: value,
                 inv_type: slip.ZZINVOICETYPE,
@@ -251,7 +266,10 @@ export default function LoadingNoteForm() {
                 rules: slip.ITEMRULE,
                 con_num: slip.CTRNO,
                 material: slip.MATNR,
-                con_qty: slip.KWMENG,
+                con_qty: slip.KWMENG.split(".")[0].replace(
+                    /\B(?=(\d{3})+(?!\d))/g,
+                    ","
+                ),
                 plant: slip.WERKS,
                 description: slip.MAKTX,
                 uom: slip.VRKME,
@@ -267,10 +285,13 @@ export default function LoadingNoteForm() {
             });
             setPaid(data.IS_PAID);
             const { data: slocList } = await Axios.get(
-                "master/sloc?plant=" + dataMap.plant + "&rule=" + dataMap.rules
+                "master/sloc?plant=" +
+                    dataMap.plant +
+                    "&material=" +
+                    dataMap.material
             );
-            setSloc(slocList);
-            toast.success("Success retrieve SO");
+            setSloc(slocList.sloc);
+            // toast.success("Success retrieve SO");
             if (data.IS_PAID) {
                 toast.success("Already paid, can proceed to logistic");
             } else {
@@ -333,7 +354,7 @@ export default function LoadingNoteForm() {
                             gap: "1rem",
                         }}
                     >
-                        <Typography variant="h5">Sales Order</Typography>
+                        <Typography variant="h5">Detail Order</Typography>
                         <Divider sx={{ my: 3 }} />
                         <div style={{ display: "flex" }}>
                             {/* <SelectComp
@@ -377,7 +398,7 @@ export default function LoadingNoteForm() {
                                 flexWrap: "wrap",
                             }}
                         >
-                            <TextFieldComp
+                            {/* <TextFieldComp
                                 name="inv_type"
                                 label="Invoice Type"
                                 control={control}
@@ -422,21 +443,15 @@ export default function LoadingNoteForm() {
                                         }}
                                     />
                                 </div>
-                            </div>
-                            <TextFieldComp
-                                name="incoterms"
-                                label="Incoterms"
-                                control={control}
-                                disabled
-                                sx={{ minWidth: "10rem", maxWidth: "20rem" }}
-                            />
-                            <TextFieldComp
+                            </div> */}
+
+                            {/* <TextFieldComp
                                 name="rules"
                                 label="Rules"
                                 control={control}
                                 disabled
                                 sx={{ minWidth: "10rem", maxWidth: "10rem" }}
-                            />
+                            /> */}
                         </div>
                         <div
                             style={{
@@ -447,19 +462,18 @@ export default function LoadingNoteForm() {
                             }}
                         >
                             <TextFieldComp
-                                name="con_num"
-                                label="Contract Document"
-                                control={control}
-                                disabled
-                                sx={{ minWidth: "10rem", maxWidth: "20rem" }}
-                                rules={{ required: true }}
-                            />
-                            <TextFieldComp
                                 name="material"
                                 label="Material"
                                 control={control}
                                 disabled
-                                sx={{ minWidth: "10rem", maxWidth: "30rem" }}
+                                sx={{ minWidth: "10rem", maxWidth: "20rem" }}
+                            />
+                            <TextFieldComp
+                                name="description"
+                                label="Description"
+                                sx={{ minWidth: "10rem", maxWidth: "20rem" }}
+                                control={control}
+                                disabled
                             />
                             <TextFieldComp
                                 name="con_qty"
@@ -484,14 +498,6 @@ export default function LoadingNoteForm() {
                             }}
                         >
                             <TextFieldComp
-                                name="plant"
-                                label="Plant"
-                                sx={{ minWidth: "10rem", maxWidth: "10rem" }}
-                                control={control}
-                                disabled
-                                rules={{ required: true }}
-                            />
-                            <TextFieldComp
                                 name="company"
                                 label="Company"
                                 sx={{ minWidth: "10rem", maxWidth: "10rem" }}
@@ -500,13 +506,27 @@ export default function LoadingNoteForm() {
                                 rules={{ required: true }}
                             />
                             <TextFieldComp
-                                name="description"
-                                label="Description"
-                                sx={{ minWidth: "10rem", maxWidth: "40rem" }}
+                                name="plant"
+                                label="Plant"
+                                sx={{ minWidth: "10rem", maxWidth: "10rem" }}
                                 control={control}
-                                rows={2}
-                                multiline={true}
                                 disabled
+                                rules={{ required: true }}
+                            />
+                            <TextFieldComp
+                                name="con_num"
+                                label="Contract Document"
+                                control={control}
+                                disabled
+                                sx={{ minWidth: "10rem", maxWidth: "20rem" }}
+                                rules={{ required: true }}
+                            />
+                            <TextFieldComp
+                                name="incoterms"
+                                label="Incoterms"
+                                control={control}
+                                disabled
+                                sx={{ minWidth: "10rem", maxWidth: "20rem" }}
                             />
                         </div>
                     </div>
@@ -525,8 +545,8 @@ export default function LoadingNoteForm() {
                                 append({
                                     vehicle: null,
                                     driver: null,
-                                    loading_date: moment(),
-                                    planned_qty: 0,
+                                    loading_date: moment().add(1, "day"),
+                                    planned_qty: "",
                                     media_tp: "T",
                                 });
                             }}
@@ -628,9 +648,9 @@ export default function LoadingNoteForm() {
                                             sx={{
                                                 minWidth: "15rem",
                                             }}
+                                            minDate={moment().add(1, "day")}
                                         />
-                                        <TextFieldComp
-                                            type="number"
+                                        <NumericFieldComp
                                             name={`load_detail.${index}.planned_qty`}
                                             label="Planned Loading Qty"
                                             control={control}
@@ -643,9 +663,15 @@ export default function LoadingNoteForm() {
                                                 },
                                             }}
                                             sx={{
-                                                minWidth: "8rem",
-                                                maxWidth: "10rem",
+                                                minWidth: "15rem",
+                                                maxWidth: "16rem",
                                             }}
+                                            endAdornment={
+                                                <InputAdornment>
+                                                    Kg
+                                                </InputAdornment>
+                                            }
+                                            thousandSeparator
                                         />
                                     </div>
                                 </div>
@@ -818,7 +844,14 @@ export default function LoadingNoteForm() {
                 {(curAuth.current.fcreate || curAuth.current.fupdate) &&
                     position.current !== "END" && (
                         <>
-                            <div style={{ display: "flex", gap: "1rem" }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: "1rem",
+                                    padding: "2rem",
+                                    justifyContent: "flex-end",
+                                }}
+                            >
                                 <LoadingButton
                                     loading={isLoading}
                                     disabled={!isPaid}
