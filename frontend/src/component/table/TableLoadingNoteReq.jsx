@@ -16,6 +16,7 @@ import {
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { CheckBoxTable } from "../input/CheckBoxTable";
 import { useTheme, styled } from "@mui/material/styles";
+import { useLocation } from "react-router-dom";
 import { checkboxClasses } from "@mui/material";
 // import PaginationActionButton from "./PaginationActionButton";
 
@@ -41,43 +42,101 @@ export default function TableLoadingNoteReq({
     setLoading,
     setSelectedRowsUp,
     resetRows,
+    who,
 }) {
+    console.log(who);
     const theme = useTheme();
     const [rows, setRows] = useState([]);
     const rowData = useMemo(() => rows, [rows]);
     const [rowSelected, setSelectedRows] = useState([]);
     const selectedRows = useMemo(() => rowSelected, [rowSelected]);
     const [autoResetPageIndex, skipAutoResetPageIndex] = useSkipper();
+    const location = useLocation();
+    const path = location.pathname.split("/");
+    const curposPath = path[path.length - 1];
+
+    const uniformSelection = (table, row) => {
+        const data_selected = table
+            .getSelectedRowModel()
+            .rows.map(item => item.original);
+        let x = row.original;
+        //check is different
+        if (data_selected.length > 0) {
+            let different = !data_selected.some(
+                item =>
+                    item.fac_plant === x.fac_plant &&
+                    item.oth_plant === x.oth_plant &&
+                    item.fac_sloc === x.fac_sloc &&
+                    item.oth_sloc === x.oth_sloc &&
+                    item.fac_valtype === x.fac_valtype &&
+                    item.oth_valtype === x.oth_valtype
+            );
+            if (different) {
+                table.resetRowSelection();
+            }
+        }
+    };
     // const { onPaginationChange, pagination, limit, skip } = usePagination();
     // const { sorting, onSortingChange, order, field } = useSorting();
     // const { filters, onColumnFilterChange } = useFilter();
-    const columns = useMemo(
-        () => [
+    const columns = useMemo(() => {
+        let additional = [];
+        if (who === "wb") {
+            additional = [
+                {
+                    header: "Fac. Store Loc",
+                    accessorKey: "fac_sloc",
+                    cell: props => props.getValue(),
+                },
+                {
+                    header: "Oth. Store Loc.",
+                    accessorKey: "oth_sloc",
+                    cell: props => props.getValue(),
+                },
+                {
+                    header: "Fac. Val. Type.",
+                    accessorKey: "fac_valtype",
+                    cell: props => props.getValue(),
+                },
+                {
+                    header: "Oth. Val. Type.",
+                    accessorKey: "oth_valtype",
+                    cell: props => props.getValue(),
+                },
+            ];
+        }
+        return [
             {
                 id: "select",
-                header: ({ table }) => (
-                    <CheckBoxTable
-                        {...{
-                            checked: table.getIsAllRowsSelected(),
-                            indeterminate: table.getIsSomeRowsSelected(),
-                            onChange: table.getToggleAllRowsSelectedHandler(),
-                            sx: {
-                                [`&, &.${checkboxClasses.checked}`]: {
-                                    color: theme.palette.grey[100],
-                                },
-                                color: theme.palette.grey[100],
-                            },
-                        }}
-                    />
-                ),
-                cell: ({ row }) => {
+                // header: ({ table }) => (
+                //     <CheckBoxTable
+                //         {...{
+                //             checked: table.getIsAllRowsSelected(),
+                //             indeterminate: table.getIsSomeRowsSelected(),
+                //             onChange: table.getToggleAllRowsSelectedHandler(),
+                //             sx: {
+                //                 [`&, &.${checkboxClasses.checked}`]: {
+                //                     color: theme.palette.grey[100],
+                //                 },
+                //                 color: theme.palette.grey[100],
+                //             },
+                //         }}
+                //     />
+                // ),
+                cell: ({ row, table }) => {
                     return (
                         <CheckBoxTable
                             {...{
                                 checked: row.getIsSelected(),
                                 disabled: !row.getCanSelect(),
                                 indeterminate: row.getIsSomeSelected(),
-                                onChange: row.getToggleSelectedHandler(),
+                                onChange: e => {
+                                    console.log(e);
+                                    uniformSelection(table, row);
+                                    const selectHandler =
+                                        row.getToggleSelectedHandler(e);
+                                    selectHandler(e);
+                                },
                             }}
                         />
                     );
@@ -86,11 +145,6 @@ export default function TableLoadingNoteReq({
             {
                 header: "DO Number",
                 accessorKey: "id_do",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Item Rule",
-                accessorKey: "rules",
                 cell: props => props.getValue(),
             },
             {
@@ -119,6 +173,7 @@ export default function TableLoadingNoteReq({
                 accessorKey: "cre_date",
                 cell: props => props.getValue(),
             },
+            ...additional,
             {
                 header: "Planned Qty",
                 accessorKey: "plan_qty",
@@ -141,6 +196,18 @@ export default function TableLoadingNoteReq({
                                 onChange={e => {
                                     setValue(e.target.value);
                                 }}
+                                disabled={who === "wb"}
+                                sx={{
+                                    input: {
+                                        "&.MuiOutlinedInput-input.Mui-disabled":
+                                            {
+                                                WebkitTextFillColor:
+                                                    theme.palette.grey[500],
+                                                color: theme.palette.grey[500],
+                                            },
+                                    },
+                                    maxWidth: "10rem",
+                                }}
                                 type="number"
                             />
                         </>
@@ -152,9 +219,8 @@ export default function TableLoadingNoteReq({
                 accessorKey: "uom",
                 cell: props => props.getValue(),
             },
-        ],
-        []
-    );
+        ];
+    }, [who]);
 
     const table = useReactTable({
         data: rowData,
@@ -190,15 +256,19 @@ export default function TableLoadingNoteReq({
         setLoading(true);
         (async () => {
             try {
+                console.log(DoNum);
+                console.log(CustNum);
                 if (DoNum !== "" && CustNum !== "") {
                     const { data } = await Axios.post("/ln/osreq", {
                         filters: [
                             { id: "id_do", value: DoNum },
                             { id: "cust_code", value: CustNum },
                         ],
+                        who: who,
                     });
                     setRows(data.data);
                 } else {
+                    console.log("data clean");
                     setRows([]);
                 }
             } catch (error) {
