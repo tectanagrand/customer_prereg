@@ -30,13 +30,9 @@ const Crud = {
         let index = 1;
         Object.keys(val).forEach((key, ix) => {
             insertCol.push(key);
-            if (typeof val[key] === "string" && !val[key].includes("TO_DATE")) {
-                valFormat.push(":" + index);
-                value.push(val[key]);
-                index++;
-            } else {
-                valFormat.push(val[key]);
-            }
+            valFormat.push(":" + index);
+            value.push(val[key]);
+            index++;
         });
         // Object.values(val).forEach(v => {
         //     value.push(v);
