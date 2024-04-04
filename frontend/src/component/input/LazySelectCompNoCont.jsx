@@ -40,6 +40,7 @@ export const LazySelectCompNoCont = ({
     ...props
 }) => {
     const observer = useRef();
+    const [value, setValue] = useState(null);
 
     // useEffect(() => {
     //     console.log("value changed :" + value);
@@ -63,6 +64,11 @@ export const LazySelectCompNoCont = ({
                 options={options}
                 loading={loading}
                 fullWidth
+                value={value}
+                onChange={(e, newValue) => {
+                    onChangeovr(e);
+                    setValue(newValue);
+                }}
                 getOptionLabel={option => {
                     if (option !== null) return option.value;
                     return "";

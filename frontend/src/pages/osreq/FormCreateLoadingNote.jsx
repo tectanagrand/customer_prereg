@@ -103,24 +103,27 @@ export default function FormCreateLoadingNote() {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await Axios.get("/master/sloc");
-                setSlocop(data);
+                const { data } = await Axios.get(
+                    `/master/sloc?plant=${firstRow?.plant}&material=${firstRow?.material}`
+                );
+                setSlocop(data.sloc);
+                setvpOp(data.valtype);
             } catch (error) {
                 console.error(error);
             }
         })();
-    }, []);
+    }, [firstRow]);
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const { data } = await Axios.get("/master/valtype");
-                setvpOp(data);
-            } catch (error) {
-                console.error(error);
-            }
-        })();
-    }, []);
+    // useEffect(() => {
+    //     (async () => {
+    //         try {
+    //             const { data } = await Axios.get("/master/valtype");
+    //             setvpOp(data);
+    //         } catch (error) {
+    //             console.error(error);
+    //         }
+    //     })();
+    // }, []);
 
     useEffect(() => {
         (async () => {
@@ -150,12 +153,12 @@ export default function FormCreateLoadingNote() {
                         oth_sloc = data.oth_sloc;
                         oth_valtype = data.oth_valtype;
                     }
-                    {
-                        setValue("fac_sloc", {
-                            value: fac_sloc,
-                            label: fac_sloc,
-                        });
-                    }
+
+                    setValue("fac_sloc", {
+                        value: fac_sloc,
+                        label: fac_sloc,
+                    });
+
                     setValue("fac_valtype", {
                         value: fac_valtype,
                         label: fac_valtype,
@@ -274,43 +277,39 @@ export default function FormCreateLoadingNote() {
                         {errors.selected_req.message}
                     </p>
                 )}
-                <TableLoadingNoteReq
-                    DoNum={DoNumVal}
-                    CustNum={CustNumVal}
-                    setLoading={setLoading}
-                    setSelectedRowsUp={setSelected}
-                    resetRows={resetRow}
-                    who={who}
-                />
+                <div>
+                    <TableLoadingNoteReq
+                        DoNum={DoNumVal}
+                        CustNum={CustNumVal}
+                        setLoading={setLoading}
+                        setSelectedRowsUp={setSelected}
+                        resetRows={resetRow}
+                        who={who}
+                    />
+                </div>
                 <form
-                    style={{ display: "flex" }}
                     onKeyDown={e => checkKeyDown(e)}
                     onSubmit={handleSubmit(submitItem)}
+                    style={{ display: "flex", justifyContent: "space-between" }}
                 >
                     <Paper
                         sx={{
                             p: 3,
                             display: "flex",
+                            flexWrap: "wrap",
+                            minWidth: "40rem",
                             gap: 2,
                             mb: 2,
                         }}
                         elevation={4}
                     >
-                        {/* <SelectComp
-                                name="fac_sloc"
-                                label="Facility Store Loc."
-                                control={control}
-                                options={slocop}
-                                sx={{ minWidth: "13rem" }}
-                                rules={{ required: "Please Insert" }}
-                            /> */}
                         <AutocompleteComp
                             name="fac_sloc"
                             label="Factory Store Loc."
                             control={control}
                             options={slocop}
                             sx={{
-                                minWidth: "13rem",
+                                maxWidth: "20rem",
                                 input: {
                                     "&.MuiOutlinedInput-input.Mui-disabled": {
                                         WebkitTextFillColor:
@@ -329,14 +328,6 @@ export default function FormCreateLoadingNote() {
                             disabled={who === "log"}
                             rules={{ required: "Please Insert" }}
                         />
-                        {/* <SelectComp
-                                name="fac_valtype"
-                                label="Facility Val. Type"
-                                control={control}
-                                options={ValuationTypeOp}
-                                sx={{ minWidth: "13rem" }}
-                                rules={{ required: "Please Insert" }}
-                            /> */}
                         <AutocompleteComp
                             name="fac_valtype"
                             label="Factory Val. Type"
@@ -344,7 +335,7 @@ export default function FormCreateLoadingNote() {
                             options={valtypeOp}
                             rules={{ required: "Please Insert" }}
                             sx={{
-                                minWidth: "13rem",
+                                maxWidth: "15rem",
                                 input: {
                                     "&.MuiOutlinedInput-input.Mui-disabled": {
                                         WebkitTextFillColor:
@@ -362,21 +353,13 @@ export default function FormCreateLoadingNote() {
                             }}
                             disabled={who === "log"}
                         />
-                        {/* <SelectComp
-                                name="oth_sloc"
-                                label="Other Party Store Loc."
-                                control={control}
-                                options={slocop}
-                                sx={{ minWidth: "13rem" }}
-                                rules={{ required: "Please Insert" }}
-                            /> */}
                         <AutocompleteComp
                             name="oth_sloc"
                             label="Other Party Store Loc."
                             control={control}
                             options={slocop}
                             sx={{
-                                minWidth: "13rem",
+                                maxWidth: "20rem",
                                 input: {
                                     "&.MuiOutlinedInput-input.Mui-disabled": {
                                         WebkitTextFillColor:
@@ -395,21 +378,13 @@ export default function FormCreateLoadingNote() {
                             disabled={who === "log"}
                             rules={{ required: "Please Insert" }}
                         />
-                        {/* <SelectComp
-                                name="oth_valtype"
-                                label="Other Party Val. Type"
-                                control={control}
-                                options={ValuationTypeOp}
-                                sx={{ minWidth: "13rem" }}
-                                rules={{ required: "Please Insert" }}
-                            /> */}
                         <AutocompleteComp
                             name="oth_valtype"
                             label="Other Party Val. Type"
                             control={control}
                             options={valtypeOp}
                             sx={{
-                                minWidth: "13rem",
+                                maxWidth: "15rem",
                                 input: {
                                     "&.MuiOutlinedInput-input.Mui-disabled": {
                                         WebkitTextFillColor:
@@ -442,7 +417,7 @@ export default function FormCreateLoadingNote() {
                     />
                     <LoadingButton
                         variant="contained"
-                        sx={{ m: 3, minWidth: "10rem" }}
+                        sx={{ m: 3, maxWidth: "10rem", height: "4rem" }}
                         loading={isLoading}
                         // onClick={() => {
                         //     if (isValid) {

@@ -44,7 +44,7 @@ export default function TableLoadingNoteReq({
     resetRows,
     who,
 }) {
-    console.log(who);
+    // console.log(who);
     const theme = useTheme();
     const [rows, setRows] = useState([]);
     const rowData = useMemo(() => rows, [rows]);
@@ -69,7 +69,8 @@ export default function TableLoadingNoteReq({
                     item.fac_sloc === x.fac_sloc &&
                     item.oth_sloc === x.oth_sloc &&
                     item.fac_valtype === x.fac_valtype &&
-                    item.oth_valtype === x.oth_valtype
+                    item.oth_valtype === x.oth_valtype &&
+                    item.material === x.material
             );
             if (different) {
                 table.resetRowSelection();
@@ -108,21 +109,23 @@ export default function TableLoadingNoteReq({
         return [
             {
                 id: "select",
-                // header: ({ table }) => (
-                //     <CheckBoxTable
-                //         {...{
-                //             checked: table.getIsAllRowsSelected(),
-                //             indeterminate: table.getIsSomeRowsSelected(),
-                //             onChange: table.getToggleAllRowsSelectedHandler(),
-                //             sx: {
-                //                 [`&, &.${checkboxClasses.checked}`]: {
-                //                     color: theme.palette.grey[100],
-                //                 },
-                //                 color: theme.palette.grey[100],
-                //             },
-                //         }}
-                //     />
-                // ),
+                header: ({ table }) =>
+                    who === "log" && (
+                        <CheckBoxTable
+                            {...{
+                                checked: table.getIsAllRowsSelected(),
+                                indeterminate: table.getIsSomeRowsSelected(),
+                                onChange:
+                                    table.getToggleAllRowsSelectedHandler(),
+                                sx: {
+                                    [`&, &.${checkboxClasses.checked}`]: {
+                                        color: theme.palette.grey[100],
+                                    },
+                                    color: theme.palette.grey[100],
+                                },
+                            }}
+                        />
+                    ),
                 cell: ({ row, table }) => {
                     return (
                         <CheckBoxTable
@@ -131,7 +134,7 @@ export default function TableLoadingNoteReq({
                                 disabled: !row.getCanSelect(),
                                 indeterminate: row.getIsSomeSelected(),
                                 onChange: e => {
-                                    console.log(e);
+                                    // console.log(e);
                                     uniformSelection(table, row);
                                     const selectHandler =
                                         row.getToggleSelectedHandler(e);
@@ -150,6 +153,11 @@ export default function TableLoadingNoteReq({
             {
                 header: "Plant",
                 accessorKey: "plant",
+                cell: props => props.getValue(),
+            },
+            {
+                header: "Material",
+                accessorKey: "material",
                 cell: props => props.getValue(),
             },
             {
@@ -248,16 +256,16 @@ export default function TableLoadingNoteReq({
         },
     });
 
-    useEffect(() => {
-        console.log("Filters changed Table:", DoNum, CustNum);
-    }, [DoNum, CustNum]);
+    // useEffect(() => {
+    //     console.log("Filters changed Table:", DoNum, CustNum);
+    // }, [DoNum, CustNum]);
 
     useEffect(() => {
         setLoading(true);
         (async () => {
             try {
-                console.log(DoNum);
-                console.log(CustNum);
+                // console.log(DoNum);
+                // console.log(CustNum);
                 if (DoNum !== "" && CustNum !== "") {
                     const { data } = await Axios.post("/ln/osreq", {
                         filters: [
@@ -284,7 +292,7 @@ export default function TableLoadingNoteReq({
     // }, [rows]);
 
     useEffect(() => {
-        console.log(selectedRows);
+        // console.log(selectedRows);
         const dataSelected = table
             .getSelectedRowModel()
             .rows.map(item => item.original);
@@ -296,6 +304,7 @@ export default function TableLoadingNoteReq({
             <TableContainer
                 sx={{
                     height: "30rem",
+                    minWidth: "100%",
                 }}
             >
                 <Table stickyHeader>

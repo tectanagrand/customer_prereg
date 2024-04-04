@@ -113,10 +113,11 @@ export default function AutoCompleteDOList({
                 onFetchMore={fetchMore}
                 hasMore={paginationRef.current.hasMore}
                 defaultValue={null}
-                // onChangeovr={e => {
-                //     onChangeovr(e.target.value);
-                //     overrideChange(e);
-                // }}
+                onChangeovr={e => {
+                    // console.log(e);
+                    onChangeovr(e.target.value ?? e.target.outerText);
+                    overrideChange(e);
+                }}
                 onBlurovr={e => {
                     onChangeovr(e.target.value);
                     overrideChange(e);
