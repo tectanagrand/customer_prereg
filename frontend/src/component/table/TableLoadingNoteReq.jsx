@@ -204,7 +204,6 @@ export default function TableLoadingNoteReq({
                                 onChange={e => {
                                     setValue(e.target.value);
                                 }}
-                                disabled={who === "wb"}
                                 sx={{
                                     input: {
                                         "&.MuiOutlinedInput-input.Mui-disabled":
