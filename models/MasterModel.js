@@ -378,11 +378,11 @@ MasterModel.getOSDataCustWB = async (limit, offset, q) => {
         const client = await db.connect();
         try {
             const { rows: dataComp } = await client.query(
-                `SELECT distinct USR.sap_code, cust.name_1 FROM loading_note_det DET
+                `SELECT distinct cust.kunnr, cust.name_1 FROM loading_note_det DET
                 LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
                 LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
-                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.sap_code 
-                WHERE( USR.sap_code like $1 OR cust.name_1 like $2)
+                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username 
+                WHERE( cust.kunnr like $1 OR cust.name_1 like $2)
                 AND DET.PUSH_SAP_DATE IS NOT NULL 
                 AND DET.LN_NUM IS NOT NULL
                 AND hed.cur_pos = 'FINA'
@@ -390,11 +390,11 @@ MasterModel.getOSDataCustWB = async (limit, offset, q) => {
                 [`%${q}%`, `%${q}%`, limit, offset]
             );
             const { rows, rowCount } = await client.query(
-                `SELECT distinct USR.sap_code, cust.name_1 FROM loading_note_det DET
+                `SELECT distinct cust.kunnr, cust.name_1 FROM loading_note_det DET
                 LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
                 LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
-                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.sap_code 
-                WHERE( USR.sap_code like $1 OR cust.name_1 like $2)
+                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username 
+                WHERE( cust.kunnr like $1 OR cust.name_1 like $2)
                 AND DET.PUSH_SAP_DATE IS NOT NULL 
                 AND DET.LN_NUM IS NOT NULL
                 AND hed.cur_pos = 'FINA'`,
