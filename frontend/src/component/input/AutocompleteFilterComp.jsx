@@ -17,6 +17,7 @@ export default function AutocompleteFilter({ column, ...props }) {
 
     const uniqueValues = useMemo(() => {
         const data = Array.from(column.getFacetedUniqueValues().keys()).sort();
+        console.log(data);
         if (data[0] === null) {
             return [];
         } else {
@@ -27,14 +28,16 @@ export default function AutocompleteFilter({ column, ...props }) {
     return (
         <>
             <Autocomplete
-                options={uniqueValues.map(item => ({
-                    value: item,
-                    label: item,
-                }))}
+                options={uniqueValues.map(item => {
+                    if (item !== null) {
+                        return { value: item, label: item };
+                    } else {
+                        return { value: "", label: "" };
+                    }
+                })}
                 value={value}
                 onChange={(e, newValue) => {
                     setValue(newValue);
-                    console.log(newValue);
                     column.setFilterValue(newValue ? newValue.value : "");
                 }}
                 renderInput={params => <StyledTextfield {...params} />}
