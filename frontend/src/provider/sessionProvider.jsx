@@ -47,7 +47,6 @@ const SessionProvider = ({ children }) => {
         Cookies.set("plant_code", data.plant_code);
         localStorage.setItem("permission", JSON.stringify(data.permission));
         localStorage.setItem("auth", JSON.stringify(data.auth));
-        console.log(Cookies.get("newpass"));
         if (Cookies.get("newpass")) {
             Cookies.remove("newpass");
         }
