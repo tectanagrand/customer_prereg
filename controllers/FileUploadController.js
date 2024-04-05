@@ -281,6 +281,7 @@ FileUploadController.deleteDataSIM = async (req, res) => {
 FileUploadController.sendEmailCreateDrvnVeh = async (req, res) => {
     try {
         const client = await db.connect();
+        const plant_code = req.body.plant;
         const driverData = req.body.driver;
         let driverHTML = [];
         let driverAtth = [];
@@ -360,13 +361,16 @@ FileUploadController.sendEmailCreateDrvnVeh = async (req, res) => {
                     });
                 }
             }
-            const { rows } = await client.query(`
+            const { rows } = await client.query(
+                `
             SELECT STRING_AGG(E.EMAIL, ', ') as EMAIL, R.ROLE_NAME FROM MST_EMAIL E
             LEFT JOIN MST_USER U ON E.ID_USER = U.ID_USER
             LEFT JOIN MST_ROLE R ON R.ROLE_ID = U.ROLE
-            WHERE R.ROLE_NAME = 'ADMIN' OR R.ROLE_NAME = 'LOGISTIC'
+            WHERE R.ROLE_NAME = 'ADMIN' OR R.ROLE_NAME = 'LOGISTIC' AND U.PLANT_CODE = $1
             GROUP BY R.ROLE_NAME
-            `);
+            `,
+                [plant_code]
+            );
             const emailTarget = rows.map(item => item.email).join(", ");
             await EmailModel.NotifyCreateDriverNVehi(
                 driverHTML.join(""),
