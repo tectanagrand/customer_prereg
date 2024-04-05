@@ -26,6 +26,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AutocompleteFilter from "../input/AutocompleteFilterComp";
 import { Axios } from "../../api/axios";
+import moment from "moment/moment";
 
 export default function TableRecapReport({ onsetFilterData }) {
     const exportData = async id_loadnote => {
@@ -61,17 +62,21 @@ export default function TableRecapReport({ onsetFilterData }) {
             {
                 id: "exportln",
                 cell: ({ row }) => {
-                    return (
-                        <Tooltip title="Download PDF">
-                            <IconButton
-                                onClick={async () => {
-                                    await exportData(row.original.id);
-                                }}
-                            >
-                                <FileDownload></FileDownload>
-                            </IconButton>
-                        </Tooltip>
-                    );
+                    if (moment(row.original.cre_date) > moment()) {
+                        return (
+                            <Tooltip title="Download PDF">
+                                <IconButton
+                                    onClick={async () => {
+                                        await exportData(row.original.id);
+                                    }}
+                                >
+                                    <FileDownload></FileDownload>
+                                </IconButton>
+                            </Tooltip>
+                        );
+                    } else {
+                        return <></>;
+                    }
                 },
             },
             {

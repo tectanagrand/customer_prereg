@@ -356,8 +356,7 @@ MasterModel.getOSDataCust2 = async (limit, offset, q) => {
                 WHERE( CUST.kunnr like $1 OR cust.name_1 like $2)
                 AND DET.ln_num is null
                 AND DET.push_sap_date is null
-                AND hed.cur_pos = 'FINA'
-                LIMIT $3 OFFSET $4`,
+                AND hed.cur_pos = 'FINA'`,
                 [`%${q}%`, `%${q}%`]
             );
             return {

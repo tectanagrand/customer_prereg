@@ -62,9 +62,9 @@ export default function AutoCompleteCustomer({
             );
             const dataList = list?.map(item => ({
                 ...item,
-                value: item.name_1 + " - " + item.sap_code,
-                id: item.sap_code,
-                label: item.name_1 + " - " + item.sap_code,
+                value: item.name_1 + " - " + item.kunnr,
+                id: item.kunnr,
+                label: item.name_1 + " - " + item.kunnr,
             }));
 
             setDataRow(prev => [
@@ -93,9 +93,9 @@ export default function AutoCompleteCustomer({
                 );
                 const dataList = list?.map(item => ({
                     ...item,
-                    value: item.name_1 + " - " + item.sap_code,
-                    id: item.sap_code,
-                    label: item.name_1 + " - " + item.sap_code,
+                    value: item.name_1 + " - " + item.kunnr,
+                    id: item.kunnr,
+                    label: item.name_1 + " - " + item.kunnr,
                 }));
                 setDataRow([...dataList]);
                 paginationRef.current = resPagination;
