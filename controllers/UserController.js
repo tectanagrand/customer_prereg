@@ -82,11 +82,11 @@ UserController.setNewPassword = async (req, res) => {
                 throw new Error("Token invalid");
             }
             const { rows } = await client.query(
-                "SELECT is_active FROM MST_USER WHERE username = $1",
+                "SELECT otp_value FROM MST_USER WHERE username = $1",
                 [username]
             );
-            if (rows[0].is_active) {
-                throw new Error("User already active, cannot set new password");
+            if (!rows[0].otp_value) {
+                throw new Error("OTP not requested");
             }
             const hashPass = await hashPassword(password);
             const payloadNewPass = {
@@ -430,6 +430,59 @@ UserController.sendEmailCredentials = async (req, res) => {
             );
             res.status(200).send({
                 message: "Email sent",
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+UserController.sendEmailCredentials2 = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const id_user = req.body.id_user;
+        try {
+            const { rows } = await client.query(
+                `SELECT STRING_AGG(EM.EMAIL, ',') AS EMAIL, US.ID_USER, US.username FROM MST_EMAIL EM
+            LEFT JOIN MST_USER US ON US.id_user = EM.id_user
+            WHERE US.id_user = $1
+            GROUP BY US.ID_USER, US.username `,
+                [id_user]
+            );
+            const emailTarget = rows[0].email;
+            const usernameTarget = rows[0].username;
+            const [otpCode, encodedOTP, validUntil] = OTP.createOTP(15, {
+                digits: true,
+                lowerCaseAlphabets: true,
+                upperCaseAlphabets: true,
+                specialChars: true,
+            });
+            const payload = {
+                otp_value: encodedOTP,
+                otp_validto: validUntil,
+            };
+            const [que, val] = crud.updateItem(
+                "mst_user",
+                payload,
+                { id_user: id_user },
+                "url_web"
+            );
+            const { rows: dataReset } = await client.query(que, val);
+            await EmailModel.resetPasswordNotify(
+                emailTarget,
+                usernameTarget,
+                otpCode,
+                dataReset[0].url_web
+            );
+            res.status(200).send({
+                message: "Reset Request Send",
             });
         } catch (error) {
             throw error;

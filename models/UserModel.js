@@ -537,7 +537,8 @@ UserModel.showRoleGroup = async role_id => {
             "SELECT role_name from mst_role where role_id = $1",
             [role_id]
         );
-        const { rows: dataRoleAcs } = await client.query(
+        let dataAccRole = [];
+        const { rows: dataParent } = await client.query(
             `SELECT PG.MENU_ID AS "id",
         PG.MENU_PAGE,
         CASE
@@ -559,12 +560,44 @@ UserModel.showRoleGroup = async role_id => {
     FROM MST_PAGE PG
     LEFT JOIN MST_PAGE_ACCESS ACS ON ACS.PAGE_ID = PG.MENU_ID
     AND ACS.ROLE_ID = $1
+    WHERE PG.PARENT_ID IS NULL
     ORDER BY PG.PARENT_ID ASC`,
             [role_id]
         );
+        for (data of dataParent) {
+            const { rows: dataChild } = await client.query(
+                `
+            SELECT PG.MENU_ID AS "id",
+                PG.MENU_PAGE,
+                CASE
+                                WHEN ACS.FCREATE THEN ACS.FCREATE
+                                ELSE FALSE
+                END AS "fcreate",
+                CASE
+                                WHEN ACS.FREAD THEN ACS.FREAD
+                                ELSE FALSE
+                END AS "fread",
+                CASE
+                                WHEN ACS.FUPDATE THEN ACS.FUPDATE
+                                ELSE FALSE
+                END AS "fupdate",
+                CASE
+                                WHEN ACS.FDELETE THEN ACS.FDELETE
+                                ELSE FALSE
+                END AS "fdelete"
+            FROM MST_PAGE PG
+            LEFT JOIN MST_PAGE_ACCESS ACS ON ACS.PAGE_ID = PG.MENU_ID
+            AND ACS.ROLE_ID = $1
+            WHERE PG.PARENT_ID IS NOT NULL AND PG.PARENT_ID = ${data.id}
+            ORDER BY PG.PARENT_ID ASC
+            `,
+                [role_id]
+            );
+            dataAccRole.push({ ...data, subRows: dataChild });
+        }
         return {
             role_name: rowCount === 0 ? "" : roleName[0].role_name,
-            data: dataRoleAcs,
+            data: dataAccRole,
         };
     } catch (error) {
         console.error(error);
@@ -657,7 +690,7 @@ UserModel.submitRoleGroup = async (role_id, accesses, id_user, role_name) => {
         await client.query(TRANS.COMMIT);
         return {
             role_id: roleid,
-            message: `${role_name} is initiated`,
+            message: `${role_name} is Saved`,
         };
     } catch (error) {
         await client.query(TRANS.ROLLBACK);
