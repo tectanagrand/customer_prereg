@@ -4,14 +4,17 @@ import { TextFieldComp } from "../../component/input/TextFieldComp";
 import { useForm } from "react-hook-form";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 // import axios from 'axios';
 // import useAxiosPrivate from 'src/hooks/useAxiosPrivate';
 import { Axios } from "../../api/axios";
 import { useSession } from "../../provider/sessionProvider";
 import LoadingButton from "@mui/lab/LoadingButton";
+import NewTableMenuAccess from "../../component/table/NewTableMenuAccess";
 
 export default function MenuAccessPage() {
     // const axiosPrivate = useAxiosPrivate();
+    const navigate = useNavigate();
     const [dtAccess, setDtAccess] = useState([]);
     const [btnClicked, setBtnclick] = useState(false);
     const [searchParams] = useSearchParams();
@@ -25,11 +28,9 @@ export default function MenuAccessPage() {
     });
     const submitDt = async data => {
         setBtnclick(true);
-        console.log(data);
-        console.log(roleId.current);
         const insertedDt = {
             role_name: data.role_name,
-            role_id: roleId.current ? roleId.current : "",
+            role_id: searchParams.get("id_role") ?? "",
             accesses: dtAccess,
             id_user: session.id_user,
         };
@@ -47,6 +48,7 @@ export default function MenuAccessPage() {
             roleId.current = submission.role_id;
             getAuthorization();
             alert(submission.message);
+            navigate("/dashboard/rolegroup");
             setBtnclick(false);
         } catch (error) {
             setBtnclick(false);
@@ -54,7 +56,26 @@ export default function MenuAccessPage() {
         }
     };
     const accessDtUp = newTb => {
-        setDtAccess(newTb);
+        setDtAccess(
+            newTb.map(item => ({
+                id: item.id,
+                menu_page: item.menu_page,
+                fcreate: item.fcreate,
+                fread: item.fread,
+                fupdate: item.fupdate,
+                fdelete: item.fdelete,
+            }))
+        );
+        console.log(
+            newTb.map(item => ({
+                id: item.id,
+                menu_page: item.menu_page,
+                fcreate: item.fcreate,
+                fread: item.fread,
+                fupdate: item.fupdate,
+                fdelete: item.fdelete,
+            }))
+        );
     };
     const [dtMenu, setdtMenu] = useState([]);
     const dataMenu = dtMenu;
@@ -66,7 +87,6 @@ export default function MenuAccessPage() {
                 role_id: roleId.current ? roleId.current : "",
             });
             reset({ role_name: data.role_name });
-            setdtMenu(data.data);
         };
         getSecMtx();
     }, []);
@@ -83,7 +103,10 @@ export default function MenuAccessPage() {
                         />
                     </Grid>
                 </Grid>
-                <TableMenuAccess data={dataMenu} onChange={accessDtUp} />
+                <NewTableMenuAccess
+                    dtAccessUp={accessDtUp}
+                    role_id={roleId.current ? roleId.current : ""}
+                />
                 <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                     <LoadingButton
                         variant="contained"
