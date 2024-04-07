@@ -21,7 +21,7 @@ const OTP = {
                       }
             );
             let validUntil = new Date();
-            validUntil.setMinutes(validUntil.getMinutes() + 5);
+            validUntil.setMinutes(validUntil.getMinutes() + 60);
             const salt = bcrypt.genSaltSync(10);
             const encodedOTP = bcrypt.hashSync(otpCode, salt);
             return [otpCode, encodedOTP, validUntil];
@@ -43,6 +43,9 @@ const OTP = {
                 if (rowCount < 0) {
                     throw new Error("Username not found");
                 }
+                if (!rows[0].otp_value) {
+                    throw new Error("OTP not exist");
+                }
                 if (moment(rows[0].otp_validto) < today) {
                     throw new Error("OTP expired");
                 }
@@ -52,7 +55,7 @@ const OTP = {
                 const token = jwt.sign(
                     { username: username },
                     process.env.TOKEN_KEY,
-                    { expiresIn: "5m" }
+                    { expiresIn: "1h" }
                 );
                 return token;
             } catch (error) {
