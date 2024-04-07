@@ -86,7 +86,7 @@ export default function NewUserValidateOTP() {
                     </Typography>
                 </div>
                 <Typography variant="h3" sx={{ mb: 4 }}>
-                    New User Verification
+                    User Verification
                 </Typography>
                 <form
                     onKeyDown={e => checkKeyDown(e)}
