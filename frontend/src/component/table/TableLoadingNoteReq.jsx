@@ -13,6 +13,7 @@ import {
     TableRow,
     TextField,
 } from "@mui/material";
+import { NumericFormat } from "react-number-format";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { CheckBoxTable } from "../input/CheckBoxTable";
 import { useTheme, styled } from "@mui/material/styles";
@@ -126,7 +127,7 @@ export default function TableLoadingNoteReq({
                             }}
                         />
                     ),
-                cell: ({ row, table }) => {
+                cell: ({ table, row }) => {
                     return (
                         <CheckBoxTable
                             {...{
@@ -188,6 +189,7 @@ export default function TableLoadingNoteReq({
                 cell: ({ getValue, row: { index }, column: { id }, table }) => {
                     const initVal = getValue();
                     const [value, setValue] = useState(initVal);
+                    console.log(value);
                     const onBlur = () => {
                         table.options.meta?.updateData(index, id, value);
                     };
@@ -198,7 +200,9 @@ export default function TableLoadingNoteReq({
 
                     return (
                         <>
-                            <TextField
+                            <NumericFormat
+                                customInput={TextField}
+                                thousandSeparator
                                 value={value}
                                 onBlur={onBlur}
                                 onChange={e => {
@@ -215,7 +219,6 @@ export default function TableLoadingNoteReq({
                                     },
                                     maxWidth: "10rem",
                                 }}
-                                type="number"
                             />
                         </>
                     );

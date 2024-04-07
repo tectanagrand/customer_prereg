@@ -24,16 +24,6 @@ import { debounce } from "lodash";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import { useSession } from "../../provider/sessionProvider";
-const ValuationTypeOp = [
-    { value: "TR-SALES", label: "TR-SALES" },
-    { value: "LIQD", label: "LIQD" },
-    { value: "IN-TS02", label: "IN-TS02" },
-    { value: "IN-TS03", label: "IN-TS03" },
-    { value: "1011100444", label: "1011100444" },
-    { value: "IN-VS51", label: "IN-VS51" },
-    { value: "TR-SALES2", label: "TR-SALES2" },
-    { value: "MAIN", label: "MAIN" },
-];
 
 export default function FormCreateLoadingNote() {
     const {
@@ -83,7 +73,13 @@ export default function FormCreateLoadingNote() {
         _setLoading(value);
     };
     const setSelected = value => {
-        setValue("selected_req", value);
+        setValue(
+            "selected_req",
+            value.map(item => ({
+                ...item,
+                plan_qty: item.plan_qty.replace(/,/g, ""),
+            }))
+        );
         setFirstRow(value[0] ?? null);
         _setSelected(value);
     };
@@ -136,27 +132,36 @@ export default function FormCreateLoadingNote() {
                     selected_req: [],
                 });
             } else {
-                let fac_sloc, fac_valtype, oth_sloc, oth_valtype;
+                let fac_sloc,
+                    fac_valtype,
+                    oth_sloc,
+                    oth_valtype,
+                    fac_sloc_desc,
+                    oth_sloc_desc;
                 try {
                     _setLoading(true);
                     if (who === "wb") {
                         fac_sloc = firstRow.fac_sloc;
+                        fac_sloc_desc = firstRow.fac_sloc_desc;
                         fac_valtype = firstRow.fac_valtype;
                         oth_sloc = firstRow.oth_sloc;
+                        oth_sloc_desc = firstRow.oth_sloc_desc;
                         oth_valtype = firstRow.oth_valtype;
                     } else {
                         const { data } = await Axios.get(
                             `/ln/defslocvtp?plant=${firstRow.plant}`
                         );
                         fac_sloc = data.fac_sloc;
+                        fac_sloc_desc = data.fac_sloc_desc;
                         fac_valtype = data.fac_valtype;
                         oth_sloc = data.oth_sloc;
+                        oth_sloc_desc = data.oth_sloc_desc;
                         oth_valtype = data.oth_valtype;
                     }
 
                     setValue("fac_sloc", {
                         value: fac_sloc,
-                        label: fac_sloc,
+                        label: fac_sloc + " - " + fac_sloc_desc,
                     });
 
                     setValue("fac_valtype", {
@@ -169,7 +174,7 @@ export default function FormCreateLoadingNote() {
                     });
                     setValue("oth_sloc", {
                         value: oth_sloc,
-                        label: oth_sloc,
+                        label: oth_sloc + " - " + oth_sloc_desc,
                     });
                     clearErrors();
                 } catch (error) {
@@ -194,10 +199,14 @@ export default function FormCreateLoadingNote() {
         const newPayload = {
             ...payload,
             fac_sloc: payload.fac_sloc.value,
+            fac_sloc_desc: payload.fac_sloc.label.split("-")[1].trim(),
             fac_valtype: payload.fac_valtype.value,
             oth_sloc: payload.oth_sloc.value,
+            oth_sloc_desc: payload.oth_sloc.label.split("-")[1].trim(),
             oth_valtype: payload.oth_valtype.value,
         };
+        console.log(newPayload);
+
         setLoadingPush(true);
         // setTimeout(() => {
         //     setLoadingPush(false);
