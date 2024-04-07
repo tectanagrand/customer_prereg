@@ -36,7 +36,6 @@ export default function TableMenuAccess({ data, onChange }) {
                 return { ...item };
             }
         });
-        console.log(newTb);
         setTableData(newTb);
     };
 
