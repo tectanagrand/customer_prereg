@@ -27,12 +27,14 @@ PDFController.exportSuratJalan = async (req, res) => {
                 CO.name as comp_name,
                 HD.company,
                 CUST.NAME_1,
-                CUST.KUNNR
+                CUST.KUNNR,
+                PLT.ALAMAT
                 FROM LOADING_NOTE_DET DET
                 LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
                 LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
                 LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
-                LEFT JOIN MST_COMPANY CO ON CO.SAP_CODE = HD.COMPANY             
+                LEFT JOIN MST_COMPANY CO ON CO.SAP_CODE = HD.COMPANY
+                LEFT JOIN MST_COMPANY_PLANT PLT ON PLT.PLANT_CODE = HD.PLANT         
                  WHERE DET.DET_ID = $1
       `,
                 [load_noteid]
@@ -59,19 +61,19 @@ PDFController.exportSuratJalan = async (req, res) => {
             doc.fontSize(12).text(dt.vhcl_id, 180, 200, { width: 120 });
             doc.fontSize(12).text("No Do :", 100, 230);
             doc.fontSize(12).text(dt.id_do, 180, 230, { width: 120 });
-            doc.fontSize(12).text("Tujuan :", 300, 170);
+            doc.fontSize(12).text("Tanggal DO :", 300, 170);
+            doc.fontSize(12).text(dt.cre_date, 390, 170, { width: 120 });
+            doc.fontSize(12).text("Tujuan :", 300, 200);
             doc.fontSize(12).text(
                 `${dt.comp_name}(${dt.fac_plant})`,
                 390,
-                170,
+                200,
                 { width: 120 }
             );
-            doc.fontSize(12).text("Alamat :", 300, 200);
-            doc.fontSize(12).text("XXXXXXXXXXXXX", 390, 200, { width: 120 });
-            doc.fontSize(12).text("Tanggal DO :", 300, 230);
-            doc.fontSize(12).text(dt.cre_date, 390, 230, { width: 120 });
+            doc.fontSize(12).text("Alamat :", 300, 230);
+            doc.fontSize(12).text(dt.alamat, 355, 230, { width: 120 });
 
-            var xline = 260;
+            var xline = 350;
 
             doc.moveTo(100, xline).lineTo(500, xline).stroke();
             doc.text("Material", 100, xline + 10);
