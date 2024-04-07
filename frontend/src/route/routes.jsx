@@ -29,7 +29,7 @@ export const routes = createBrowserRouter([
         element: <LoginPage />,
     },
     {
-        path: "newverif",
+        path: "verif",
         element: <NewUserValidateOTP />,
     },
     {
