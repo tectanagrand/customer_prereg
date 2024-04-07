@@ -118,8 +118,6 @@ export default function LoadingNoteForm() {
     const uuidLN = useRef("");
     const theme = useTheme();
 
-    console.log(getValues());
-
     useEffect(() => {
         (async () => {
             try {
