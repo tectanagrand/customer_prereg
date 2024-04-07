@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { Box, Button, Typography, Tooltip, IconButton } from "@mui/material";
+import {
+    Box,
+    Button,
+    Typography,
+    Tooltip,
+    IconButton,
+    Backdrop,
+    CircularProgress,
+} from "@mui/material";
 import {
     DoDisturb,
     Edit,
@@ -16,6 +24,7 @@ import { useTheme } from "@mui/material/styles";
 export default function User() {
     // const axiosPrivate = useAxiosPrivate();
     const [allUserDt, setAllUsr] = useState();
+    const [loadPage, setLoadpage] = useState(false);
     const [load, setLoad] = useState(false);
     const theme = useTheme();
 
@@ -71,6 +80,7 @@ export default function User() {
                 }
             }
         } else if (action === "email") {
+            setLoadpage(true);
             try {
                 const sendEmail = await Axios.post("/user/email", {
                     id_user: data.id,
@@ -80,6 +90,8 @@ export default function User() {
             } catch (error) {
                 alert(`${error.response.data.message}`);
                 setLoad(false);
+            } finally {
+                setLoadpage(false);
             }
         }
     };
@@ -138,55 +150,55 @@ export default function User() {
                         </IconButton>
                     </Tooltip>
                 );
-                if (is_active) {
-                    buttons.push(
-                        <Tooltip title={<Typography>Delete</Typography>}>
-                            <IconButton
-                                sx={{
-                                    backgroundColor: "#f2573f",
-                                    color: theme.palette.primary.contrastText,
-                                    mx: 1,
-                                    ":hover": {
-                                        color: theme.palette.grey[800],
-                                    },
-                                }}
-                                onClick={() =>
-                                    buttonAction("delete", {
-                                        id: item.row.id,
-                                        role: item.row.role,
-                                    })
-                                }
-                            >
-                                <DeleteOutline></DeleteOutline>
-                            </IconButton>
-                        </Tooltip>
-                    );
-                } else {
-                    buttons.push(
-                        <Tooltip title={<Typography>Activate</Typography>}>
-                            <IconButton
-                                sx={{
-                                    backgroundColor: "#4ef542",
-                                    color: theme.palette.primary.contrastText,
-                                    mx: 1,
-                                    ":hover": {
-                                        color: theme.palette.grey[800],
-                                    },
-                                }}
-                                onClick={() =>
-                                    buttonAction("activate", {
-                                        id: item.row.id,
-                                        role: item.row.role,
-                                    })
-                                }
-                            >
-                                <SystemUpdate></SystemUpdate>
-                            </IconButton>
-                        </Tooltip>
-                    );
-                }
+                // if (is_active) {
+                //     buttons.push(
+                //         <Tooltip title={<Typography>Delete</Typography>}>
+                //             <IconButton
+                //                 sx={{
+                //                     backgroundColor: "#f2573f",
+                //                     color: theme.palette.primary.contrastText,
+                //                     mx: 1,
+                //                     ":hover": {
+                //                         color: theme.palette.grey[800],
+                //                     },
+                //                 }}
+                //                 onClick={() =>
+                //                     buttonAction("delete", {
+                //                         id: item.row.id,
+                //                         role: item.row.role,
+                //                     })
+                //                 }
+                //             >
+                //                 <DeleteOutline></DeleteOutline>
+                //             </IconButton>
+                //         </Tooltip>
+                //     );
+                // } else {
+                //     buttons.push(
+                //         <Tooltip title={<Typography>Activate</Typography>}>
+                //             <IconButton
+                //                 sx={{
+                //                     backgroundColor: "#4ef542",
+                //                     color: theme.palette.primary.contrastText,
+                //                     mx: 1,
+                //                     ":hover": {
+                //                         color: theme.palette.grey[800],
+                //                     },
+                //                 }}
+                //                 onClick={() =>
+                //                     buttonAction("activate", {
+                //                         id: item.row.id,
+                //                         role: item.row.role,
+                //                     })
+                //                 }
+                //             >
+                //                 <SystemUpdate></SystemUpdate>
+                //             </IconButton>
+                //         </Tooltip>
+                //     );
+                // }
                 buttons.push(
-                    <Tooltip title={<Typography>Send Email</Typography>}>
+                    <Tooltip title={<Typography>Password Reset</Typography>}>
                         <IconButton
                             sx={{
                                 backgroundColor: "#4ea500",
@@ -257,6 +269,12 @@ export default function User() {
             ) : (
                 <></>
             )}
+            <Backdrop
+                sx={{ color: "#fff", zIndex: theme => theme.zIndex.drawer + 1 }}
+                open={loadPage}
+            >
+                <CircularProgress />
+            </Backdrop>
         </>
     );
 }
