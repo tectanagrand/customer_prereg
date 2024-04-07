@@ -12,40 +12,58 @@ SAPGetterChores.LoadingNoteSync = async (req, res) => {
         const oraclient = await ora.getConnection();
         const email_creator = new Map();
         const email_updater = new Map();
+        const email_wb = new Map();
         try {
             // get data db psql
             await psqlclient.query(TRANS.BEGIN);
             const { rows } = await psqlclient.query(
                 `SELECT DET.DET_ID,
-                USR_CR.EMAIL AS EMAIL_CREATOR,
+                EM_CR.EMAIL AS EMAIL_CREATOR,
                 USR_CR.id_user AS ID_CREATOR,
-                USR_UP.EMAIL AS EMAIL_UPDATER,
+                EM_UP.EMAIL AS EMAIL_UPDATER,
                 USR_UP.id_user AS ID_UPDATER,
+                EM_WB.EMAIL AS EMAIL_WB,
                 HD.ID_DO,
-                USR_CR.SAP_CODE,
+                CUS.KUNNR,
                 TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE,
                 CUS.NAME_1,
                 DET.DRIVER_ID,
                 DET.DRIVER_NAME,
                 DET.VHCL_ID,
                 DET.PLAN_QTY,
+                DET.FAC_SLOC,
+                DET.FAC_SLOC_DESC,
+                DET.FAC_VALTYPE,
+                DET.OTH_SLOC,
+                DET.OTH_SLOC_DESC,
+                DET.OTH_VALTYPE,
                 HD.UOM
               FROM LOADING_NOTE_DET DET
               LEFT JOIN MST_USER USR_CR ON DET.CREATE_BY = USR_CR.ID_USER
               LEFT JOIN MST_USER USR_UP ON DET.UPDATE_BY = USR_UP.ID_USER
               LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
-              LEFT JOIN MST_CUSTOMER CUS ON CUS.KUNNR = USR_CR.SAP_CODE 
-              WHERE LN_NUM IS NULL`
+			  LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, US.id_user FROM MST_USER US
+                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
+                GROUP BY US.id_user) EM_UP ON EM_UP.id_user = USR_UP.id_user
+              LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, US.id_user FROM MST_USER US
+                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
+                GROUP BY US.id_user) EM_CR ON EM_CR.id_user = USR_CR.id_user
+              LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, RL.ROLE_NAME, US.PLANT_CODE FROM MST_USER US
+                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
+                LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = US.ROLE
+                WHERE RL.ROLE_NAME = 'ADMINWB'
+                GROUP BY RL.ROLE_NAME, US.PLANT_CODE) EM_WB ON EM_WB.plant_code = hd.plant
+              LEFT JOIN MST_CUSTOMER CUS ON CUS.KUNNR = USR_CR.USERNAME
+                WHERE LN_NUM IS NULL`
             );
 
             for (const row of rows) {
                 //check data db oracle
-                console.log(row);
                 let payload = {};
                 let orapayload = {};
                 const { metaData, rows } = await oraclient.execute(
                     `SELECT DET_ID, LOADING_NOTE_NUM, ERRORDESCRIPTION FROM PREREG_LOADING_NOTE_SAP 
-                WHERE FLAG_WEB_PULL IS NULL AND ISRETRIVEDBYSAP = 'TRUE'
+                WHERE ISRETRIVEDBYSAP = 'TRUE'
                 AND DET_ID = :0`,
                     [row.det_id]
                 );
@@ -62,6 +80,7 @@ SAPGetterChores.LoadingNoteSync = async (req, res) => {
                     } else if (rows[0][1] !== null) {
                         payload = {
                             ln_num: rows[0][1],
+                            error_msg: "",
                         };
                         orapayload = {
                             FLAG_WEB_PULL: "T",
@@ -74,7 +93,7 @@ SAPGetterChores.LoadingNoteSync = async (req, res) => {
                        ${row.id_do}
                       </td>
                       <td>
-                      ${row.sap_code + " - " + row.name_1}
+                      ${row.kunnr + " - " + row.name_1}
                       </td>
                       <td>
                       ${row.cre_date}
@@ -87,6 +106,18 @@ SAPGetterChores.LoadingNoteSync = async (req, res) => {
                       </td>
                       <td>
                       ${row.vhcl_id}
+                      </td>
+                      <td>
+                      ${row.fac_sloc + " - " + row.fac_sloc_desc}
+                      </td>
+                      <td>
+                      ${row.fac_valtype}
+                      </td>
+                      <td>
+                      ${row.oth_sloc + " - " + row.oth_sloc_desc}
+                      </td>
+                      <td>
+                      ${row.oth_valtype}
                       </td>
                       <td>
                       ${rows[0][1] !== null ? rows[0][1] : ""}
@@ -107,6 +138,12 @@ SAPGetterChores.LoadingNoteSync = async (req, res) => {
                         email_updater.set(row.email_updater, [payloadEmail]);
                     } else {
                         email_updater.get(row.email_updater).push(payloadEmail);
+                    }
+
+                    if (!email_wb.has(row.email_wb)) {
+                        email_wb.set(row.email_wb, [payloadEmail]);
+                    } else {
+                        email_wb.get(row.email_wb).push(payloadEmail);
                     }
 
                     const id_db = row.det_id;
@@ -134,11 +171,12 @@ SAPGetterChores.LoadingNoteSync = async (req, res) => {
             if (email_updater.size > 0) {
                 await EmailModel.NotifyEmail(email_updater);
             }
+            if (email_wb.size > 0) {
+                await EmailModel.NotifyEmail(email_wb);
+            }
             await psqlclient.query(TRANS.COMMIT);
             await oraclient.commit();
-            res.status(200).send({
-                message: "updated",
-            });
+            res.status(200).send("updated");
         } catch (error) {
             await psqlclient.query(TRANS.ROLLBACK);
             await oraclient.rollback();
@@ -148,8 +186,8 @@ SAPGetterChores.LoadingNoteSync = async (req, res) => {
             oraclient.close();
         }
     } catch (error) {
+        res.status(500);
         console.error(error);
-        res.status(500).send(error);
     }
 };
 
