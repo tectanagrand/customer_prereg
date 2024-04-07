@@ -30,10 +30,39 @@ EmailModel.newUserNotify = async (email, username, pass, url_web) => {
         const setup = {
             from: process.env.SMTP_USERNAME,
             to: email.join(", "),
-            subject: "New Logistic Account Prereg App Verification",
+            subject: "New Account Prereg App Verification",
             text: `
             Dengan hormat Bapak/Ibu,
             Akun web app Customer Preregistration anda sudah dibuat dan perlu diverifikasi dengan credentials sebagai berikut :
+            
+            Username : ${username}
+            OTP : ${pass}
+
+            Mohon untuk dapat memverifikasi akun di ${url_web}
+            Terimakasih
+
+            Hormat kami,
+
+            KPN ERP
+            `,
+        };
+        await tp.sendMail(setup);
+    } catch (error) {
+        throw error;
+    }
+};
+
+EmailModel.resetPasswordNotify = async (email, username, pass, url_web) => {
+    try {
+        console.log(email);
+        const tp = EmailTP.Transporter();
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: email,
+            subject: "Reset Password Account Prereg App Verification",
+            text: `
+            Dengan hormat Bapak/Ibu,
+            Akun web app Customer Preregistration anda sudah direset dan perlu diverifikasi dengan credentials sebagai berikut :
             
             Username : ${username}
             OTP : ${pass}
