@@ -628,7 +628,9 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
                 DET.fac_plant,
                 DET.oth_plant,
                 DET.fac_sloc,
+                DET.fac_sloc_desc,
                 DET.oth_sloc,
+                DET.oth_sloc_desc,
                 DET.fac_valtype,
                 DET.oth_valtype,
                 DET.media_tp,
@@ -793,8 +795,10 @@ LoadingNoteModel.finalizeLoadingNote_2 = async (params, session) => {
         const today = new Date();
         const uploadData = params.selected_req;
         const fac_sloc = params.fac_sloc;
+        const fac_sloc_desc = params.fac_sloc_desc;
         const fac_valtype = params.fac_valtype;
         const oth_sloc = params.oth_sloc;
+        const oth_sloc_desc = params.oth_sloc_desc;
         const oth_valtype = params.oth_valtype;
         try {
             await client.query(TRANS.BEGIN);
@@ -856,6 +860,8 @@ LoadingNoteModel.finalizeLoadingNote_2 = async (params, session) => {
                     is_pushed: true,
                     fac_sloc: fac_sloc,
                     oth_sloc: oth_sloc,
+                    fac_sloc_desc: fac_sloc_desc,
+                    oth_sloc_desc: oth_sloc_desc,
                     fac_valtype: fac_valtype,
                     oth_valtype: oth_valtype,
                     update_at: today,
@@ -897,8 +903,10 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
         const today = new Date();
         const uploadData = params.selected_req;
         const fac_sloc = params.fac_sloc;
+        const fac_sloc_desc = params.fac_sloc_desc;
         const fac_valtype = params.fac_valtype;
         const oth_sloc = params.oth_sloc;
+        const oth_sloc_desc = params.oth_sloc_desc;
         const oth_valtype = params.oth_valtype;
         let queIns, valIns;
         try {
@@ -974,6 +982,8 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     update_by: session.id_user,
                     fac_sloc: fac_sloc,
                     oth_sloc: oth_sloc,
+                    fac_sloc_desc: fac_sloc_desc,
+                    oth_sloc_desc: oth_sloc_desc,
                     fac_valtype: fac_valtype,
                     oth_valtype: oth_valtype,
                     plan_qty: parseInt(item.plan_qty),

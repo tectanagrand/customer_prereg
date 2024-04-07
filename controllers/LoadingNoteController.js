@@ -315,7 +315,7 @@ LoadingNoteController.getDefValtypeSloc = async (req, res) => {
         try {
             const plantcode = req.query.plant;
             const { rows } = await client.query(
-                `SELECT fac_sloc, oth_sloc, fac_valtype, oth_valtype from MST_DEFAULT_SLOC_VALTYPE WHERE plant = $1`,
+                `SELECT fac_sloc, oth_sloc, fac_valtype, oth_valtype, fac_sloc_desc, oth_sloc_desc from MST_DEFAULT_SLOC_VALTYPE WHERE plant = $1`,
                 [plantcode]
             );
             res.status(200).send(rows[0]);
