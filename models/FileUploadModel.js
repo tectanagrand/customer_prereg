@@ -151,7 +151,7 @@ FileUploadModel.submitSIM = async ({
                 driver_name: nama,
                 alamat: alamat,
                 tempat_lahir: tempat_lahir,
-                tanggal_lahir: tanggal_lahir,
+                tanggal_lahir: moment(tanggal_lahir).format("YYYY-MM-DD"),
                 no_telp: no_telp,
                 foto_sim: filename,
                 create_by: id_session,
