@@ -635,6 +635,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
                 DET.oth_valtype,
                 DET.media_tp,
                 DET.driver_id,
+                DET.ln_num,
                 CUST.KUNNR as cust_code,
                 CUST.name_1 as cust_name,
                 CONCAT(DET.DRIVER_ID,

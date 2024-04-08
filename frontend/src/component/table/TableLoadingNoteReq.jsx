@@ -83,6 +83,7 @@ export default function TableLoadingNoteReq({
     // const { filters, onColumnFilterChange } = useFilter();
     const columns = useMemo(() => {
         let additional = [];
+        let lnnum = [];
         if (who === "wb") {
             additional = [
                 {
@@ -103,6 +104,13 @@ export default function TableLoadingNoteReq({
                 {
                     header: "Oth. Val. Type.",
                     accessorKey: "oth_valtype",
+                    cell: props => props.getValue(),
+                },
+            ];
+            lnnum = [
+                {
+                    header: "Loading Note Num.",
+                    accessorKey: "ln_num",
                     cell: props => props.getValue(),
                 },
             ];
@@ -151,6 +159,7 @@ export default function TableLoadingNoteReq({
                 accessorKey: "id_do",
                 cell: props => props.getValue(),
             },
+            ...lnnum,
             {
                 header: "Plant",
                 accessorKey: "plant",
