@@ -51,7 +51,7 @@ SAPGetterChores.LoadingNoteSync = async (req, res) => {
               LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, RL.ROLE_NAME, US.PLANT_CODE FROM MST_USER US
                 LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
                 LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = US.ROLE
-                WHERE RL.ROLE_NAME = 'ADMINWB'
+                WHERE RL.ROLE_NAME = 'KRANIWB'
                 GROUP BY RL.ROLE_NAME, US.PLANT_CODE) EM_WB ON EM_WB.plant_code = hd.plant
               LEFT JOIN MST_CUSTOMER CUS ON CUS.KUNNR = USR_CR.USERNAME
                 WHERE LN_NUM IS NULL`

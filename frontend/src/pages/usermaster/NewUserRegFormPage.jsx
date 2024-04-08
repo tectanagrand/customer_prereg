@@ -291,7 +291,7 @@ export default function NewUserRegFormPage() {
                             rules={{ required: true }}
                         />
                     </Grid>
-                    {(currentRole === "ADMINWB" || currentRole === "ADMIN") && (
+                    {(currentRole === "KRANIWB" || currentRole === "ADMIN") && (
                         <Grid item xs={6}>
                             <AutocompleteComp
                                 name="plant_code"
