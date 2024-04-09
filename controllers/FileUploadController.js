@@ -366,7 +366,7 @@ FileUploadController.sendEmailCreateDrvnVeh = async (req, res) => {
             SELECT STRING_AGG(E.EMAIL, ', ') as EMAIL, R.ROLE_NAME FROM MST_EMAIL E
             LEFT JOIN MST_USER U ON E.ID_USER = U.ID_USER
             LEFT JOIN MST_ROLE R ON R.ROLE_ID = U.ROLE
-            WHERE R.ROLE_NAME = 'ADMIN' OR R.ROLE_NAME = 'LOGISTIC' AND U.PLANT_CODE = $1
+            WHERE R.ROLE_NAME = 'ADMIN' OR R.ROLE_NAME = 'LOGISTIC' OR U.PLANT_CODE = $1
             GROUP BY R.ROLE_NAME
             `,
                 [plant_code]

@@ -27,7 +27,7 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 EM_WB.EMAIL AS EMAIL_WB,
                 HD.ID_DO,
                 CUS.KUNNR,
-                TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE,
+                TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
                 CUS.NAME_1,
                 DET.DRIVER_ID,
                 DET.DRIVER_NAME,
