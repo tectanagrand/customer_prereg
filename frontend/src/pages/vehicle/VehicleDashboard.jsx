@@ -237,23 +237,38 @@ export default function VehicleDashboard() {
                                 {plateVal}
                             </Typography>
                         </div>
-                        <LoadingButton
-                            component="label"
-                            startIcon={<UploadFile />}
-                            variant="outlined"
-                            sx={{ height: 50, minWidth: "15rem", margin: 1 }}
-                            onChange={uploadTempFile}
-                            color={errors?.filename ? "error" : "primary"}
-                        >
-                            {"Upload File STNK"}
-                            <input
-                                type="file"
-                                accept=".jpg,.jpeg,.png,.pneg"
-                                id="fileUpload"
-                                name="fileUpload"
-                                hidden
-                            />
-                        </LoadingButton>
+                        <div>
+                            <LoadingButton
+                                component="label"
+                                startIcon={<UploadFile />}
+                                variant="outlined"
+                                sx={{
+                                    height: 50,
+                                    minWidth: "15rem",
+                                    margin: 1,
+                                }}
+                                onChange={uploadTempFile}
+                                color={errors?.filename ? "error" : "primary"}
+                            >
+                                {"Upload File STNK"}
+                                <input
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.pneg"
+                                    id="fileUpload"
+                                    name="fileUpload"
+                                    hidden
+                                />
+                            </LoadingButton>
+                            <p
+                                style={{
+                                    color: "red",
+                                    margin: "0 0 0 1rem",
+                                    fontSize: "10pt",
+                                }}
+                            >
+                                {`Format file : jpg, jpeg, png (Max size : 3mb)`}
+                            </p>
+                        </div>
                         <input
                             {...register("filename", {
                                 required: "please attach foto stnk ",
