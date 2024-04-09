@@ -140,6 +140,52 @@ FileUploadController.getFileSIM = async (req, res) => {
     }
 };
 
+FileUploadController.getFotoDriver = async (req, res) => {
+    try {
+        const id_row = req.query.id;
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(
+                "SELECT uuid, foto_driver FROM mst_driver WHERE uuid = $1",
+                [id_row]
+            );
+            const file_name = rows[0].foto_driver;
+            let new_path = "";
+            if (os.platform() === "win32") {
+                new_path =
+                    path.join(path.resolve(), "public\\" + "license") +
+                    "\\" +
+                    file_name;
+            } else {
+                new_path =
+                    path.join(path.resolve(), "/public" + "license") +
+                    "/" +
+                    file_name;
+            }
+            const fileStream = fs.createReadStream(new_path);
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader(
+                "Content-Disposition",
+                `attachment; filename="${file_name}"`
+            );
+            fileStream.pipe(res);
+            res.status(200);
+            fileStream.on("end", () => {
+                res.end(); // End the response stream
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 FileUploadController.getDataSTNK = async (req, res) => {
     try {
         const id_row = req.query.id;

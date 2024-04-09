@@ -50,31 +50,53 @@ FileUploadModel.uploadFile = async (req, pathtarget) => {
 FileUploadModel.uploadSIM = async (req, pathtarget) => {
     try {
         //allowed extensions
-        const extensions = ["pdf"];
+        const extensions = ["jpg", "jpeg", "png", "pneg"];
         const form = new formidable.IncomingForm();
         form.options.maxFileSize = 3 * 1024 * 1024;
         [fields, items] = await form.parse(req);
+        console.log(items);
         let files = items.file_atth[0];
+        let photo = items.foto_driver[0];
+        let newPath, newPathphoto;
         let fileName = files.originalFilename.split(".");
+        let photoName = photo.originalFilename.split(".");
         if (!extensions.includes(fileName[fileName.length - 1].toLowerCase())) {
+            throw new Error("File Format invalid");
+        }
+        if (
+            !extensions.includes(photoName[photoName.length - 1].toLowerCase())
+        ) {
             throw new Error("File Format invalid");
         }
         let newName =
             "SIM " + fields.nomorsim[0] + "." + fileName[fileName.length - 1];
         let oldPath = files.filepath;
+        let newPhotoName =
+            "SIM " + fields.nama[0] + "." + fileName[fileName.length - 1];
+        let oldPathPhotoName = photo.filepath;
         if (os.platform() === "win32") {
             newPath =
                 path.join(path.resolve(), "public\\" + pathtarget) +
                 "\\" +
                 newName;
+            newPathphoto =
+                path.join(path.resolve(), "public\\" + pathtarget) +
+                "\\" +
+                newPhotoName;
         } else {
             newPath =
                 path.join(path.resolve(), "/public" + pathtarget) +
                 "/" +
                 newName;
+            newPathphoto =
+                path.join(path.resolve(), "/public" + pathtarget) +
+                "/" +
+                newPhotoName;
         }
         let rawData = fs.readFileSync(oldPath);
+        let rawPhotoData = fs.readFileSync(oldPathPhotoName);
         await fs.promises.writeFile(newPath, rawData);
+        await fs.promises.writeFile(newPathphoto, rawPhotoData);
         return {
             nomorsim: fields.nomorsim[0].trim(),
             nama: fields.nama[0],
@@ -83,6 +105,7 @@ FileUploadModel.uploadSIM = async (req, pathtarget) => {
             tanggal_lahir: fields.tanggal_lahir[0],
             alamat: fields.alamat[0],
             filename: newName,
+            photoname: newPhotoName,
             id_row: fields.id_row[0],
         };
     } catch (error) {
@@ -137,6 +160,7 @@ FileUploadModel.submitSIM = async ({
     tanggal_lahir,
     alamat,
     filename,
+    photoname,
     id_row,
     id_session,
 }) => {
@@ -154,6 +178,7 @@ FileUploadModel.submitSIM = async ({
                 tanggal_lahir: moment(tanggal_lahir).format("YYYY-MM-DD"),
                 no_telp: no_telp,
                 foto_sim: filename,
+                foto_driver: photoname,
                 create_by: id_session,
                 is_send: false,
             };

@@ -1,5 +1,5 @@
 import { LoadingButton } from "@mui/lab";
-import { Edit, UploadFile } from "@mui/icons-material";
+import { Edit, UploadFile, InsertPhotoOutlined } from "@mui/icons-material";
 import moment from "moment";
 import AutocompleteComp from "../../component/input/AutocompleteComp";
 import DatePickerComp from "../../component/input/DatePickerComp";
@@ -20,14 +20,19 @@ import PatternInputComp from "../../component/input/PatternInputTxt";
 import { Axios } from "../../api/axios";
 import toast, { Toaster } from "react-hot-toast";
 import TableDriver from "../../component/table/TableDriver";
+import { useTheme } from "@mui/material/styles";
 
 export default function VehicleDashboard() {
     const [dialogOpen, setOpenDg] = useState(false);
     const [refresh, setRefresh] = useState(false);
     const [loading, setLoading] = useState(false);
+    const theme = useTheme();
     const [citiesOp, setCityop] = useState([]);
     const [id_row, setIdRow] = useState("");
     const [file, setFile] = useState();
+    const [photo, setPhoto] = useState();
+    const [preview, setPreview] = useState();
+    const [previewSim, setPreviewSim] = useState();
     const [plateVal, setPlate] = useState("");
     const [deleteDg, setDelDg] = useState(false);
     const {
@@ -46,16 +51,21 @@ export default function VehicleDashboard() {
             tanggal_lahir: null,
             no_telp: "",
             foto_sim: "",
+            foto_supir: "",
             alamat: "",
         },
     });
-
-    console.log(id_row);
 
     const EditData = async id => {
         try {
             const { data: fileData } = await Axios.get(
                 `/file/filesim?id=${id}`,
+                {
+                    responseType: "blob",
+                }
+            );
+            const { data: photoData } = await Axios.get(
+                `/file/driverfoto?id=${id}`,
                 {
                     responseType: "blob",
                 }
@@ -79,7 +89,11 @@ export default function VehicleDashboard() {
             const blob = new File([fileData], dataSim.foto_sim, {
                 type: "application/pdf",
             });
+            const blobDriver = new File([photoData], dataSim.foto_driver, {
+                type: "application/pdf",
+            });
             setFile(blob);
+            setPhoto(blobDriver);
             setOpenDg(true);
             setRefresh(!refresh);
         } catch (error) {
@@ -114,10 +128,19 @@ export default function VehicleDashboard() {
         setFile(files[0]);
     };
 
+    const uploadPhoto = e => {
+        const files = e.target.files;
+        console.log(files[0]);
+        setValue("foto_supir", files[0].name);
+        clearErrors("foto_supir");
+        setPhoto(files[0]);
+    };
+
     const uploadFile = async values => {
         setLoading(true);
         let form = new FormData();
         form.append("file_atth", file, file.name);
+        form.append("foto_driver", photo, photo.name);
         form.append("nama", values.nama);
         form.append("nomorsim", values.nomorsim);
         form.append("tempat_lahir", values.tempat_lahir.value);
@@ -144,6 +167,7 @@ export default function VehicleDashboard() {
     const onCloseModal = () => {
         setIdRow("");
         setFile();
+        setPhoto();
         reset({
             nama: "",
             nomorsim: "",
@@ -166,6 +190,30 @@ export default function VehicleDashboard() {
             }
         })();
     }, []);
+
+    useEffect(() => {
+        if (!photo) {
+            setPreview(undefined);
+            return;
+        }
+        const objectUrl = URL.createObjectURL(photo);
+        setPreview(objectUrl);
+
+        // free memory when ever this component is unmounted
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [photo]);
+
+    useEffect(() => {
+        if (!file) {
+            setPreviewSim(undefined);
+            return;
+        }
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewSim(objectUrl);
+
+        // free memory when ever this component is unmounted
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [file]);
 
     return (
         <>
@@ -196,103 +244,172 @@ export default function VehicleDashboard() {
                 <DialogTitle>Create New Driver Request</DialogTitle>
                 <form onSubmit={handleSubmit(uploadFile)}>
                     <Box
-                        sx={{
-                            height: "60rem",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 3,
-                            p: 6,
-                            mb: 3,
-                        }}
+                        sx={{ display: "flex", justifyContent: "space-evenly" }}
                     >
-                        <div
-                            style={{
+                        {/* form field data supir */}
+                        <Box
+                            sx={{
                                 display: "flex",
-                                alignItems: "center",
-                                flexWrap: "wrap",
-                                gap: "1rem",
+                                flexDirection: "column",
+                                gap: 3,
+                                p: 6,
+                                mb: 3,
+                                flexGrow: 1,
                             }}
                         >
-                            <TextFieldComp
-                                name="nama"
-                                label="Nama"
-                                control={control}
-                                sx={{ maxWidth: "30rem" }}
-                                rules={{
-                                    required: "Please insert this field",
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    flexWrap: "wrap",
+                                    gap: "1rem",
                                 }}
-                            />
-                            <PatternFieldComp
-                                name="nomorsim"
-                                label="Nomor SIM"
-                                control={control}
-                                rules={{
-                                    required: "Please insert this field",
+                            >
+                                <TextFieldComp
+                                    name="nama"
+                                    label="Nama"
+                                    control={control}
+                                    sx={{ maxWidth: "30rem" }}
+                                    rules={{
+                                        required: "Please insert this field",
+                                    }}
+                                />
+                                <PatternFieldComp
+                                    name="nomorsim"
+                                    label="Nomor SIM"
+                                    control={control}
+                                    rules={{
+                                        required: "Please insert this field",
+                                    }}
+                                    format="####################"
+                                    isNumString={false}
+                                    sx={{ maxWidth: "25rem" }}
+                                    fullWidth
+                                />
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    flexWrap: "wrap",
+                                    gap: "1rem",
                                 }}
-                                format="####################"
-                                isNumString={false}
-                                sx={{ maxWidth: "25rem" }}
-                                fullWidth
-                            />
-                        </div>
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                flexWrap: "wrap",
-                                gap: "1rem",
-                            }}
-                        >
-                            <AutocompleteComp
-                                name="tempat_lahir"
-                                label="Tempat Lahir"
-                                control={control}
-                                options={citiesOp}
-                                sx={{ maxWidth: "20rem" }}
-                                rules={{
-                                    required: "Please insert this field",
+                            >
+                                <AutocompleteComp
+                                    name="tempat_lahir"
+                                    label="Tempat Lahir"
+                                    control={control}
+                                    options={citiesOp}
+                                    sx={{ maxWidth: "20rem" }}
+                                    rules={{
+                                        required: "Please insert this field",
+                                    }}
+                                />
+                                <DatePickerComp
+                                    name="tanggal_lahir"
+                                    label="Tanggal Lahir"
+                                    control={control}
+                                    sx={{ maxWidth: "20rem" }}
+                                    rules={{
+                                        required: "Please insert this field",
+                                    }}
+                                />
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    flexWrap: "wrap",
+                                    gap: "1rem",
                                 }}
-                            />
-                            <DatePickerComp
-                                name="tanggal_lahir"
-                                label="Tanggal Lahir"
-                                control={control}
-                                sx={{ maxWidth: "20rem" }}
-                                rules={{
-                                    required: "Please insert this field",
+                            >
+                                <PatternFieldComp
+                                    name="no_telp"
+                                    label="Nomor Telfon"
+                                    control={control}
+                                    rules={{
+                                        required: "Please insert this field",
+                                    }}
+                                    format="################"
+                                    isNumString={false}
+                                    sx={{ maxWidth: "20rem" }}
+                                    fullWidth
+                                />
+                                <TextFieldComp
+                                    name="alamat"
+                                    label="Alamat"
+                                    control={control}
+                                    sx={{ maxWidth: "40rem" }}
+                                    rules={{
+                                        required: "Please insert this field",
+                                    }}
+                                />
+                            </div>
+                        </Box>
+                        <Box sx={{ width: "20rem" }}>
+                            <h4>Foto Supir</h4>
+                            <Button
+                                component="label"
+                                disableRipple
+                                sx={{
+                                    minWidth: "15rem",
+                                    height: "20rem",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    p: 2,
+                                    borderColor:
+                                        !photo && theme.palette.grey[800],
+                                    borderWidth: !photo && "10px",
+                                    borderStyle: !photo && "dashed",
                                 }}
+                                onChange={uploadPhoto}
+                            >
+                                {photo ? (
+                                    <>
+                                        <img
+                                            style={{
+                                                minWidth: "100%",
+                                                height: "20rem",
+                                            }}
+                                            src={preview}
+                                        ></img>
+                                    </>
+                                ) : (
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            width: "20rem",
+                                        }}
+                                    >
+                                        <InsertPhotoOutlined
+                                            sx={{
+                                                width: "4rem",
+                                                height: "4rem",
+                                            }}
+                                        />
+                                        <Typography>
+                                            Insert Driver Photo
+                                        </Typography>
+                                    </Box>
+                                )}
+                                <input
+                                    type="file"
+                                    accept=".jpg,.pneg,.jpeg,.png"
+                                    hidden
+                                />
+                            </Button>
+                            <input
+                                {...register("foto_supir", {
+                                    required: "Please attach foto supir ",
+                                })}
+                                hidden
                             />
-                        </div>
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                flexWrap: "wrap",
-                                gap: "1rem",
-                            }}
-                        >
-                            <PatternFieldComp
-                                name="no_telp"
-                                label="Nomor Telfon"
-                                control={control}
-                                rules={{
-                                    required: "Please insert this field",
-                                }}
-                                format="################"
-                                isNumString={false}
-                                sx={{ maxWidth: "20rem" }}
-                                fullWidth
-                            />
-                            <TextFieldComp
-                                name="alamat"
-                                label="Alamat"
-                                control={control}
-                                sx={{ maxWidth: "40rem" }}
-                                rules={{
-                                    required: "Please insert this field",
-                                }}
-                            />
-                        </div>
+                        </Box>
+                    </Box>
+                    <Box sx={{ p: 3 }}>
                         <div>
                             <LoadingButton
                                 component="label"
@@ -306,10 +423,10 @@ export default function VehicleDashboard() {
                                 onChange={uploadTempFile}
                                 color={errors?.foto_sim ? "error" : "primary"}
                             >
-                                {"Upload File SIM (.pdf)"}
+                                {"Upload File SIM "}
                                 <input
                                     type="file"
-                                    accept=".pdf"
+                                    accept=".jpg, .jpeg, .png, .pneg"
                                     id="fileUpload"
                                     name="fileUpload"
                                     hidden
@@ -323,7 +440,7 @@ export default function VehicleDashboard() {
                         </div>
                         <input
                             {...register("foto_sim", {
-                                required: "Please attach foto sim (pdf format)",
+                                required: "Please attach foto sim ",
                             })}
                             hidden
                         />
@@ -331,7 +448,7 @@ export default function VehicleDashboard() {
                         {!file ? (
                             <Box
                                 sx={{
-                                    height: "20rem",
+                                    height: "10rem",
                                     minWidth: "40rem",
                                     border: "2px dashed black",
                                 }}
@@ -339,12 +456,13 @@ export default function VehicleDashboard() {
                         ) : (
                             <Box
                                 sx={{
-                                    height: "20rem",
-                                    minWidth: "40rem",
+                                    height: "15rem",
                                     border: "2px solid black",
+                                    overflow: "scroll",
+                                    justifyContent: "center",
                                 }}
                             >
-                                <Viewer fileUrl={URL.createObjectURL(file)} />
+                                <img src={previewSim}></img>
                             </Box>
                         )}
                     </Box>

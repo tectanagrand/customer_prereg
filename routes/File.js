@@ -9,6 +9,7 @@ router.post("/deletestnk", FileUploadController.deleteDataSTNK);
 router.post("/sim", FileUploadController.uploadSIM);
 router.get("/sim", FileUploadController.getDataSIM);
 router.get("/filesim", FileUploadController.getFileSIM);
+router.get("/driverfoto", FileUploadController.getFotoDriver);
 router.post("/deletesim", FileUploadController.deleteDataSIM);
 router.post("/sendemail", FileUploadController.sendEmailCreateDrvnVeh);
 
