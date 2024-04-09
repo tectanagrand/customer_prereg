@@ -12,7 +12,7 @@ const TRANS = require("../config/transaction");
 FileUploadModel.uploadFile = async (req, pathtarget) => {
     try {
         //allowed extensions
-        const extensions = ["pdf"];
+        const extensions = ["jpg", "jpeg", "png", "pneg"];
         const form = new formidable.IncomingForm();
         form.options.maxFileSize = 3 * 1024 * 1024;
         [fields, items] = await form.parse(req);

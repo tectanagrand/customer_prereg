@@ -9,7 +9,7 @@ import {
     Box,
     Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Viewer } from "@react-pdf-viewer/core";
 import PatternInputComp from "../../component/input/PatternInputTxt";
@@ -23,6 +23,7 @@ export default function VehicleDashboard() {
     const [loading, setLoading] = useState(false);
     const [id_row, setIdRow] = useState("");
     const [file, setFile] = useState();
+    const [previewStnk, setPreviewstnk] = useState();
     const [plateVal, setPlate] = useState("");
     const [deleteDg, setDelDg] = useState(false);
     const {
@@ -39,8 +40,6 @@ export default function VehicleDashboard() {
             filename: "",
         },
     });
-
-    console.log(refresh);
 
     const parsingDataSTNK = stnk => {
         const ruleNum = /[0-9]/;
@@ -164,6 +163,18 @@ export default function VehicleDashboard() {
         setOpenDg(false);
     };
 
+    useEffect(() => {
+        if (!file) {
+            setPreviewstnk(undefined);
+            return;
+        }
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewstnk(objectUrl);
+
+        // free memory when ever this component is unmounted
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [file]);
+
     return (
         <>
             <Toaster />
@@ -234,10 +245,10 @@ export default function VehicleDashboard() {
                             onChange={uploadTempFile}
                             color={errors?.filename ? "error" : "primary"}
                         >
-                            {"Upload File STNK (.pdf)"}
+                            {"Upload File STNK"}
                             <input
                                 type="file"
-                                accept=".pdf"
+                                accept=".jpg,.jpeg,.png,.pneg"
                                 id="fileUpload"
                                 name="fileUpload"
                                 hidden
@@ -245,8 +256,7 @@ export default function VehicleDashboard() {
                         </LoadingButton>
                         <input
                             {...register("filename", {
-                                required:
-                                    "please attach foto stnk (pdf format)",
+                                required: "please attach foto stnk ",
                             })}
                             hidden
                         />
@@ -267,12 +277,12 @@ export default function VehicleDashboard() {
                         ) : (
                             <Box
                                 sx={{
-                                    height: "20rem",
-                                    minWidth: "40rem",
                                     border: "2px solid black",
+                                    overflow: "scroll",
+                                    justifyContent: "center",
                                 }}
                             >
-                                <Viewer fileUrl={URL.createObjectURL(file)} />
+                                <img src={previewStnk}></img>
                             </Box>
                         )}
                     </Box>
