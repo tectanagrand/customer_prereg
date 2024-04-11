@@ -57,17 +57,24 @@ export default function TableRecapReport({ onsetFilterData }) {
             console.log(error);
         }
     };
+    const [refresh, setRefresh] = useState(false);
     const column = useMemo(
         () => [
             {
                 id: "exportln",
                 cell: ({ row }) => {
-                    if (moment(row.original.cre_date) > moment()) {
+                    if (
+                        moment(row.original.cre_date_moment).isBefore(
+                            moment()
+                        ) &&
+                        row.original.print_count < 3
+                    ) {
                         return (
                             <Tooltip title="Download PDF">
                                 <IconButton
                                     onClick={async () => {
                                         await exportData(row.original.id);
+                                        setRefresh(prev => !prev);
                                     }}
                                 >
                                     <FileDownload></FileDownload>
@@ -176,7 +183,6 @@ export default function TableRecapReport({ onsetFilterData }) {
     );
 
     const [data, setData] = useState([]);
-    const dataRows = useMemo(() => data, [data]);
     const [sorting, setSorting] = useState([]);
     const dataSorting = useMemo(() => sorting, [sorting]);
     const [columnFilter, setColumnfilter] = useState([]);
@@ -200,10 +206,10 @@ export default function TableRecapReport({ onsetFilterData }) {
                 console.error(error);
             }
         })();
-    }, [columnFilter]);
+    }, [columnFilter, refresh]);
 
     const table = useReactTable({
-        data: dataRows,
+        data: data,
         columns: column,
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
