@@ -1,6 +1,8 @@
 const db = require("../config/connection");
 const PDFDocument = require("pdfkit");
 const moment = require("moment");
+const crud = require("../helper/crudquery");
+const TRANS = require("../config/transaction");
 
 const PDFController = {};
 
@@ -10,6 +12,7 @@ PDFController.exportSuratJalan = async (req, res) => {
     try {
         const client = await db.connect();
         try {
+            await client.query(TRANS.BEGIN);
             const { rows } = await client.query(
                 `
                 SELECT  
@@ -28,18 +31,50 @@ PDFController.exportSuratJalan = async (req, res) => {
                 HD.company,
                 CUST.NAME_1,
                 CUST.KUNNR,
-                PLT.ALAMAT
+                PLT.ALAMAT,
+                DET.print_count
                 FROM LOADING_NOTE_DET DET
                 LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
                 LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
-                LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+                LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR OR USR.SAP_CODE = CUST.KUNNR
                 LEFT JOIN MST_COMPANY CO ON CO.SAP_CODE = HD.COMPANY
                 LEFT JOIN MST_COMPANY_PLANT PLT ON PLT.PLANT_CODE = HD.PLANT         
                  WHERE DET.DET_ID = $1
+                ORDER BY DET.ID DESC
       `,
                 [load_noteid]
             );
+            let watermark;
             const dt = rows[0];
+            if (!dt.print_count) {
+                watermark = "Original Document";
+            } else {
+                watermark = `Copy of original (${dt.print_count})`;
+            }
+            const [queUp, insUp] = crud.updateItem(
+                "loading_note_det",
+                {
+                    print_count: dt.print_count
+                        ? parseInt(dt.print_count) + 1
+                        : 1,
+                },
+                { det_id: load_noteid },
+                "det_id"
+            );
+            console.log(queUp);
+            await client.query(queUp, insUp);
+            doc.opacity(0.3);
+            doc.rotate(-35);
+            doc.fontSize(60).text(watermark, -200, 200);
+            doc.text("KPN CORP", -200, 300);
+            doc.fontSize(60).text(watermark, -200, 400);
+            doc.text("KPN CORP", -200, 500);
+            doc.fontSize(60).text(watermark, -200, 600);
+            doc.text("KPN CORP", -200, 700);
+
+            doc.save();
+            doc.rotate(35);
+            doc.opacity(1);
             doc.fontSize(20).text(`${dt.name_1} (${dt.kunnr})`, 100, 90);
             doc.fontSize(20).text("Surat Jalan", 400, 50);
             // doc.fontSize(12).text("No LN :", 380, 120);
@@ -114,9 +149,11 @@ PDFController.exportSuratJalan = async (req, res) => {
                 `attachment; filename="SuratJalan_DO-${rows[0].id_do}.pdf"`
             );
             doc.pipe(res);
+            await client.query(TRANS.COMMIT);
             res.status(200);
             doc.end();
         } catch (error) {
+            await client.query(TRANS.ROLLBACK);
             throw error;
         } finally {
             client.release();
