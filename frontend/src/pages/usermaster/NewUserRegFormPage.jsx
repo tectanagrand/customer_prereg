@@ -365,6 +365,7 @@ export default function NewUserRegFormPage() {
                                     onClick={() => {
                                         addEmail({ email: "" });
                                     }}
+                                    disabled={emailFields.length >= 2}
                                     variant="outlined"
                                 >
                                     + Add Email
@@ -425,6 +426,7 @@ export default function NewUserRegFormPage() {
                                         addTelf({ telf: "" });
                                     }}
                                     variant="outlined"
+                                    disabled={telfFields.length >= 2}
                                 >
                                     + Add Phone Number
                                 </Button>

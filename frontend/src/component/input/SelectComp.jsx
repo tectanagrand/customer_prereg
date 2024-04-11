@@ -19,6 +19,7 @@ export default function SelectComp({
     valueovr,
     onOpen,
     lazy,
+    multiple,
     ...props
 }) {
     const generateSingleOptions = () => {
@@ -56,7 +57,7 @@ export default function SelectComp({
                     fieldState: { error },
                 }) => {
                     if (disabled) {
-                        value = "";
+                        value = multiple ? [] : "";
                     }
                     return (
                         <>
@@ -66,6 +67,7 @@ export default function SelectComp({
                                 error={!!error}
                                 label={label}
                                 value={value}
+                                defaultValue={[]}
                                 inputRef={ref}
                                 inputProps={{
                                     readOnly: readOnly,
@@ -78,6 +80,7 @@ export default function SelectComp({
                                     }
                                 }}
                                 onOpen={onOpen}
+                                multiple={multiple}
                             >
                                 {generateSingleOptions()}
                             </Select>
