@@ -11,6 +11,7 @@ export default function NumericFieldComp({
     rules,
     readOnly,
     disabled,
+    onBlurOvr,
     thousandSeparator,
     ...props
 }) {
@@ -26,6 +27,11 @@ export default function NumericFieldComp({
                 }) => (
                     <NumericFormat
                         onChange={onChange}
+                        onBlur={e => {
+                            if (onBlurOvr) {
+                                onBlurOvr();
+                            }
+                        }}
                         value={value}
                         label={label}
                         thousandSeparator={thousandSeparator}

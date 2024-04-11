@@ -15,13 +15,17 @@ import { Axios } from "../../api/axios";
 import { useRef, useState, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import SelectComp from "../../component/input/SelectComp";
+import { NumericFormat } from "react-number-format";
+import { TextField } from "@mui/material";
 import DatePickerComp from "../../component/input/DatePickerComp";
 import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
 import SelectDOComp from "./SelectDOComp";
+import SelectMultiDOComp from "./SelectMultiDoComp";
 import { useTheme } from "@mui/material/styles";
+import CheckBoxComp from "../../component/input/CheckBoxComp";
 
 const MediaTransportOp = [
     { value: "V", label: "Vessel" },
@@ -54,6 +58,8 @@ export default function LoadingNoteForm() {
     const [slocOP, setSloc] = useState([]);
     const [medtpOP, setMedTPOP] = useState([]);
     const [restData, setRestData] = useState({});
+    const [checkedMulti, setCheckedMulti] = useState([]);
+    const [uomQty, setUomQty] = useState("Kg");
     const [preOp, setPreOp] = useState("");
     const [pltRule, setPltRule] = useState({ plant: "", material: "" });
     const lastIdx = useRef(0);
@@ -79,21 +85,12 @@ export default function LoadingNoteForm() {
             rules: "",
             con_num: "",
             material: "",
-            con_qty: "0",
+            con_qty: 0,
+            os_qty: 0,
             plant: "",
             description: "",
             uom: "",
-            load_detail: [
-                // {
-                //     id_detail: "",
-                //     vehicle: null,
-                //     driver: null,
-                //     loading_date: moment(),
-                //     planned_qty: 0,
-                //     media_tp: "",
-                //     method: "",
-                // },
-            ],
+            load_detail: [],
             fac_plant: "",
             fac_store_loc: "",
             fac_batch: "",
@@ -114,6 +111,9 @@ export default function LoadingNoteForm() {
     watch("load_detail.id_detail");
     const [isLoading, setLoading] = useState(false);
     const [isPaid, setPaid] = useState(false);
+    const [isExceed, setExceed] = useState(false);
+    const usedQty = useRef(0);
+    const [remainingQty, setRemaining] = useState(0);
     const position = useRef("");
     const uuidLN = useRef("");
     const theme = useTheme();
@@ -126,11 +126,22 @@ export default function LoadingNoteForm() {
                     const { data } = await Axios.get(
                         "ln/id?idloadnote=" + idloadnote
                     );
-                    const load_detail = data.data.load_detail.map(item => ({
-                        ...item,
-                        loading_date: moment(item.loading_date),
-                        method: "",
-                    }));
+                    let checkedMulti = [];
+                    const load_detail = data.data.load_detail.map(item => {
+                        checkedMulti.push(item.is_multi);
+                        return {
+                            ...item,
+                            loading_date: moment(item.loading_date),
+                            relate_do: item.multi_do ?? [],
+                            method: "",
+                        };
+                    });
+                    setCheckedMulti(checkedMulti);
+                    setRemaining(
+                        parseFloat(data.data.os_qty) -
+                            parseFloat(data.cur_planqty)
+                    );
+                    usedQty.current = data.cur_planqty;
                     reset({
                         ...data.data,
                         con_qty: data.data.con_qty
@@ -182,6 +193,17 @@ export default function LoadingNoteForm() {
         })();
     }, [pltRule]);
 
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data } = await Axios.get("/master/mediatp");
+                setMedTPOP(data);
+            } catch (error) {
+                console.error(error);
+            }
+        })();
+    }, []);
+
     const submitItem = async (values, is_draft = false) => {
         if (typeof is_draft !== "boolean") {
             is_draft = false;
@@ -197,6 +219,7 @@ export default function LoadingNoteForm() {
             planned_qty: item.planned_qty.replace(/,/g, ""),
             media_tp: item.media_tp,
             method: item.method,
+            multi_do: item.relate_do,
         }));
         const payload = {
             ...values,
@@ -209,7 +232,10 @@ export default function LoadingNoteForm() {
             id_header: uuidLN.current,
             company: values.company,
             load_detail: load_detail,
-            con_qty: values.con_qty.replace(/,/g, ""),
+            con_qty:
+                typeof values.con_qty === "string"
+                    ? values.con_qty.replace(/,/g, "")
+                    : values.con_qty,
         };
         delete payload.incoterms;
         setLoading(true);
@@ -249,12 +275,12 @@ export default function LoadingNoteForm() {
             setLoading(false);
         }
     };
+
     const handleCheckSO = async value => {
         setLoading(true);
         try {
             const { data } = await Axios.get(`/master/do?do_num=${value}`);
             const slip = data.SLIP;
-            console.log(slip);
             const dataMap = {
                 do_num: value,
                 inv_type: slip.ZZINVOICETYPE,
@@ -264,10 +290,8 @@ export default function LoadingNoteForm() {
                 rules: slip.ITEMRULE,
                 con_num: slip.CTRNO,
                 material: slip.MATNR,
-                con_qty: slip.KWMENG.split(".")[0].replace(
-                    /\B(?=(\d{3})+(?!\d))/g,
-                    ","
-                ),
+                con_qty: slip.KWMENG,
+                os_qty: slip.KWMENG - data.TOTALSPEND,
                 plant: slip.WERKS,
                 description: slip.MAKTX,
                 uom: slip.VRKME,
@@ -276,6 +300,9 @@ export default function LoadingNoteForm() {
                 fac_plant: slip.WERKS,
                 oth_batch: value,
             };
+            setUomQty(slip.VRKME);
+            setRemaining(slip.KWMENG - data.TOTALSPEND);
+            usedQty.current = data.TOTALSPEND;
             Object.keys(getValues()).forEach(item => {
                 if (dataMap.hasOwnProperty(item)) {
                     setValue(item, dataMap[item]);
@@ -293,6 +320,31 @@ export default function LoadingNoteForm() {
             if (data.IS_PAID) {
                 toast.success("Already paid, can proceed to logistic");
             } else {
+                reset({
+                    do_num: "",
+                    inv_type: "",
+                    inv_type_tol_from: "0 %",
+                    inv_type_tol_to: "0 %",
+                    incoterms: "",
+                    rules: "",
+                    con_num: "",
+                    material: "",
+                    con_qty: "0",
+                    os_qty: "0",
+                    plant: "",
+                    description: "",
+                    uom: "",
+                    load_detail: [],
+                    fac_plant: "",
+                    fac_store_loc: "",
+                    fac_batch: "",
+                    fac_val_type: "",
+                    oth_plant: "",
+                    oth_store_loc: "",
+                    oth_batch: "",
+                    oth_val_type: "",
+                    company: "",
+                });
                 toast.error("Not paid yet");
             }
         } catch (error) {
@@ -318,6 +370,40 @@ export default function LoadingNoteForm() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const checkExistingOsQty = () => {
+        const plansData = getValues("load_detail");
+        let con_os = getValues("os_qty") - usedQty.current;
+        console.log(con_os);
+        let currentTotal = 0;
+        plansData.forEach(item => {
+            currentTotal += parseFloat(
+                item.planned_qty !== "" ? item.planned_qty.replace(/,/g, "") : 0
+            );
+        });
+        let newRemaining = con_os - currentTotal;
+        if (newRemaining < 0) {
+            toast.error("Planning Quantity exceed remaining quantity");
+            setExceed(true);
+        } else {
+            setRemaining(newRemaining);
+            setExceed(false);
+        }
+    };
+
+    const handleCheckedMulti = (index, isChecked) => {
+        let newCheckBoxState = [...checkedMulti];
+        if (!isChecked) {
+            setValue(`load_detail.${index}.relate_do`, []);
+        }
+        newCheckBoxState[index] = isChecked;
+        setCheckedMulti(newCheckBoxState);
+    };
+
+    const isSelectEnabled = index => {
+        console.log(checkedMulti);
+        return !checkedMulti[index];
     };
 
     return (
@@ -386,71 +472,6 @@ export default function LoadingNoteForm() {
                                 Check Payment
                             </LoadingButton>
                         </div>
-
-                        <div
-                            style={{
-                                display: "flex",
-                                width: "100%",
-                                gap: "1rem",
-                                alignItems: "center",
-                                flexWrap: "wrap",
-                            }}
-                        >
-                            {/* <TextFieldComp
-                                name="inv_type"
-                                label="Invoice Type"
-                                control={control}
-                                disabled
-                                sx={{ minWidth: "10rem", maxWidth: "30rem" }}
-                                rules={{ required: true }}
-                            />
-                            <div
-                                style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                }}
-                            >
-                                <Typography sx={{ mb: 1, fontSize: "10pt" }}>
-                                    Invoice Type Tolerance
-                                </Typography>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: "1rem",
-                                    }}
-                                >
-                                    <TextFieldComp
-                                        name="inv_type_tol_from"
-                                        label="From"
-                                        control={control}
-                                        disabled
-                                        sx={{
-                                            minWidth: "5rem",
-                                            maxWidth: "10rem",
-                                        }}
-                                    />
-                                    <p> - </p>
-                                    <TextFieldComp
-                                        name="inv_type_tol_to"
-                                        label="To"
-                                        control={control}
-                                        disabled
-                                        sx={{
-                                            minWidth: "5rem",
-                                            maxWidth: "10rem",
-                                        }}
-                                    />
-                                </div>
-                            </div> */}
-
-                            {/* <TextFieldComp
-                                name="rules"
-                                label="Rules"
-                                control={control}
-                                disabled
-                                sx={{ minWidth: "10rem", maxWidth: "10rem" }}
-                            /> */}
-                        </div>
                         <div
                             style={{
                                 display: "flex",
@@ -473,12 +494,52 @@ export default function LoadingNoteForm() {
                                 control={control}
                                 disabled
                             />
-                            <TextFieldComp
+                            {/* <TextFieldComp
                                 name="con_qty"
                                 label="Contract Quantity"
                                 control={control}
                                 disabled
                                 sx={{ minWidth: "10rem", maxWidth: "20rem" }}
+                            /> */}
+                            <NumericFieldComp
+                                name="con_qty"
+                                label="Contract Quantity"
+                                control={control}
+                                rules={{
+                                    required: "Please Insert",
+                                    min: {
+                                        value: 1,
+                                        message: "Minimum value is 0",
+                                    },
+                                }}
+                                sx={{
+                                    minWidth: "15rem",
+                                    maxWidth: "16rem",
+                                }}
+                                endAdornment={
+                                    <InputAdornment>{uomQty}</InputAdornment>
+                                }
+                                thousandSeparator
+                            />
+                            <NumericFieldComp
+                                name="os_qty"
+                                label="O/S Quantity"
+                                control={control}
+                                rules={{
+                                    required: "Please Insert",
+                                    min: {
+                                        value: 1,
+                                        message: "Minimum value is 0",
+                                    },
+                                }}
+                                sx={{
+                                    minWidth: "15rem",
+                                    maxWidth: "16rem",
+                                }}
+                                endAdornment={
+                                    <InputAdornment>{uomQty}</InputAdornment>
+                                }
+                                thousandSeparator
                             />
                             <TextFieldComp
                                 name="uom"
@@ -546,13 +607,24 @@ export default function LoadingNoteForm() {
                                     loading_date: moment().add(1, "day"),
                                     planned_qty: "",
                                     media_tp: "T",
+                                    relate_do: [],
                                 });
+                                let newCheckBoxState = [...checkedMulti];
+                                newCheckBoxState.push(false);
+                                setCheckedMulti(newCheckBoxState);
                             }}
                             disabled={!isPaid}
                             variant="contained"
                         >
                             Add +
                         </Button>
+                        <NumericFormat
+                            value={remainingQty}
+                            label="Remaining Quantity"
+                            customInput={TextField}
+                            thousandSeparator
+                            disabled
+                        />
                     </div>
                     {errors?.load_detail && (
                         <p style={{ color: theme.palette.error.main }}>
@@ -563,172 +635,227 @@ export default function LoadingNoteForm() {
                     <Divider sx={{ my: 3 }} variant="middle" />
                     {fields.map((field, index) => {
                         return (
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyItems: "stretch",
-                                    alignContent: "center",
-                                    flexWrap: "wrap",
-                                }}
-                                key={field.id}
-                            >
-                                <input
-                                    {...register(
-                                        `load_detail.${index}.id_detail`
-                                    )}
-                                    hidden
-                                />
-                                <input
-                                    {...register(`load_detail.${index}.method`)}
-                                    hidden
-                                />
+                            <div style={{ display: "flex", gap: "1rem" }}>
                                 <div
                                     style={{
-                                        marginBottom: "3rem",
-                                        minWidth: "60%",
+                                        display: "flex",
+                                        justifyItems: "stretch",
+                                        alignContent: "center",
+                                        flexWrap: "wrap",
                                     }}
+                                    key={field.id}
                                 >
+                                    <input
+                                        {...register(
+                                            `load_detail.${index}.id_detail`
+                                        )}
+                                        hidden
+                                    />
+                                    <input
+                                        {...register(
+                                            `load_detail.${index}.method`
+                                        )}
+                                        hidden
+                                    />
                                     <div
                                         style={{
-                                            display: "flex",
-                                            gap: "1rem",
+                                            marginBottom: "3rem",
+                                            minWidth: "60%",
                                         }}
                                     >
-                                        <AutoSelectDriver
-                                            label="Driver"
-                                            name={`load_detail.${index}.driver`}
-                                            control={control}
-                                            sx={{
-                                                minWidth: "30rem",
-                                                maxWidth: "20rem",
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                gap: "1rem",
+                                                flexWrap: "wrap",
                                             }}
-                                            rules={{
-                                                validate: v =>
-                                                    v?.value !== "" &&
-                                                    v !== null,
-                                            }}
-                                        />
-                                        <AutoSelectVehicle
-                                            label="Vehicle"
-                                            name={`load_detail.${index}.vehicle`}
-                                            control={control}
-                                            sx={{
-                                                minWidth: "10rem",
-                                                maxWidth: "15rem",
-                                            }}
-                                            rules={{
-                                                validate: v =>
-                                                    v?.value !== "" &&
-                                                    v !== null,
-                                            }}
-                                        />
-                                        <SelectComp
-                                            name={`load_detail.${index}.media_tp`}
-                                            label="Media Transport"
-                                            control={control}
-                                            fullWidth
-                                            sx={{
-                                                minWidth: "10rem",
-                                                maxWidth: "12rem",
-                                            }}
-                                            rules={{
-                                                required: "Please Insert",
-                                            }}
-                                            options={MediaTransportOp}
-                                        />
-                                        <DatePickerComp
-                                            name={`load_detail.${index}.loading_date`}
-                                            label="Loading Date"
-                                            control={control}
-                                            rules={{
-                                                required: "Please Insert",
-                                            }}
-                                            sx={{
-                                                minWidth: "15rem",
-                                            }}
-                                            minDate={moment().add(1, "day")}
-                                        />
-                                        <NumericFieldComp
-                                            name={`load_detail.${index}.planned_qty`}
-                                            label="Planned Loading Qty"
-                                            control={control}
-                                            rules={{
-                                                required: "Please Insert",
-                                                min: {
-                                                    value: 1,
-                                                    message:
-                                                        "Minimum value is 0",
-                                                },
-                                            }}
-                                            sx={{
-                                                minWidth: "15rem",
-                                                maxWidth: "16rem",
-                                            }}
-                                            endAdornment={
-                                                <InputAdornment>
-                                                    Kg
-                                                </InputAdornment>
-                                            }
-                                            thousandSeparator
-                                        />
+                                        >
+                                            <AutoSelectDriver
+                                                label="Driver"
+                                                name={`load_detail.${index}.driver`}
+                                                control={control}
+                                                sx={{
+                                                    minWidth: "30rem",
+                                                    maxWidth: "20rem",
+                                                }}
+                                                rules={{
+                                                    validate: v =>
+                                                        v?.value !== "" &&
+                                                        v !== null,
+                                                }}
+                                            />
+                                            <AutoSelectVehicle
+                                                label="Vehicle"
+                                                name={`load_detail.${index}.vehicle`}
+                                                control={control}
+                                                sx={{
+                                                    minWidth: "10rem",
+                                                    maxWidth: "15rem",
+                                                }}
+                                                rules={{
+                                                    validate: v =>
+                                                        v?.value !== "" &&
+                                                        v !== null,
+                                                }}
+                                            />
+                                            <SelectComp
+                                                name={`load_detail.${index}.media_tp`}
+                                                label="Media Transport"
+                                                control={control}
+                                                fullWidth
+                                                sx={{
+                                                    minWidth: "10rem",
+                                                    maxWidth: "12rem",
+                                                }}
+                                                rules={{
+                                                    required: "Please Insert",
+                                                }}
+                                                options={medtpOP}
+                                            />
+                                            <DatePickerComp
+                                                name={`load_detail.${index}.loading_date`}
+                                                label="Loading Date"
+                                                control={control}
+                                                rules={{
+                                                    required: "Please Insert",
+                                                }}
+                                                sx={{
+                                                    minWidth: "15rem",
+                                                }}
+                                                minDate={moment().add(1, "day")}
+                                            />
+                                            <NumericFieldComp
+                                                name={`load_detail.${index}.planned_qty`}
+                                                label="Planned Loading Qty"
+                                                control={control}
+                                                rules={{
+                                                    required: "Please Insert",
+                                                    min: {
+                                                        value: 1,
+                                                        message:
+                                                            "Minimum value is 0",
+                                                    },
+                                                }}
+                                                sx={{
+                                                    minWidth: "15rem",
+                                                    maxWidth: "16rem",
+                                                }}
+                                                endAdornment={
+                                                    <InputAdornment>
+                                                        Kg
+                                                    </InputAdornment>
+                                                }
+                                                onBlurOvr={checkExistingOsQty}
+                                                thousandSeparator
+                                            />
+                                            <CheckBoxComp
+                                                label="Multi Loading Note"
+                                                control={control}
+                                                name={`load_detail.${index}.is_multi`}
+                                                index={index}
+                                                onChangeOvr={handleCheckedMulti}
+                                            />
+                                            <SelectMultiDOComp
+                                                label="Related DO"
+                                                control={control}
+                                                name={`load_detail.${index}.relate_do`}
+                                                disabled={isSelectEnabled(
+                                                    index
+                                                )}
+                                                preop={getValues(
+                                                    `load_detail.${index}.relate_do`
+                                                )}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                                {index !== 0 && (
-                                    <IconButton
-                                        sx={{ width: "4rem", height: "4rem" }}
-                                        onClick={() => {
-                                            if (
-                                                field.id_detail !== "" &&
-                                                field.id_detail !== undefined
-                                            ) {
+                                <div>
+                                    {index !== 0 && (
+                                        <IconButton
+                                            sx={{
+                                                width: "4rem",
+                                                height: "4rem",
+                                            }}
+                                            onClick={() => {
                                                 if (
-                                                    getValues(
-                                                        `load_detail.${index}.method`
-                                                    ) === "delete"
+                                                    field.id_detail !== "" &&
+                                                    field.id_detail !==
+                                                        undefined
                                                 ) {
-                                                    setValue(
-                                                        `load_detail.${index}.method`,
-                                                        ""
-                                                    );
+                                                    if (
+                                                        getValues(
+                                                            `load_detail.${index}.method`
+                                                        ) === "delete"
+                                                    ) {
+                                                        setValue(
+                                                            `load_detail.${index}.method`,
+                                                            ""
+                                                        );
+                                                    } else {
+                                                        setValue(
+                                                            `load_detail.${index}.method`,
+                                                            "delete"
+                                                        );
+                                                    }
                                                 } else {
-                                                    setValue(
-                                                        `load_detail.${index}.method`,
-                                                        "delete"
+                                                    remove(index);
+                                                    checkExistingOsQty();
+                                                    console.log(index);
+                                                    const newCheckBoxState = [
+                                                        ...checkedMulti,
+                                                    ];
+                                                    console.log(
+                                                        newCheckBoxState
+                                                    );
+                                                    if (
+                                                        newCheckBoxState.length <=
+                                                        0
+                                                    ) {
+                                                        newCheckBoxState.pop();
+                                                    } else {
+                                                        newCheckBoxState.splice(
+                                                            index,
+                                                            1
+                                                        );
+                                                    }
+                                                    console.log(
+                                                        newCheckBoxState
+                                                    );
+                                                    setCheckedMulti(
+                                                        newCheckBoxState
                                                     );
                                                 }
-                                            } else {
-                                                remove(index);
+                                                setClick(!click);
+                                            }}
+                                            variant="contained"
+                                            color={
+                                                getValues(
+                                                    `load_detail.${index}.method`
+                                                ) === "delete"
+                                                    ? "warning"
+                                                    : "error"
                                             }
-                                            setClick(!click);
-                                        }}
-                                        variant="contained"
-                                        color={
-                                            getValues(
+                                        >
+                                            {getValues(
                                                 `load_detail.${index}.method`
-                                            ) === "delete"
-                                                ? "warning"
-                                                : "error"
-                                        }
-                                    >
-                                        {getValues(
-                                            `load_detail.${index}.method`
-                                        ) === "delete" ? (
-                                            <Replay
-                                                sx={{
-                                                    width: "2rem",
-                                                    height: "2rem",
-                                                }}
-                                            ></Replay>
-                                        ) : (
-                                            <Cancel
-                                                sx={{
-                                                    width: "2rem",
-                                                    height: "2rem",
-                                                }}
-                                            ></Cancel>
-                                        )}
-                                    </IconButton>
-                                )}
+                                            ) === "delete" ? (
+                                                <Replay
+                                                    sx={{
+                                                        width: "2rem",
+                                                        height: "2rem",
+                                                    }}
+                                                ></Replay>
+                                            ) : (
+                                                <Cancel
+                                                    sx={{
+                                                        width: "2rem",
+                                                        height: "2rem",
+                                                    }}
+                                                ></Cancel>
+                                            )}
+                                        </IconButton>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}
@@ -852,7 +979,7 @@ export default function LoadingNoteForm() {
                             >
                                 <LoadingButton
                                     loading={isLoading}
-                                    disabled={!isPaid}
+                                    disabled={!isPaid || isExceed}
                                     type="submit"
                                     // onClick={() =>
                                     //     submitItem(getValues(), false)
