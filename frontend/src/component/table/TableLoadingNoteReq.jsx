@@ -198,7 +198,6 @@ export default function TableLoadingNoteReq({
                 cell: ({ getValue, row: { index }, column: { id }, table }) => {
                     const initVal = getValue();
                     const [value, setValue] = useState(initVal);
-                    console.log(value);
                     const onBlur = () => {
                         table.options.meta?.updateData(index, id, value);
                     };
@@ -287,7 +286,6 @@ export default function TableLoadingNoteReq({
                     });
                     setRows(data.data);
                 } else {
-                    console.log("data clean");
                     setRows([]);
                 }
             } catch (error) {

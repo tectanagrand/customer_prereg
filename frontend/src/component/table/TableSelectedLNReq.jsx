@@ -14,7 +14,7 @@ import {
 import { useMemo } from "react";
 // import PaginationActionButton from "./PaginationActionButton";
 
-export default function TableSelectedLNReq({ rowsData }) {
+export default function TableSelectedLNReq({ rowsData, sx }) {
     // const { onPaginationChange, pagination, limit, skip } = usePagination();
     // const { sorting, onSortingChange, order, field } = useSorting();
     // const { filters, onColumnFilterChange } = useFilter();
@@ -85,6 +85,7 @@ export default function TableSelectedLNReq({ rowsData }) {
             <TableContainer
                 sx={{
                     height: "20rem",
+                    ...sx,
                 }}
             >
                 <Table stickyHeader>
