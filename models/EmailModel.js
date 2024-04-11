@@ -136,4 +136,20 @@ EmailModel.NotifyCreateDriverNVehi = async (
         throw error;
     }
 };
+
+EmailModel.CancelLoadingNote = async (remark, loadingnotereq, target) => {
+    try {
+        const tp = EmailTP.Transporter();
+        const EmailHTML = EmailGen.CancelLoadingNote(loadingnotereq, remark);
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: target,
+            subject: `Loading Note Request Canceled`,
+            html: EmailHTML,
+        };
+        await tp.sendMail(setup);
+    } catch (error) {
+        throw error;
+    }
+};
 module.exports = EmailModel;
