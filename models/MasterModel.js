@@ -72,18 +72,36 @@ MasterModel.getVehicleData = async (q, limit, offset) => {
 
 MasterModel.getSOData = async do_num => {
     const client = new noderfc.Client({ dest: "Q13" });
+    const psqlclient = await db.connect();
     await client.open();
     try {
         let totalPay = 0;
+        let totalFromSAP = 0;
         const param = {
             I_VBELN: do_num,
         };
-        const { I_ZPINO, I_ZSLIP, RFC_TEXT } = await client.call(
-            "ZRFC_PRE_REGISTRA_SLIP",
-            param
+        const rfcResponse = await client.call("ZRFC_PRE_REGISTRA_SLIP", param);
+        const { rows: tempLoadingNote } = await psqlclient.query(
+            `SELECT SUM(PLAN_QTY) AS plan_qty
+        FROM LOADING_NOTE_DET DET
+        LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+        WHERE HD.ID_DO = $1
+            AND DET.IS_ACTIVE = TRUE
+            AND DET.LN_NUM IS NULL`,
+            [do_num]
         );
-        const data = await client.call("ZRFC_PRE_REGISTRA_SLIP", param);
-        console.log(data);
+        const qtyTemp = parseFloat(tempLoadingNote[0].plan_qty) ?? 0;
+        let I_ZPINO = rfcResponse.I_ZPINO;
+        let I_ZSLIP = rfcResponse.I_ZSLIP;
+        rfcResponse.I_OUTDELIVERY.map(item => {
+            let planning = parseFloat(item.PLN_LFIMG);
+            let real = parseFloat(item.L_LFIMG);
+            totalFromSAP += real === 0 ? planning : real;
+        });
+        console.log(rfcResponse);
+        console.log(qtyTemp);
+        console.log(totalFromSAP);
+
         if (I_ZSLIP.length === 0) {
             throw new Error("SO Not Found");
         }
@@ -98,6 +116,7 @@ MasterModel.getSOData = async do_num => {
 
         const SLIP = {
             ...SLIPZ,
+            KWMENG: parseFloat(SLIPZ.KWMENG.split(".")[0]),
             ZTTLPROF: SLIPZ.ZTTLPROF.trim()
                 .replace(/[.,]/g, "")
                 .replace(",", "."),
@@ -107,10 +126,13 @@ MasterModel.getSOData = async do_num => {
             PINO: PINO,
             OS: parseFloat(SLIP.ZTTLPROF) - totalPay,
             IS_PAID: parseFloat(SLIP.ZTTLPROF) - totalPay > 5000 ? false : true,
+            TOTALSPEND: totalFromSAP + qtyTemp,
         };
     } catch (error) {
         console.log(error);
         throw error;
+    } finally {
+        psqlclient.release();
     }
 };
 
@@ -345,6 +367,7 @@ MasterModel.getOSDataCust2 = async (limit, offset, q) => {
                 AND DET.ln_num is null
                 AND DET.push_sap_date is null
                 AND hed.cur_pos = 'FINA'
+                AND det.is_active = true 
                 LIMIT $3 OFFSET $4`,
                 [`%${q}%`, `%${q}%`, limit, offset]
             );
@@ -356,6 +379,7 @@ MasterModel.getOSDataCust2 = async (limit, offset, q) => {
                 WHERE( CUST.kunnr like $1 OR cust.name_1 like $2)
                 AND DET.ln_num is null
                 AND DET.push_sap_date is null
+                AND det.is_active = true 
                 AND hed.cur_pos = 'FINA'`,
                 [`%${q}%`, `%${q}%`]
             );
@@ -386,6 +410,7 @@ MasterModel.getOSDataCustWB = async (limit, offset, q) => {
                 AND DET.PUSH_SAP_DATE IS NOT NULL 
                 AND DET.LN_NUM IS NOT NULL
                 AND hed.cur_pos = 'FINA'
+                AND det.is_active = true 
                 LIMIT $3 OFFSET $4`,
                 [`%${q}%`, `%${q}%`, limit, offset]
             );
@@ -397,7 +422,8 @@ MasterModel.getOSDataCustWB = async (limit, offset, q) => {
                 WHERE( cust.kunnr like $1 OR cust.name_1 like $2)
                 AND DET.PUSH_SAP_DATE IS NOT NULL 
                 AND DET.LN_NUM IS NOT NULL
-                AND hed.cur_pos = 'FINA'`,
+                AND hed.cur_pos = 'FINA'
+                AND det.is_active = true `,
                 [`%${q}%`, `%${q}%`]
             );
             return {

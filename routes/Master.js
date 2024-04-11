@@ -17,5 +17,6 @@ router.get("/vhcl", MasterController.getVehicleDataDB);
 router.get("/drvr", MasterController.getDriverDataDB);
 router.get("/city", MasterController.getDataCities);
 router.get("/plt", MasterController.getCompanyPlant);
+router.get("/mediatp", MasterController.getMediaTP);
 
 module.exports = router;

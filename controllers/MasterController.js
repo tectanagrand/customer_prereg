@@ -331,4 +331,26 @@ MasterController.getCompanyPlant = async (req, res) => {
     }
 };
 
+MasterController.getMediaTP = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(`
+            SELECT key_item as value, key_desc as label
+            FROM mst_key
+            WHERE type = 'MEDTP' AND is_active = true`);
+            res.status(200).send(rows);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = MasterController;
