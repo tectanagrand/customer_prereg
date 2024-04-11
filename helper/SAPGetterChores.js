@@ -9,9 +9,11 @@ const EmailModel = require("../models/EmailModel");
 const SAPGetterChores = {};
 
 SAPGetterChores.LoadingNoteSync = async () => {
+    let psqlclient;
+    let oraclient;
     try {
-        const psqlclient = await psqlconn.connect();
-        const oraclient = await ora.getConnection();
+        psqlclient = await psqlconn.connect();
+        oraclient = await ora.getConnection();
         const email_creator = new Map();
         const email_updater = new Map();
         const email_wb = new Map();
@@ -189,6 +191,12 @@ SAPGetterChores.LoadingNoteSync = async () => {
         }
     } catch (error) {
         console.error(error);
+        if (psqlclient) {
+            psqlclient.release();
+        }
+        if (oraclient) {
+            oraclient.release();
+        }
         throw error;
     }
 };
