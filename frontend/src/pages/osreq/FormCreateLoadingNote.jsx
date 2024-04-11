@@ -24,6 +24,7 @@ import { debounce } from "lodash";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import { useSession } from "../../provider/sessionProvider";
+import { TextFieldComp } from "../../component/input/TextFieldComp";
 
 export default function FormCreateLoadingNote() {
     const {
@@ -44,13 +45,26 @@ export default function FormCreateLoadingNote() {
             selected_req: [],
         },
     });
+    const {
+        control: controlCancel,
+        handleSubmit: cancelSubmit,
+        clearErrors: cancelClearErrors,
+        setValue: setCancelValue,
+    } = useForm({
+        defaultValues: {
+            cancel_remark: "",
+            selected_cancel: [],
+        },
+    });
     const [DoNum, setDoNum] = useState("");
     const [CustNum, setCustNum] = useState("");
     const [slocop, setSlocop] = useState([]);
     const [valtypeOp, setvpOp] = useState([]);
     const [isLoading, _setLoading] = useState(false);
     const [loadingPush, setLoadingPush] = useState(false);
+    const [loadingCancel, setLoadingCancel] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [cancelOpen, setCancelOpen] = useState(false);
     const [selectedRows, _setSelected] = useState([]);
     const [resetRow, setResetRow] = useState(false);
     const [modalSuccess, setModalscs] = useState(false);
@@ -109,17 +123,6 @@ export default function FormCreateLoadingNote() {
             }
         })();
     }, [firstRow]);
-
-    // useEffect(() => {
-    //     (async () => {
-    //         try {
-    //             const { data } = await Axios.get("/master/valtype");
-    //             setvpOp(data);
-    //         } catch (error) {
-    //             console.error(error);
-    //         }
-    //     })();
-    // }, []);
 
     useEffect(() => {
         (async () => {
@@ -190,8 +193,29 @@ export default function FormCreateLoadingNote() {
         if (e.key === "Enter") e.preventDefault();
     };
     const submitItem = values => {
-        console.log(values);
         setModalOpen(true);
+    };
+
+    const cancelModal = e => {
+        console.log(selectedRows);
+        setCancelOpen(true);
+        setCancelValue("selected_cancel", selectedRows);
+    };
+
+    const cancelReq = async values => {
+        console.log(values);
+        setLoadingCancel(true);
+        try {
+            const cancelData = await Axios.post("/ln/cancel", values);
+            toast.success("Data request cancelled");
+            setCancelOpen(false);
+            setResetRow(!resetRow);
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response.data.message);
+        } finally {
+            setLoadingCancel(false);
+        }
     };
 
     const pushSAP = async () => {
@@ -205,7 +229,6 @@ export default function FormCreateLoadingNote() {
             oth_sloc_desc: payload.oth_sloc.label.split("-")[1].trim(),
             oth_valtype: payload.oth_valtype.value,
         };
-        console.log(newPayload);
 
         setLoadingPush(true);
         // setTimeout(() => {
@@ -424,25 +447,35 @@ export default function FormCreateLoadingNote() {
                         })}
                         hidden
                     />
-                    <LoadingButton
-                        variant="contained"
-                        sx={{ m: 3, maxWidth: "10rem", height: "4rem" }}
-                        loading={isLoading}
-                        // onClick={() => {
-                        //     if (isValid) {
-                        //         setModalOpen(true);
-                        //     }
-                        // }}
-                        type="submit"
-                    >
-                        Push To SAP
-                    </LoadingButton>
+                    <Box>
+                        {who === "log" && (
+                            <>
+                                <Button
+                                    color="warning"
+                                    onClick={cancelModal}
+                                    disabled={selectedRows.length === 0}
+                                >
+                                    Cancel Request
+                                </Button>
+                            </>
+                        )}
+
+                        <LoadingButton
+                            variant="contained"
+                            sx={{ m: 3, maxWidth: "10rem", height: "4rem" }}
+                            loading={isLoading}
+                            // onClick={() => {
+                            //     if (isValid) {
+                            //         setModalOpen(true);
+                            //     }
+                            // }}
+                            type="submit"
+                        >
+                            Push To SAP
+                        </LoadingButton>
+                    </Box>
                 </form>
-                <Dialog
-                    open={modalOpen}
-                    maxWidth="xl"
-                    sx={{ zIndex: theme => theme.zIndex.drawer - 2 }}
-                >
+                <Dialog open={modalOpen} maxWidth="xl">
                     <DialogTitle>SAP Generate Loading Note</DialogTitle>
 
                     <Box
@@ -532,6 +565,63 @@ export default function FormCreateLoadingNote() {
                         <Typography variant="h4">
                             Loading Note Pushed to Staging
                         </Typography>
+                    </Box>
+                </Dialog>
+                <Dialog
+                    open={cancelOpen}
+                    onClose={() => {
+                        setCancelOpen(false);
+                        cancelClearErrors();
+                    }}
+                    maxWidth="xl"
+                >
+                    <DialogTitle>Cancel Loading Note</DialogTitle>
+                    <Box
+                        sx={{
+                            width: "80em",
+                            height: "30rem",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 5,
+                            p: 2,
+                            mb: 3,
+                        }}
+                    >
+                        <Typography variant="h4">
+                            Cancel Loading Note Request :
+                        </Typography>
+                        <form onSubmit={cancelSubmit(cancelReq)}>
+                            <TextFieldComp
+                                control={controlCancel}
+                                name="cancel_remark"
+                                label="Cancel Reason"
+                                sx={{ mb: "1rem" }}
+                                rules={{
+                                    required:
+                                        "Please write cancellation reason",
+                                }}
+                            />
+                            <TableSelectedLNReq
+                                rowsData={selectedRows}
+                                sx={{ height: "15rem" }}
+                            />
+                            <DialogActions>
+                                <Button
+                                    onClick={() => {
+                                        setCancelOpen(false);
+                                        cancelClearErrors();
+                                    }}
+                                >
+                                    Close
+                                </Button>
+                                <LoadingButton
+                                    loading={loadingCancel}
+                                    type="submit"
+                                >
+                                    Process
+                                </LoadingButton>
+                            </DialogActions>
+                        </form>
                     </Box>
                 </Dialog>
             </>
