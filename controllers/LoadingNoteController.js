@@ -63,6 +63,22 @@ LoadingNoteController.SubmitSAP = async (req, res) => {
     }
 };
 
+LoadingNoteController.cancelReqLN = async (req, res) => {
+    try {
+        const payload = req.body;
+        const session = req.cookies;
+        const cancelLN = await LoadNote.cancelLoadingNote(payload, session);
+        res.status(200).send({
+            message: cancelLN,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 LoadingNoteController.showAll = async (req, res) => {
     try {
         const data = await LoadNote.showAllLoadNote();

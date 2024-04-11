@@ -161,6 +161,8 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                     create_by: session.id_user,
                     is_active: true,
                     is_pushed: false,
+                    is_multi: rows.is_multi,
+                    multi_do: rows.multi_do,
                 };
                 if (rows.id_detail === "") {
                     [que, val] = crud.insertItem(
@@ -474,6 +476,8 @@ LoadingNoteModel.showSLoc = async plant => {
 LoadingNoteModel.getById = async id_header => {
     try {
         const client = await db.connect();
+        const rfcclient = new noderfc.Client({ dest: "Q13" });
+        await rfcclient.open();
         try {
             const { rows } = await client.query(
                 `SELECT HD.*,
@@ -493,8 +497,19 @@ LoadingNoteModel.getById = async id_header => {
                 loading_date: item.cre_date,
                 planned_qty: item.plan_qty,
                 media_tp: item.media_tp,
+                multi_do: item.multi_do,
+                is_multi: item.is_multi,
             }));
             const hd_dt = rows[0];
+            const rfcResponse = await rfcclient.call("ZRFC_PRE_REGISTRA_SLIP", {
+                I_VBELN: hd_dt.id_do,
+            });
+            let totalFromSAP = 0;
+            rfcResponse.I_OUTDELIVERY.map(item => {
+                let planning = parseFloat(item.PLN_LFIMG);
+                let real = parseFloat(item.L_LFIMG);
+                totalFromSAP += real === 0 ? planning : real;
+            });
             const resp = {
                 do_num: hd_dt.id_do,
                 inv_type: hd_dt.invoice_type,
@@ -505,6 +520,7 @@ LoadingNoteModel.getById = async id_header => {
                 con_num: hd_dt.con_num,
                 material: hd_dt.material,
                 con_qty: hd_dt.con_qty,
+                os_qty: parseFloat(hd_dt.con_qty) - totalFromSAP,
                 plant: hd_dt.plant,
                 description: hd_dt.desc_con,
                 uom: hd_dt.uom,
@@ -519,11 +535,21 @@ LoadingNoteModel.getById = async id_header => {
                 oth_batch: hd_dt.oth_batch,
                 oth_val_type: hd_dt.oth_valtype,
             };
+            const { rows: tempLoadingNote } = await client.query(
+                `SELECT SUM(PLAN_QTY) AS plan_qty
+            FROM LOADING_NOTE_DET DET
+            LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+            WHERE HD.ID_DO = $1
+                AND DET.IS_ACTIVE = TRUE
+                AND DET.LN_NUM IS NULL`,
+                [hd_dt.id_do]
+            );
             return {
                 data: resp,
                 id_header: hd_dt.hd_id,
                 cur_pos: hd_dt.cur_pos,
                 is_paid: hd_dt.is_paid,
+                cur_planqty: tempLoadingNote[0].plan_qty,
             };
         } catch (error) {
             throw error;
@@ -601,9 +627,9 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
             let filterStr = "";
             let whoFilter = "";
             if (who !== "wb") {
-                whoFilter = `WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA'`;
+                whoFilter = `WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true`;
             } else {
-                whoFilter = `WHERE DET.PUSH_SAP_DATE IS NOT NULL AND DET.LN_NUM IS NOT NULL AND HD.CUR_POS = 'FINA'`;
+                whoFilter = `WHERE DET.PUSH_SAP_DATE IS NOT NULL AND DET.LN_NUM IS NOT NULL AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true`;
             }
             if (filters.length !== 0) {
                 let idx = 1;
@@ -625,6 +651,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
                 HD.RULES,
                 HD.company,
                 HD.material,
+                HD.desc_con,
                 DET.fac_plant,
                 DET.oth_plant,
                 DET.fac_sloc,
@@ -635,6 +662,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
                 DET.oth_valtype,
                 DET.media_tp,
                 DET.driver_id,
+                DET.create_by,
                 DET.ln_num,
                 CUST.KUNNR as cust_code,
                 CUST.name_1 as cust_name,
@@ -643,7 +671,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
                     ' - ',
                     DET.DRIVER_NAME) AS DRIVER,
                 DET.VHCL_ID,
-                TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE,
+                TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
                 DET.cre_date as CREATE_DATE,
                 DET.PLAN_QTY,
                 HD.UOM
@@ -714,7 +742,7 @@ LoadingNoteModel.getOSLoadingNoteNum2 = async (limit, offset, cust) => {
 				LEFT JOIN mst_user u on u.id_user = hd.create_by
 				LEFT JOIN mst_customer c on c.kunnr = u.username
                 WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
-                AND c.kunnr = $1
+                AND c.kunnr = $1 AND det.is_active = true
                 LIMIT $2 OFFSET $3
                 `,
                 [cust, limit, offset]
@@ -724,7 +752,7 @@ LoadingNoteModel.getOSLoadingNoteNum2 = async (limit, offset, cust) => {
                 LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
 				LEFT JOIN mst_user u on u.id_user = hd.create_by
 				LEFT JOIN mst_customer c on c.kunnr = u.username
-                WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
+                WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA' AND det.is_active = true
                 AND c.kunnr = $1`,
                 [cust]
             );
@@ -758,6 +786,7 @@ LoadingNoteModel.getOSLoadingNoteNumWB = async (limit, offset, cust) => {
                 AND DET.LN_NUM IS NOT NULL
                 AND hd.cur_pos = 'FINA'
                 AND c.kunnr = $1
+                AND det.is_active = true 
                 LIMIT $2 OFFSET $3
                 `,
                 [cust, limit, offset]
@@ -770,6 +799,7 @@ LoadingNoteModel.getOSLoadingNoteNumWB = async (limit, offset, cust) => {
                 WHERE  DET.PUSH_SAP_DATE IS NOT NULL 
                 AND DET.LN_NUM IS NOT NULL
                 AND hd.cur_pos = 'FINA'
+                AND det.is_active = true 
                 AND c.kunnr = $1`,
                 [cust]
             );
@@ -1017,6 +1047,80 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
         } finally {
             client.release();
             oraclient.close();
+        }
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
+
+LoadingNoteModel.cancelLoadingNote = async (params, session) => {
+    try {
+        let client;
+        client = await db.connect();
+        try {
+            await client.query(TRANS.BEGIN);
+            const canceledData = params.selected_cancel;
+            let cancelledRows = [];
+            let target = new Set();
+            const remarks = params.cancel_remark;
+            const today = new Date();
+            const [queDel, valDel] = crud.updateItem(
+                "loading_note_hd",
+                { cancel_msg: cancel_remark },
+                { hd_id: canceledData[0].hd_id },
+                "hd_id"
+            );
+            await client.query(queDel, valDel);
+            for (const data of canceledData) {
+                // const {rows} = await client.query('SELECT ln_num WHERE det_id = $1', [data.id]) ;
+                console.log(data.create_by);
+                target.add(data.create_by);
+                cancelledRows.push(`
+                <tr>
+                    <td>${data.driver}</td>
+                    <td>${data.vhcl_id}</td>
+                    <td>${data.cre_date}</td>
+                    <td>${data.desc_con} (${data.material})</td>
+                    <td>${data.plan_qty.replace(
+                        /\B(?=(\d{3})+(?!\d))/g,
+                        ","
+                    )} ${data.uom}</td>
+                </tr> 
+                `);
+                const [queCh, valCh] = crud.updateItem(
+                    "loading_note_det",
+                    {
+                        is_active: false,
+                        update_by: session.id_user,
+                        update_at: today,
+                    },
+                    { det_id: data.id },
+                    "det_id"
+                );
+                await client.query(queCh, valCh);
+            }
+            let arrayOfUser = Array.from(target).map(item => `${item}`);
+            console.log(arrayOfUser);
+            const { rows } = await client.query(
+                `SELECT STRING_AGG(EMAIL, ',') AS EMAIL FROM MST_EMAIL WHERE ID_USER IN ($1)`,
+                [arrayOfUser.join(",")]
+            );
+            const finalTarget = rows.map(item => item.email).join(",");
+            await EmailModel.CancelLoadingNote(
+                remarks,
+                cancelledRows.join(" "),
+                finalTarget
+            );
+            await client.query(TRANS.COMMIT);
+            return {
+                message: "Loading Note Cancelled",
+            };
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
         }
     } catch (error) {
         console.log(error);
@@ -1323,17 +1427,19 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             DET.VHCL_ID,
             DET.PLAN_QTY,
             TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
+            TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE_MOMENT,
             HD.UOM,
             DET.BRUTO,
             DET.TARRA,
             DET.NETTO,
             DET.RECEIVE,
-            DET.DEDUCTION
+            DET.DEDUCTION,
+            COALESCE(DET.print_count, 0) as print_count
         FROM LOADING_NOTE_DET DET
         LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
         LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
         LEFT JOIN MST_CUSTOMER CUST ON USR.SAP_CODE = CUST.KUNNR
-        WHERE DET.PUSH_SAP_DATE IS NOT NULL`;
+        WHERE DET.LN_NUM IS NOT NULL`;
     let where = [];
     let whereVal = [];
     let ltindex = 0;
