@@ -437,6 +437,15 @@ export default function VehicleDashboard() {
                                     {errors.foto_sim.message}
                                 </p>
                             )}
+                            <p
+                                style={{
+                                    color: "red",
+                                    margin: "0 0 0 1rem",
+                                    fontSize: "10pt",
+                                }}
+                            >
+                                {`Format file : jpg, jpeg, png (Max size : 3mb)`}
+                            </p>
                         </div>
                         <input
                             {...register("foto_sim", {
