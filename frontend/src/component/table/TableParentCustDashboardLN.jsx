@@ -408,7 +408,10 @@ export default function TableParentCustDashboard() {
                     </TableRow>
                 </TableFooter>
             </Table>
-            <Backdrop open={backDrop}>
+            <Backdrop
+                open={backDrop}
+                sx={{ zIndex: theme => theme.zIndex.modal + 2 }}
+            >
                 <CircularProgress />
             </Backdrop>
             <Dialog
