@@ -17,12 +17,13 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Viewer } from "@react-pdf-viewer/core";
 import PatternInputComp from "../../component/input/PatternInputTxt";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import TableDriver from "../../component/table/TableDriver";
 import { useTheme } from "@mui/material/styles";
 
 export default function VehicleDashboard() {
+    const axiosPrivate = useAxiosPrivate();
     const [dialogOpen, setOpenDg] = useState(false);
     const [refresh, setRefresh] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -58,19 +59,21 @@ export default function VehicleDashboard() {
 
     const EditData = async id => {
         try {
-            const { data: fileData } = await Axios.get(
+            const { data: fileData } = await axiosPrivate.get(
                 `/file/filesim?id=${id}`,
                 {
                     responseType: "blob",
                 }
             );
-            const { data: photoData } = await Axios.get(
+            const { data: photoData } = await axiosPrivate.get(
                 `/file/driverfoto?id=${id}`,
                 {
                     responseType: "blob",
                 }
             );
-            const { data: dataSim } = await Axios.get(`/file/sim?id=${id}`);
+            const { data: dataSim } = await axiosPrivate.get(
+                `/file/sim?id=${id}`
+            );
 
             // Read additional data line by line
             setIdRow(id);
@@ -108,7 +111,7 @@ export default function VehicleDashboard() {
 
     const DeleteData = async id => {
         try {
-            const { data } = await Axios.post("/file/deletesim", {
+            const { data } = await axiosPrivate.post("/file/deletesim", {
                 id: id,
             });
             toast.success(data.message);
@@ -149,7 +152,7 @@ export default function VehicleDashboard() {
         form.append("alamat", values.alamat);
         form.append("id_row", id_row);
         try {
-            const { data } = await Axios.post("/file/sim", form, {
+            const { data } = await axiosPrivate.post("/file/sim", form, {
                 withCredentials: true,
             });
             onCloseModal();
@@ -183,7 +186,7 @@ export default function VehicleDashboard() {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await Axios.get("/master/city");
+                const { data } = await axiosPrivate.get("/master/city");
                 setCityop(data);
             } catch (error) {
                 console.error(error);

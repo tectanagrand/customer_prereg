@@ -11,7 +11,7 @@ import {
 import { Cancel, Replay } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import AutoSelectVehicle from "./AutoselectVehicle";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useRef, useState, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import SelectComp from "../../component/input/SelectComp";
@@ -52,7 +52,7 @@ export default function LoadingNoteForm() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
-
+    const axiosPrivate = useAxiosPrivate();
     const [searchParams] = useSearchParams();
     const [click, setClick] = useState(false);
     const [slocOP, setSloc] = useState([]);
@@ -123,7 +123,7 @@ export default function LoadingNoteForm() {
             try {
                 const idloadnote = searchParams.get("idloadnote");
                 if (idloadnote) {
-                    const { data } = await Axios.get(
+                    const { data } = await axiosPrivate.get(
                         "ln/id?idloadnote=" + idloadnote
                     );
                     let checkedMulti = [];
@@ -186,7 +186,7 @@ export default function LoadingNoteForm() {
 
     useEffect(() => {
         (async () => {
-            const { data } = await Axios.get(
+            const { data } = await axiosPrivate.get(
                 `master/sloc?plant=${pltRule.plant}&material=${pltRule.material}`
             );
             setSloc(data.sloc);
@@ -196,7 +196,7 @@ export default function LoadingNoteForm() {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await Axios.get("/master/mediatp");
+                const { data } = await axiosPrivate.get("/master/mediatp");
                 setMedTPOP(data);
             } catch (error) {
                 console.error(error);
@@ -241,12 +241,16 @@ export default function LoadingNoteForm() {
         setLoading(true);
         try {
             if (position.current === "FINA") {
-                const { data } = await Axios.post("/ln/pushsap", payload, {
-                    withCredentials: true,
-                });
+                const { data } = await axiosPrivate.post(
+                    "/ln/pushsap",
+                    payload,
+                    {
+                        withCredentials: true,
+                    }
+                );
                 toast.success(data.message);
             } else {
-                const { data } = await Axios.post("/ln/save", payload, {
+                const { data } = await axiosPrivate.post("/ln/save", payload, {
                     withCredentials: true,
                 });
                 toast.success(data.message);
@@ -279,7 +283,9 @@ export default function LoadingNoteForm() {
     const handleCheckSO = async value => {
         setLoading(true);
         try {
-            const { data } = await Axios.get(`/master/do?do_num=${value}`);
+            const { data } = await axiosPrivate.get(
+                `/master/do?do_num=${value}`
+            );
             const slip = data.SLIP;
             const dataMap = {
                 do_num: value,
@@ -309,7 +315,7 @@ export default function LoadingNoteForm() {
                 }
             });
             setPaid(data.IS_PAID);
-            const { data: slocList } = await Axios.get(
+            const { data: slocList } = await axiosPrivate.get(
                 "master/sloc?plant=" +
                     dataMap.plant +
                     "&material=" +

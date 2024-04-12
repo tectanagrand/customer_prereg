@@ -4,11 +4,12 @@ import { DoDisturb, Edit, SystemUpdate } from "@mui/icons-material";
 import { useSession } from "../../provider/sessionProvider";
 import { useNavigate } from "react-router";
 import { DataGrid } from "@mui/x-data-grid";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import ProgressStat from "../../component/common/ProgressStat";
 import { useTheme } from "@mui/material/styles";
 
 export default function MasterLoadingNote() {
+    const axiosPrivate = useAxiosPrivate();
     const [loadNote, setLoadNote] = useState();
     const [load, setLoad] = useState(false);
     const { getPermission } = useSession();
@@ -23,9 +24,12 @@ export default function MasterLoadingNote() {
     useEffect(() => {
         const allow = getPermission("Loading Note").fcreate;
         const getAllDataUser = async () => {
-            const { data } = await Axios.get("/ln/lnuser?isallow=" + allow, {
-                withCredentials: true,
-            });
+            const { data } = await axiosPrivate.get(
+                "/ln/lnuser?isallow=" + allow,
+                {
+                    withCredentials: true,
+                }
+            );
             // console.log(getUser.data.data);
             setLoadNote(data.data);
             setLoad(false);

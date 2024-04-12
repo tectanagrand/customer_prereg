@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "../../provider/sessionProvider";
 import { useTheme } from "@mui/material/styles";
 import { Cancel, Password } from "@mui/icons-material";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import {
     useSearchParams,
     useNavigate,
@@ -30,6 +30,7 @@ import AutocompleteComp from "../../component/input/AutocompleteComp";
 export default function NewUserRegFormPage() {
     // const [customerID, setCustID] = useState("");
     // const [customerName, setCustName] = useState("");
+    const axiosPrivate = useAxiosPrivate();
     const navigate = useNavigate();
     const location = useLocation();
     const [role, _setRole] = useState("");
@@ -93,7 +94,8 @@ export default function NewUserRegFormPage() {
         const getRole = async () => {
             try {
                 // const getRole = await axiosPrivate.get(`/user/roles`);
-                const { data: preFormData } = await Axios.get(`/user/preform`);
+                const { data: preFormData } =
+                    await axiosPrivate.get(`/user/preform`);
                 const role = preFormData.role.map(item => ({
                     value: item.role_id,
                     label: item.role_name,
@@ -109,7 +111,7 @@ export default function NewUserRegFormPage() {
     useEffect(() => {
         if (searchParams.get("iduser")) {
             (async () => {
-                const { data } = await Axios.get(
+                const { data } = await axiosPrivate.get(
                     "/user/showbyid?id_user=" + searchParams.get("iduser"),
                     { withCredentials: true }
                 );
@@ -134,7 +136,7 @@ export default function NewUserRegFormPage() {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await Axios.get("/master/plt");
+                const { data } = await axiosPrivate.get("/master/plt");
                 setPlantop(data);
             } catch (error) {
                 console.error(error);
@@ -171,7 +173,7 @@ export default function NewUserRegFormPage() {
         setLoading(true);
         try {
             if (!!searchParams.get("iduser")) {
-                await Axios.post("/user/edituser", payload, {
+                await axiosPrivate.post("/user/edituser", payload, {
                     withCredentials: true,
                 });
                 toast.success("User Updated");
@@ -179,7 +181,7 @@ export default function NewUserRegFormPage() {
                     navigate("/dashboard/users");
                 }, 1000);
             } else {
-                await Axios.post("/user/register", payload, {
+                await axiosPrivate.post("/user/register", payload, {
                     withCredentials: true,
                 });
                 toast.success("new user registration on process");

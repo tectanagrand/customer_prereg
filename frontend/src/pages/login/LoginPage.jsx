@@ -6,7 +6,7 @@ import { TextFieldComp } from "../../component/input/TextFieldComp";
 import imgbg from "../../images/gama-tower.jpg";
 import KpnNav from "../../images/kpn-logo.svg?react";
 import LazyBackground from "./LazyBackground";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import { useSession } from "../../provider/sessionProvider";
 import { useMenu } from "../../provider/MenuProvider";
@@ -16,6 +16,7 @@ import { LoadingButton } from "@mui/lab";
 export default function LoginPage() {
     const { setSession } = useSession();
     const { setMenu } = useMenu();
+    const axiosPrivate = useAxiosPrivate();
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const defaultValue = {
@@ -25,7 +26,7 @@ export default function LoginPage() {
     const loginUser = async values => {
         try {
             setLoading(true);
-            const { data: userData } = await Axios.post("/user/login", {
+            const { data: userData } = await axiosPrivate.post("/user/login", {
                 unemail: values.username,
                 password: values.password,
             });

@@ -1,4 +1,4 @@
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import {
     flexRender,
     getCoreRowModel,
@@ -22,6 +22,7 @@ import { useTheme } from "@mui/material/styles";
 
 export default function TableVehicle({ refresh, editData, deleteData }) {
     const theme = useTheme();
+    const axiosPrivate = useAxiosPrivate();
     const [rows, setRows] = useState([]);
     const rowData = useMemo(() => rows, [rows]);
     // const { onPaginationChange, pagination, limit, skip } = usePagination();
@@ -115,7 +116,7 @@ export default function TableVehicle({ refresh, editData, deleteData }) {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await Axios.get("/master/vhcl");
+                const { data } = await axiosPrivate.get("/master/vhcl");
                 setRows(data);
             } catch (error) {
                 console.error(error);

@@ -13,11 +13,12 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Viewer } from "@react-pdf-viewer/core";
 import PatternInputComp from "../../component/input/PatternInputTxt";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import TableVehicle from "../../component/table/TableVehicle";
 
 export default function VehicleDashboard() {
+    const axiosPrivate = useAxiosPrivate();
     const [dialogOpen, setOpenDg] = useState(false);
     const [refresh, setRefresh] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -62,13 +63,15 @@ export default function VehicleDashboard() {
 
     const EditData = async id => {
         try {
-            const { data: fileData } = await Axios.get(
+            const { data: fileData } = await axiosPrivate.get(
                 `/file/filestnk?id=${id}`,
                 {
                     responseType: "blob",
                 }
             );
-            const { data: dataStnk } = await Axios.get(`/file/stnk?id=${id}`);
+            const { data: dataStnk } = await axiosPrivate.get(
+                `/file/stnk?id=${id}`
+            );
             // Read additional data line by line
             setIdRow(id);
             reset({
@@ -95,7 +98,7 @@ export default function VehicleDashboard() {
 
     const DeleteData = async id => {
         try {
-            const { data } = await Axios.post("/file/deletestnk", {
+            const { data } = await axiosPrivate.post("/file/deletestnk", {
                 id: id,
             });
             toast.success(data.message);
@@ -139,7 +142,7 @@ export default function VehicleDashboard() {
         );
         form.append("id_row", id_row);
         try {
-            const { data } = await Axios.post("/file/stnk", form, {
+            const { data } = await axiosPrivate.post("/file/stnk", form, {
                 withCredentials: true,
             });
             onCloseModal();

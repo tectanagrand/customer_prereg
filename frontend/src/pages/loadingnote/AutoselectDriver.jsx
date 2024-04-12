@@ -1,5 +1,5 @@
 import { LazySelectComp } from "../../component/input/LazySelectComp";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useState, useRef, useEffect } from "react";
 import { debounce } from "lodash";
 
@@ -10,6 +10,7 @@ export default function AutoSelectDriver({
     rules,
     ...props
 }) {
+    const axiosPrivate = useAxiosPrivate();
     const limit = 10;
     const max = 999999;
     const [dataRow, setDataRow] = useState([]);
@@ -24,7 +25,7 @@ export default function AutoSelectDriver({
     const fetchData = async (limit, offset, q) => {
         setLoading(true);
         try {
-            const { data: rowData } = await Axios.get(
+            const { data: rowData } = await axiosPrivate.get(
                 `master/driver?q=${q}&limit=${limit}&offset=${offset}`
             );
             return {

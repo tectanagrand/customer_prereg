@@ -31,7 +31,7 @@ import {
     Edit,
 } from "@mui/icons-material";
 import { useEffect, useMemo, useState } from "react";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { Fragment } from "react";
@@ -39,6 +39,7 @@ import PaginationActionButton from "../../component/table/PaginationActionButton
 import AutocompleteFilter from "../../component/input/AutocompleteFilterComp";
 
 function TableChildLastReq({ dataChild }) {
+    const axiosPrivate = useAxiosPrivate();
     const columns = useMemo(
         () => [
             {
@@ -256,7 +257,7 @@ export default function TableParentLastOSReq() {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await Axios.get("/ln/lastreq");
+                const { data } = await axiosPrivate.get("/ln/lastreq");
                 setDataCust(data);
             } catch (error) {
                 console.error(error);

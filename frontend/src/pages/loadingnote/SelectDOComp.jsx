@@ -1,8 +1,9 @@
 import SelectComp from "../../component/input/SelectComp";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useEffect, useState } from "react";
 
 export default function SelectDOComp({ control, name, label, preop }) {
+    const axiosPrivate = useAxiosPrivate();
     const [isLoading, setLoading] = useState(false);
     const [doOP, setDOOp] = useState([]);
 
@@ -13,7 +14,7 @@ export default function SelectDOComp({ control, name, label, preop }) {
     const getDataDO = async () => {
         try {
             setLoading(true);
-            const { data } = await Axios.get("/master/dolist", {
+            const { data } = await axiosPrivate.get("/master/dolist", {
                 withCredentials: true,
             });
             setDOOp(data);

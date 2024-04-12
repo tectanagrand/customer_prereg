@@ -10,9 +10,10 @@ import KpnNav from "../../images/kpn-logo.svg?react";
 import { LoadingButton } from "@mui/lab";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 
 export default function NewUserPass() {
+    const axiosPrivate = useAxiosPrivate();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { control, handleSubmit } = useForm({
@@ -30,7 +31,7 @@ export default function NewUserPass() {
         setLoading(true);
 
         try {
-            const submitValidation = await Axios.post(
+            const submitValidation = await axiosPrivate.post(
                 "/user/setpwdnew",
                 values,
                 {

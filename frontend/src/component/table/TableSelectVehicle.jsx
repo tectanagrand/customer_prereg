@@ -1,4 +1,4 @@
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import {
     flexRender,
     getCoreRowModel,
@@ -20,6 +20,7 @@ import { checkboxClasses } from "@mui/material";
 
 export default function TableSelectVehicle({ refresh, setSelectedRowsUp }) {
     const theme = useTheme();
+    const axiosPrivate = useAxiosPrivate();
     const [rows, setRows] = useState([]);
     const rowData = useMemo(() => rows, [rows]);
     const [rowSelected, setSelectedRows] = useState([]);
@@ -84,7 +85,9 @@ export default function TableSelectVehicle({ refresh, setSelectedRowsUp }) {
         // setLoading(true);
         (async () => {
             try {
-                const { data } = await Axios.get("/master/vhcl?is_send=true");
+                const { data } = await axiosPrivate.get(
+                    "/master/vhcl?is_send=true"
+                );
                 setRows(data);
             } catch (error) {
                 console.error(error);

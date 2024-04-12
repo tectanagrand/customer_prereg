@@ -1,7 +1,7 @@
 import { Container, Link, Typography, Button } from "@mui/material";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
 import { useForm } from "react-hook-form";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useEffect, useRef, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import LazyBackground from "../login/LazyBackground";
@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function RegistrationPage() {
     const navigate = useNavigate();
+    const axiosPrivate = useAxiosPrivate();
     const theme = useTheme();
     const [counter, setCounter] = useState(10);
     const [registered, setRegistered] = useState(false);
@@ -58,7 +59,10 @@ export default function RegistrationPage() {
                 password: values.password,
             };
             setLoading(true);
-            const insertData = await Axios.post("/user/register", payload);
+            const insertData = await axiosPrivate.post(
+                "/user/register",
+                payload
+            );
             setLoading(false);
             toast.success(insertData.data.message);
             // toast.success("registered");
@@ -82,7 +86,10 @@ export default function RegistrationPage() {
                 otp_input: values.otp,
             };
             setLoading(true);
-            const verifyOTP = await Axios.post("/user/verifotp", payload);
+            const verifyOTP = await axiosPrivate.post(
+                "/user/verifotp",
+                payload
+            );
             setLoading(false);
             toast.success("User Verification Success");
             setTimeout(() => {
@@ -103,7 +110,10 @@ export default function RegistrationPage() {
                 type: "new",
             };
             setBtnClicked(true);
-            const resendOTP = await Axios.post("/user/resendotp", payload);
+            const resendOTP = await axiosPrivate.post(
+                "/user/resendotp",
+                payload
+            );
             toast.success("OTP resent");
         } catch (error) {
             console.error(error);

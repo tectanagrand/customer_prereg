@@ -25,10 +25,12 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AutocompleteFilter from "../input/AutocompleteFilterComp";
-import { Axios } from "../../api/axios";
+
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import moment from "moment/moment";
 
 export default function TableRecapReport({ onsetFilterData }) {
+    const axiosPrivate = useAxiosPrivate();
     const exportData = async id_loadnote => {
         try {
             const response = await Axios.post(
@@ -197,7 +199,7 @@ export default function TableRecapReport({ onsetFilterData }) {
         });
         (async () => {
             try {
-                const { data } = await Axios.post("/ln/recapss", {
+                const { data } = await axiosPrivate.post("/ln/recapss", {
                     filters: dataColFilter,
                     customer_id: "",
                 });

@@ -11,11 +11,12 @@ import { useNavigate } from "react-router";
 import { useSession } from "../../provider/sessionProvider";
 import TableLayout from "../../component/table/TableLayout";
 // import useAxiosPrivate from "src/hooks/useAxiosPrivate";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 
 export default function ListUserGroup() {
     // const axiosPrivate = useAxiosPrivate();
     const columns = ["Role Group", "Date"];
+    const axiosPrivate = useAxiosPrivate();
     const { session } = useSession();
     const navigate = useNavigate();
     const [colLength, setColLength] = useState(0);
@@ -36,7 +37,7 @@ export default function ListUserGroup() {
     useEffect(() => {
         const getSecurityGroup = async () => {
             // const dataSec = await axiosPrivate.get(`/user/allrole`);
-            const { data } = await Axios.get(`/user/allrole`);
+            const { data } = await axiosPrivate.get(`/user/allrole`);
             const dataView = data.map(item => ({
                 id: item.role_id,
                 user_group: item.role_name,

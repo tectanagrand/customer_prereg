@@ -6,8 +6,9 @@ import { useForm } from "react-hook-form";
 import { Box, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 export default function SendEmail() {
+    const axiosPrivate = useAxiosPrivate();
     const {
         control,
         handleSubmit,
@@ -46,7 +47,7 @@ export default function SendEmail() {
         } else {
             setLoading(true);
             try {
-                const { data } = await Axios.post("/file/sendemail", {
+                const { data } = await axiosPrivate.post("/file/sendemail", {
                     ...values,
                     plant: values.plant.value,
                 });
@@ -74,7 +75,7 @@ export default function SendEmail() {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await Axios.get("/master/plt");
+                const { data } = await axiosPrivate.get("/master/plt");
                 setPlantOp(data);
             } catch (error) {
                 console.error(error);

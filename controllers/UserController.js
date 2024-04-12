@@ -204,7 +204,7 @@ UserController.login = async (req, res) => {
             });
         } else {
             res.status(500).send({
-                message: error,
+                message: error.message,
             });
         }
     }

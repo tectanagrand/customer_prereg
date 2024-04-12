@@ -1,4 +1,4 @@
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import {
     flexRender,
     getCoreRowModel,
@@ -46,6 +46,7 @@ export default function TableLoadingNoteReq({
     who,
 }) {
     // console.log(who);
+    const axiosPrivate = useAxiosPrivate();
     const theme = useTheme();
     const [rows, setRows] = useState([]);
     const rowData = useMemo(() => rows, [rows]);
@@ -277,7 +278,7 @@ export default function TableLoadingNoteReq({
                 // console.log(DoNum);
                 // console.log(CustNum);
                 if (DoNum !== "" && CustNum !== "") {
-                    const { data } = await Axios.post("/ln/osreq", {
+                    const { data } = await axiosPrivate.post("/ln/osreq", {
                         filters: [
                             { id: "id_do", value: DoNum },
                             { id: "cust_code", value: CustNum },

@@ -36,7 +36,7 @@ import {
     CheckCircleOutline,
 } from "@mui/icons-material";
 import { useEffect, useMemo, useState } from "react";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import TableChildCustLN from "./TableChildCustLN";
 import { useNavigate } from "react-router-dom";
@@ -49,6 +49,7 @@ import { useSession } from "../../provider/sessionProvider";
 
 export default function TableParentCustDashboard() {
     const theme = useTheme();
+    const axiosPrivate = useAxiosPrivate();
     const [dataCust, setDataCust] = useState([]);
     const [refresh, setRefresh] = useState(false);
     const [sorting, setSorting] = useState([]);
@@ -77,7 +78,7 @@ export default function TableParentCustDashboard() {
         } else if (action === "uplog") {
             setBackdrop(true);
             try {
-                const upData = await Axios.post("/ln/tolog", {
+                const upData = await axiosPrivate.post("/ln/tolog", {
                     id_header: data.id,
                 });
                 setScsModal(true);

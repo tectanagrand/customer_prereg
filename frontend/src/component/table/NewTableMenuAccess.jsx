@@ -15,12 +15,11 @@ import {
     getExpandedRowModel,
     flexRender,
 } from "@tanstack/react-table";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { KeyboardArrowDown, KeyboardArrowRight } from "@mui/icons-material";
 import CheckBoxPermission from "../input/CheckBoxPermission";
 import { useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import CheckUserPermission from "../input/CheckUserPermission";
 
 function useSkipper() {
     const shouldSkipRef = useRef(true);
@@ -39,6 +38,7 @@ function useSkipper() {
 }
 
 export default function NewTableMenuAccess({ dtAccessUp, role_id }) {
+    const axiosPrivate = useAxiosPrivate();
     const [rowsData, setRows] = useState([]);
     const [selectedRows, setSelectedRows] = useState({});
     const [searchParams] = useSearchParams();
@@ -211,7 +211,7 @@ export default function NewTableMenuAccess({ dtAccessUp, role_id }) {
 
     useEffect(() => {
         (async () => {
-            const { data } = await Axios.post("/user/role", {
+            const { data } = await axiosPrivate.post("/user/role", {
                 role_id: searchParams.get("id_role") ?? "",
             });
             setRows(data.data);

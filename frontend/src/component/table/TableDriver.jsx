@@ -1,4 +1,4 @@
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import {
     flexRender,
     getCoreRowModel,
@@ -25,6 +25,7 @@ export default function TableDriver({ refresh, editData, deleteData }) {
     const theme = useTheme();
     const [rows, setRows] = useState([]);
     const rowData = useMemo(() => rows, [rows]);
+    const axiosPrivate = useAxiosPrivate();
     // const { onPaginationChange, pagination, limit, skip } = usePagination();
     // const { sorting, onSortingChange, order, field } = useSorting();
     // const { filters, onColumnFilterChange } = useFilter();
@@ -141,7 +142,7 @@ export default function TableDriver({ refresh, editData, deleteData }) {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await Axios.get("/master/drvr");
+                const { data } = await axiosPrivate.get("/master/drvr");
                 setRows(data);
             } catch (error) {
                 console.error(error);

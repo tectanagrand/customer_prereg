@@ -1,4 +1,4 @@
-import { axiosPrivate } from "../api/axios";
+import { axiosPrivate, Axios } from "../api/axios";
 import { useEffect } from "react";
 import useRefreshToken from "./useRefreshToken";
 import { useSession } from "../provider/sessionProvider";
@@ -9,10 +9,17 @@ const useAxiosPrivate = () => {
 
     useEffect(() => {
         const requestIntercept = axiosPrivate.interceptors.request.use(
-            config => {
+            async config => {
                 if (!config.headers["Authorization"]) {
                     config.headers["Authorization"] =
                         `Bearer ${session.access_token}`;
+                }
+                try {
+                    const response = await Axios.get("/getcsrftoken");
+                    const csrfToken = response.data.csrfToken;
+                    config.headers["X-CSRF-Token"] = csrfToken;
+                } catch (error) {
+                    console.error(error);
                 }
                 return config;
             },

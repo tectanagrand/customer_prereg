@@ -8,6 +8,7 @@ const os = require("os");
 const http = require("http");
 const path = require("path");
 const cors = require("cors");
+const csrf = require("csurf");
 const cookieParser = require("cookie-parser");
 const fs = require("fs");
 const whitelist = require("./config/allowedOrigin");
@@ -15,6 +16,9 @@ const router = require("./routes");
 const SAPGetterChores = require("./helper/SAPGetterChores");
 const db = require("./config/connection");
 
+const csrfProtection = csrf({
+    cookie: true,
+});
 const corsOption = {
     origin: function (req, callback) {
         if (whitelist.indexOf(req) !== -1) {
@@ -31,11 +35,12 @@ app.use(cors(corsOption));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(csrfProtection);
 app.use("/static", express.static(path.join(__dirname, "public")));
 app.use(router);
-setInterval(() => {
-    console.log(db.totalCount);
-}, 1000);
+// setInterval(() => {
+//     console.log(db.totalCount);
+// }, 1000);
 
 app.listen(port, "0.0.0.0", () => {
     console.log(`App running on ${port}`);

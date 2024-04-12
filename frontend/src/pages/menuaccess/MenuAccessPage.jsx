@@ -7,13 +7,13 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 // import axios from 'axios';
 // import useAxiosPrivate from 'src/hooks/useAxiosPrivate';
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useSession } from "../../provider/sessionProvider";
 import LoadingButton from "@mui/lab/LoadingButton";
 import NewTableMenuAccess from "../../component/table/NewTableMenuAccess";
 
 export default function MenuAccessPage() {
-    // const axiosPrivate = useAxiosPrivate();
+    const axiosPrivate = useAxiosPrivate();
     const navigate = useNavigate();
     const [dtAccess, setDtAccess] = useState([]);
     const [btnClicked, setBtnclick] = useState(false);
@@ -35,13 +35,13 @@ export default function MenuAccessPage() {
             id_user: session.id_user,
         };
         const getAuthorization = async () => {
-            const getAuth = await Axios.post(`/user/getauth`, {
+            const getAuth = await axiosPrivate.post(`/user/getauth`, {
                 role_id: session.role,
             });
             setSession({ ...session, ["auth"]: getAuth.data });
         };
         try {
-            const { data: submission } = await Axios.post(
+            const { data: submission } = await axiosPrivate.post(
                 `/user/role/submit`,
                 insertedDt
             );
@@ -83,7 +83,7 @@ export default function MenuAccessPage() {
     useEffect(() => {
         roleId.current = searchParams.get("id_role");
         const getSecMtx = async () => {
-            const { data } = await Axios.post(`/user/role`, {
+            const { data } = await axiosPrivate.post(`/user/role`, {
                 role_id: roleId.current ? roleId.current : "",
             });
             reset({ role_name: data.role_name });

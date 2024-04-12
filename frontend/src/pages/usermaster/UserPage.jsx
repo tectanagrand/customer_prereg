@@ -18,11 +18,11 @@ import {
 import { useNavigate } from "react-router";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 // import useAxiosPrivate from 'src/hooks/useAxiosPrivate';
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useTheme } from "@mui/material/styles";
 
 export default function User() {
-    // const axiosPrivate = useAxiosPrivate();
+    const axiosPrivate = useAxiosPrivate();
     const [allUserDt, setAllUsr] = useState();
     const [loadPage, setLoadpage] = useState(false);
     const [load, setLoad] = useState(false);
@@ -37,7 +37,7 @@ export default function User() {
     useEffect(() => {
         const getAllDataUser = async () => {
             // const getUser = await axiosPrivate.get(`/user/`);
-            const getUser = await Axios.get(`/user/show`);
+            const getUser = await axiosPrivate.get(`/user/show`);
 
             // console.log(getUser.data.data);
             setAllUsr(getUser.data);
@@ -69,7 +69,7 @@ export default function User() {
                     //   role: data.role,
                     //   is_active: false,
                     // });
-                    const updateUser = await Axios.post("/user/delete", {
+                    const updateUser = await axiosPrivate.post("/user/delete", {
                         id_user: data.id,
                     });
                     alert(`${updateUser.data.message}`);
@@ -82,7 +82,7 @@ export default function User() {
         } else if (action === "email") {
             setLoadpage(true);
             try {
-                const sendEmail = await Axios.post("/user/email", {
+                const sendEmail = await axiosPrivate.post("/user/email", {
                     id_user: data.id,
                 });
                 alert(`${sendEmail.data.message}`);

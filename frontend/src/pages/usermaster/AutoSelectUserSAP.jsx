@@ -1,5 +1,5 @@
 import { LazySelectComp } from "../../component/input/LazySelectComp";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useState, useRef, useEffect } from "react";
 import { debounce } from "lodash";
 
@@ -11,6 +11,7 @@ export default function AutoSelectUserSAP({
     onChangeControlOvr,
     ...props
 }) {
+    const axiosPrivate = useAxiosPrivate();
     const limit = 10;
     const [dataRow, setDataRow] = useState([]);
     let paginationRef = useRef({
@@ -24,7 +25,7 @@ export default function AutoSelectUserSAP({
     const fetchData = async (limit, offset, q) => {
         setLoading(true);
         try {
-            const { data: rowData } = await Axios.get(
+            const { data: rowData } = await axiosPrivate.get(
                 `master/cust?limit=${limit}&offset=${offset}&q=${q}`
             );
 

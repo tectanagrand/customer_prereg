@@ -1,4 +1,4 @@
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { LazySelectCompNoCont } from "../../component/input/LazySelectCompNoCont";
 import { useState, useRef, useEffect } from "react";
 import { debounce } from "lodash";
@@ -9,6 +9,7 @@ export default function AutoCompleteDOList({
     who,
     ...props
 }) {
+    const axiosPrivate = useAxiosPrivate();
     const limit = 10;
     const [dataRow, setDataRow] = useState([]);
     let paginationRef = useRef({
@@ -28,11 +29,11 @@ export default function AutoCompleteDOList({
         try {
             let doData;
             if (who === "wb") {
-                doData = await Axios.get(
+                doData = await axiosPrivate.get(
                     `ln/osdowb?cust=${cust}&limit=${limit}&offset=${offset}`
                 );
             } else {
-                doData = await Axios.get(
+                doData = await axiosPrivate.get(
                     `ln/osdo?cust=${cust}&limit=${limit}&offset=${offset}`
                 );
             }

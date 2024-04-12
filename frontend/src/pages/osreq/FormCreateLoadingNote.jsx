@@ -16,7 +16,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import SelectComp from "../../component/input/SelectComp";
 import { useForm } from "react-hook-form";
 import TableSelectedLNReq from "../../component/table/TableSelectedLNReq";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import AutocompleteComp from "../../component/input/AutocompleteComp";
@@ -56,6 +56,7 @@ export default function FormCreateLoadingNote() {
             selected_cancel: [],
         },
     });
+    const axiosPrivate = useAxiosPrivate();
     const [DoNum, setDoNum] = useState("");
     const [CustNum, setCustNum] = useState("");
     const [slocop, setSlocop] = useState([]);
@@ -113,7 +114,7 @@ export default function FormCreateLoadingNote() {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await Axios.get(
+                const { data } = await axiosPrivate.get(
                     `/master/sloc?plant=${firstRow?.plant}&material=${firstRow?.material}`
                 );
                 setSlocop(data.sloc);
@@ -151,7 +152,7 @@ export default function FormCreateLoadingNote() {
                         oth_sloc_desc = firstRow.oth_sloc_desc;
                         oth_valtype = firstRow.oth_valtype;
                     } else {
-                        const { data } = await Axios.get(
+                        const { data } = await axiosPrivate.get(
                             `/ln/defslocvtp?plant=${firstRow.plant}`
                         );
                         fac_sloc = data.fac_sloc;
@@ -206,7 +207,7 @@ export default function FormCreateLoadingNote() {
         console.log(values);
         setLoadingCancel(true);
         try {
-            const cancelData = await Axios.post("/ln/cancel", values);
+            const cancelData = await axiosPrivate.post("/ln/cancel", values);
             toast.success("Data request cancelled");
             setCancelOpen(false);
             setResetRow(!resetRow);
@@ -235,7 +236,10 @@ export default function FormCreateLoadingNote() {
         //     setLoadingPush(false);
         // }, 3000);
         try {
-            const { data } = await Axios.post("/ln/pushmultisap", newPayload);
+            const { data } = await axiosPrivate.post(
+                "/ln/pushmultisap",
+                newPayload
+            );
             setModalscs(true);
             reset({
                 fac_sloc: "",

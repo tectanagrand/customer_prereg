@@ -16,4 +16,8 @@ router.use("/api/file", File);
 
 router.get("/api/oratest", SAPGetter.LoadingNoteSync);
 
+router.get("/api/getcsrftoken", (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+});
+
 module.exports = router;

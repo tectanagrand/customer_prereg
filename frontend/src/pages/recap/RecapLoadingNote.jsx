@@ -1,4 +1,4 @@
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import TableRecapReport from "../../component/table/TableRecapReport";
 import { Button } from "@mui/material";
 import { useState } from "react";
@@ -7,9 +7,10 @@ import { useTheme } from "@mui/material/styles";
 
 export default function RecapLoadingNote() {
     const theme = useTheme();
+    const axiosPrivate = useAxiosPrivate();
     const generateExcel = async () => {
         try {
-            const response = await Axios.post("/ln/genxls", filterData, {
+            const response = await axiosPrivate.post("/ln/genxls", filterData, {
                 responseType: "blob",
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));

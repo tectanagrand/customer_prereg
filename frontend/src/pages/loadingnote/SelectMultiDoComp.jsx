@@ -1,5 +1,5 @@
 import SelectComp from "../../component/input/SelectComp";
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { getSelectUtilityClasses } from "@mui/material";
@@ -11,6 +11,7 @@ export default function SelectMultiDOComp({
     preop,
     disabled,
 }) {
+    const axiosPrivate = useAxiosPrivate();
     const [isLoading, setLoading] = useState(false);
     const [doOP, setDOOp] = useState([]);
     const theme = useTheme();
@@ -24,7 +25,7 @@ export default function SelectMultiDOComp({
     const getDataDO = async () => {
         try {
             setLoading(true);
-            const { data } = await Axios.get("/master/dolist", {
+            const { data } = await axiosPrivate.get("/master/dolist", {
                 withCredentials: true,
             });
             setDOOp(data);

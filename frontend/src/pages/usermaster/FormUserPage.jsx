@@ -7,14 +7,14 @@ import AutoSelectUserSAP from "./AutoSelectUserSAP";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { useSession } from "../../provider/sessionProvider";
-// import useAxiosPrivate from 'src/hooks/useAxiosPrivate';
-import { Axios } from "../../api/axios";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 // import DatePickerComp from 'src/components/common/DatePickerComp';
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { LoadingButton } from "@mui/lab";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function FormUserPage() {
+    const axiosPrivate = useAxiosPrivate();
     const [btnClicked, setBtnclicked] = useState(false);
     const { getPermission } = useSession();
     const [roleState, _setRoleState] = useState("");
@@ -57,7 +57,7 @@ export default function FormUserPage() {
 
     const getUserData = async iduser => {
         // const userDt = await axiosPrivate.get(`/user/show/?iduser=${iduser}`);
-        const { data: userDt } = await Axios.get(
+        const { data: userDt } = await axiosPrivate.get(
             `/user/showbyid?id_user=${iduser}`
         );
         if (userDt !== undefined) {
@@ -83,7 +83,8 @@ export default function FormUserPage() {
         const getRole = async () => {
             try {
                 // const getRole = await axiosPrivate.get(`/user/roles`);
-                const { data: preFormData } = await Axios.get(`/user/preform`);
+                const { data: preFormData } =
+                    await axiosPrivate.get(`/user/preform`);
                 const role = preFormData.role.map(item => ({
                     value: item.role_id,
                     label: item.role_name,
@@ -140,7 +141,7 @@ export default function FormUserPage() {
             //     `/user/submit`,
             //     subUserDt
             // );
-            const { data: resultSubmit } = await Axios.post(
+            const { data: resultSubmit } = await axiosPrivate.post(
                 `/user/submit`,
                 subUserDt
             );
