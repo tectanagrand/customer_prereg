@@ -728,7 +728,7 @@ export default function LoadingNoteForm() {
                                                 sx={{
                                                     minWidth: "15rem",
                                                 }}
-                                                minDate={moment().add(1, "day")}
+                                                // minDate={moment().add(1, "day")}
                                             />
                                             <NumericFieldComp
                                                 name={`load_detail.${index}.planned_qty`}

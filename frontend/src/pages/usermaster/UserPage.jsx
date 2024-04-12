@@ -150,30 +150,31 @@ export default function User() {
                         </IconButton>
                     </Tooltip>
                 );
-                // if (is_active) {
-                //     buttons.push(
-                //         <Tooltip title={<Typography>Delete</Typography>}>
-                //             <IconButton
-                //                 sx={{
-                //                     backgroundColor: "#f2573f",
-                //                     color: theme.palette.primary.contrastText,
-                //                     mx: 1,
-                //                     ":hover": {
-                //                         color: theme.palette.grey[800],
-                //                     },
-                //                 }}
-                //                 onClick={() =>
-                //                     buttonAction("delete", {
-                //                         id: item.row.id,
-                //                         role: item.row.role,
-                //                     })
-                //                 }
-                //             >
-                //                 <DeleteOutline></DeleteOutline>
-                //             </IconButton>
-                //         </Tooltip>
-                //     );
-                // } else {
+                if (is_active) {
+                    buttons.push(
+                        <Tooltip title={<Typography>Delete</Typography>}>
+                            <IconButton
+                                sx={{
+                                    backgroundColor: "#f2573f",
+                                    color: theme.palette.primary.contrastText,
+                                    mx: 1,
+                                    ":hover": {
+                                        color: theme.palette.grey[800],
+                                    },
+                                }}
+                                onClick={() =>
+                                    buttonAction("delete", {
+                                        id: item.row.id,
+                                        role: item.row.role,
+                                    })
+                                }
+                            >
+                                <DeleteOutline></DeleteOutline>
+                            </IconButton>
+                        </Tooltip>
+                    );
+                }
+                // else {
                 //     buttons.push(
                 //         <Tooltip title={<Typography>Activate</Typography>}>
                 //             <IconButton
