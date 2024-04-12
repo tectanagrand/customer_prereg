@@ -33,7 +33,7 @@ export default function TableRecapReport({ onsetFilterData }) {
     const axiosPrivate = useAxiosPrivate();
     const exportData = async id_loadnote => {
         try {
-            const response = await Axios.post(
+            const response = await axiosPrivate.post(
                 "/ln/pdf",
                 {
                     loadnote: id_loadnote,
