@@ -14,13 +14,13 @@ const useAxiosPrivate = () => {
                     config.headers["Authorization"] =
                         `Bearer ${session.access_token}`;
                 }
-                try {
-                    const response = await Axios.get("/getcsrftoken");
-                    const csrfToken = response.data.csrfToken;
-                    config.headers["X-CSRF-Token"] = csrfToken;
-                } catch (error) {
-                    console.error(error);
-                }
+                // try {
+                //     const response = await Axios.get("/getcsrftoken");
+                //     const csrfToken = response.data.csrfToken;
+                //     config.headers["X-CSRF-Token"] = csrfToken;
+                // } catch (error) {
+                //     console.error(error);
+                // }
                 return config;
             },
             error => Promise.reject(error)
