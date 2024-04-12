@@ -241,7 +241,7 @@ export default function TableParentCustDashboard() {
         (async () => {
             const allow = getPermission("O/S Request").fcreate;
             try {
-                const { data } = await Axios.get(
+                const { data } = await axiosPrivate.get(
                     "/ln/lnuser?isallow=" + allow,
                     {
                         withCredentials: true,
