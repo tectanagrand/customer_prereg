@@ -32,7 +32,8 @@ PDFController.exportSuratJalan = async (req, res) => {
                 CUST.NAME_1,
                 CUST.KUNNR,
                 PLT.ALAMAT,
-                DET.print_count
+                DET.print_count,
+                DET.is_multi
                 FROM LOADING_NOTE_DET DET
                 LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
                 LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
@@ -77,6 +78,9 @@ PDFController.exportSuratJalan = async (req, res) => {
             doc.opacity(1);
             doc.fontSize(20).text(`${dt.name_1} (${dt.kunnr})`, 100, 90);
             doc.fontSize(20).text("Surat Jalan", 400, 50);
+            if (dt.is_multi) {
+                doc.fontSize(10).text("(Multi Con.)", 400, 70);
+            }
             // doc.fontSize(12).text("No LN :", 380, 120);
             // doc.fontSize(12).text(dt.ln_num, 420, 120);
             doc.fontSize(12).text("No LN :", 100, 140);
