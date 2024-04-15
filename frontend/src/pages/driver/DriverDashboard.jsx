@@ -374,6 +374,8 @@ export default function VehicleDashboard() {
                                             style={{
                                                 minWidth: "100%",
                                                 height: "20rem",
+                                                objectFit: "cover",
+                                                position: "relative",
                                             }}
                                             src={preview}
                                         ></img>

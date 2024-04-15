@@ -255,7 +255,7 @@ export default function NewTableMenuAccess({ dtAccessUp, role_id }) {
                 setRows(prev =>
                     prev.map((row, index) => {
                         if (rowIndex === index && depth === 0) {
-                            console.log("value parent triggered");
+                            // console.log("value parent triggered");
                             row[columnId] = value;
                             rowTable.toggleSelected(true);
                             // if (
@@ -270,7 +270,7 @@ export default function NewTableMenuAccess({ dtAccessUp, role_id }) {
                             // }
                             return { ...prev[rowIndex], [columnId]: value };
                         } else if (depth === 1) {
-                            console.log("value child triggered");
+                            // console.log("value child triggered");
                             const parent = rowTable.getParentRow();
                             if (parent.index === index) {
                                 const dataRow = row.subRows[rowIndex];

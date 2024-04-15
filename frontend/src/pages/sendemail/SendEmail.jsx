@@ -65,7 +65,6 @@ export default function SendEmail() {
                 setRefresh(!refresh);
             }
         }
-        console.log(values);
     };
 
     const checkKeyDown = e => {

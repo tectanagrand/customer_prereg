@@ -198,13 +198,11 @@ export default function FormCreateLoadingNote() {
     };
 
     const cancelModal = e => {
-        console.log(selectedRows);
         setCancelOpen(true);
         setCancelValue("selected_cancel", selectedRows);
     };
 
     const cancelReq = async values => {
-        console.log(values);
         setLoadingCancel(true);
         try {
             const cancelData = await axiosPrivate.post("/ln/cancel", values);
@@ -240,6 +238,7 @@ export default function FormCreateLoadingNote() {
                 "/ln/pushmultisap",
                 newPayload
             );
+            setModalOpen(false);
             setModalscs(true);
             reset({
                 fac_sloc: "",
@@ -251,7 +250,6 @@ export default function FormCreateLoadingNote() {
             setResetRow(!resetRow);
             setTimeout(() => {
                 setModalscs(false);
-                setModalOpen(false);
             }, 3000);
         } catch (error) {
             console.error(error);

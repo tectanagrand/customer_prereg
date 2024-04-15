@@ -66,16 +66,6 @@ export default function MenuAccessPage() {
                 fdelete: item.fdelete,
             }))
         );
-        console.log(
-            newTb.map(item => ({
-                id: item.id,
-                menu_page: item.menu_page,
-                fcreate: item.fcreate,
-                fread: item.fread,
-                fupdate: item.fupdate,
-                fdelete: item.fdelete,
-            }))
-        );
     };
     const [dtMenu, setdtMenu] = useState([]);
     const dataMenu = dtMenu;

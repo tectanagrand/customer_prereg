@@ -17,7 +17,7 @@ export default function AutocompleteFilter({ column, ...props }) {
 
     const uniqueValues = useMemo(() => {
         const data = Array.from(column.getFacetedUniqueValues().keys()).sort();
-        console.log(data);
+        // console.log(data);
         if (data[0] === null) {
             return [];
         } else {

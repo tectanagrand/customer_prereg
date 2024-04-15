@@ -15,7 +15,7 @@ export default function CheckUserPermission({
     }, [index, columnId, row, table.options.meta, value]);
     // ref.current.checked = false;
     useEffect(() => {
-        console.log("value changed");
+        // console.log("value changed");
     }, [value]);
     useEffect(() => {
         handleCheckChange();
