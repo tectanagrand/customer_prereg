@@ -40,6 +40,7 @@ export default function AutocompleteFilter({ column, ...props }) {
                     setValue(newValue);
                     column.setFilterValue(newValue ? newValue.value : "");
                 }}
+                isOptionEqualToValue={(value, label) => true}
                 renderInput={params => <StyledTextfield {...params} />}
             />
         </>
