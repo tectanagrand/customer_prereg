@@ -7,7 +7,7 @@ const uuid = require("uuidv4");
 const noderfc = require("node-rfc");
 const INDICATOR = require("../config/IndicateRFC");
 const moment = require("moment");
-noderfc.setIniFileDirectory("../customer_prereg");
+noderfc.setIniFileDirectory(process.env.SAPINIFILE);
 const poolRFC = require("../config/rfcconnection");
 const EmailModel = require("../models/EmailModel");
 
@@ -1443,7 +1443,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
             TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN,
             TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE_MOMENT,
-            TO_CHAR(DET.TANGGAL_SURAT_JALAN_MOMENT, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN_MOMENT,
+            TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN_MOMENT,
             HD.UOM,
             DET.BRUTO,
             DET.TARRA,
