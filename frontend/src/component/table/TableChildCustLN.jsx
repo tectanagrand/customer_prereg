@@ -24,6 +24,11 @@ export default function TableChildCustLN({ dataChild }) {
                 cell: props => props.getValue(),
             },
             {
+                header: "Tanggal Surat Jalan",
+                accessorKey: "tanggal_surat_jalan",
+                cell: props => props.getValue(),
+            },
+            {
                 header: "Driver ID",
                 accessorKey: "driver_id",
                 cell: props => props.getValue(),

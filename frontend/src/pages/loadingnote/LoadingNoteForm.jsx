@@ -117,7 +117,6 @@ export default function LoadingNoteForm() {
     const position = useRef("");
     const uuidLN = useRef("");
     const theme = useTheme();
-
     useEffect(() => {
         (async () => {
             try {
@@ -139,14 +138,12 @@ export default function LoadingNoteForm() {
                     setCheckedMulti(checkedMulti);
                     setRemaining(
                         parseFloat(data.data.os_qty) -
-                            parseFloat(data.cur_planqty)
+                            parseFloat(data.data.plan_qty_con)
                     );
-                    usedQty.current = data.cur_planqty;
+                    usedQty.current = parseFloat(data.data.totalspend);
                     reset({
                         ...data.data,
-                        con_qty: data.data.con_qty
-                            .split(".")[0]
-                            .replace(/\B(?=(\d{3})+(?!\d))/g, ","),
+                        con_qty: data.data.con_qty,
                         load_detail: load_detail,
                     });
                     setPreOp(data.data.do_num);
@@ -380,8 +377,7 @@ export default function LoadingNoteForm() {
 
     const checkExistingOsQty = () => {
         const plansData = getValues("load_detail");
-        let con_os = getValues("os_qty") - usedQty.current;
-        console.log(con_os);
+        let con_os = parseFloat(getValues("con_qty")) - usedQty.current;
         let currentTotal = 0;
         plansData.forEach(item => {
             currentTotal += parseFloat(
@@ -408,7 +404,7 @@ export default function LoadingNoteForm() {
     };
 
     const isSelectEnabled = index => {
-        console.log(checkedMulti);
+        // console.log(checkedMulti);
         return !checkedMulti[index];
     };
 
@@ -720,7 +716,7 @@ export default function LoadingNoteForm() {
                                             />
                                             <DatePickerComp
                                                 name={`load_detail.${index}.loading_date`}
-                                                label="Loading Date"
+                                                label="Tanggal Surat Jalan"
                                                 control={control}
                                                 rules={{
                                                     required: "Please Insert",
@@ -728,7 +724,7 @@ export default function LoadingNoteForm() {
                                                 sx={{
                                                     minWidth: "15rem",
                                                 }}
-                                                // minDate={moment().add(1, "day")}
+                                                minDate={moment().add(1, "day")}
                                             />
                                             <NumericFieldComp
                                                 name={`load_detail.${index}.planned_qty`}
@@ -806,13 +802,13 @@ export default function LoadingNoteForm() {
                                                 } else {
                                                     remove(index);
                                                     checkExistingOsQty();
-                                                    console.log(index);
+                                                    // console.log(index);
                                                     const newCheckBoxState = [
                                                         ...checkedMulti,
                                                     ];
-                                                    console.log(
-                                                        newCheckBoxState
-                                                    );
+                                                    // console.log(
+                                                    //     newCheckBoxState
+                                                    // );
                                                     if (
                                                         newCheckBoxState.length <=
                                                         0
@@ -824,9 +820,9 @@ export default function LoadingNoteForm() {
                                                             1
                                                         );
                                                     }
-                                                    console.log(
-                                                        newCheckBoxState
-                                                    );
+                                                    // console.log(
+                                                    //     newCheckBoxState
+                                                    // );
                                                     setCheckedMulti(
                                                         newCheckBoxState
                                                     );

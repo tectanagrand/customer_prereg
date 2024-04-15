@@ -149,7 +149,8 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                     driver_name: rows.driver_name,
                     vhcl_id: rows.vehicle,
                     media_tp: rows.media_tp,
-                    cre_date: rows.loading_date,
+                    cre_date: moment().format("YYYY-MM-DD"),
+                    tanggal_surat_jalan: rows.loading_date,
                     plan_qty: rows.planned_qty,
                     fac_plant: params.plant,
                     oth_plant: params.plant,
@@ -487,19 +488,24 @@ LoadingNoteModel.getById = async id_header => {
             WHERE HD.hd_id = $1`,
                 [id_header]
             );
-            const detail = rows.map(item => ({
-                id_detail: item.det_id,
-                vehicle: { value: item.vhcl_id, label: item.vhcl_id },
-                driver: {
-                    value: item.driver_id,
-                    label: item.driver_id + " - " + item.driver_name,
-                },
-                loading_date: item.cre_date,
-                planned_qty: item.plan_qty,
-                media_tp: item.media_tp,
-                multi_do: item.multi_do,
-                is_multi: item.is_multi,
-            }));
+            let plan_qty_con = 0;
+            const detail = rows.map(item => {
+                plan_qty_con += parseFloat(item.plan_qty);
+                return {
+                    id_detail: item.det_id,
+                    vehicle: { value: item.vhcl_id, label: item.vhcl_id },
+                    driver: {
+                        value: item.driver_id,
+                        label: item.driver_id + " - " + item.driver_name,
+                    },
+                    loading_date: item.cre_date,
+                    planned_qty: item.plan_qty,
+                    media_tp: item.media_tp,
+                    multi_do: item.multi_do,
+                    is_multi: item.is_multi,
+                };
+            });
+            console.log(plan_qty_con);
             const hd_dt = rows[0];
             const rfcResponse = await rfcclient.call("ZRFC_PRE_REGISTRA_SLIP", {
                 I_VBELN: hd_dt.id_do,
@@ -510,6 +516,15 @@ LoadingNoteModel.getById = async id_header => {
                 let real = parseFloat(item.L_LFIMG);
                 totalFromSAP += real === 0 ? planning : real;
             });
+            const { rows: tempLoadingNote } = await client.query(
+                `SELECT SUM(PLAN_QTY) AS plan_qty
+                FROM LOADING_NOTE_DET DET
+                LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+                WHERE HD.ID_DO = $1
+                AND DET.IS_ACTIVE = TRUE
+                AND DET.LN_NUM IS NULL`,
+                [hd_dt.id_do]
+            );
             const resp = {
                 do_num: hd_dt.id_do,
                 inv_type: hd_dt.invoice_type,
@@ -520,7 +535,16 @@ LoadingNoteModel.getById = async id_header => {
                 con_num: hd_dt.con_num,
                 material: hd_dt.material,
                 con_qty: hd_dt.con_qty,
-                os_qty: parseFloat(hd_dt.con_qty) - totalFromSAP,
+                os_qty:
+                    parseFloat(hd_dt.con_qty) -
+                    totalFromSAP -
+                    parseFloat(tempLoadingNote[0].plan_qty) +
+                    plan_qty_con,
+                totalspend:
+                    totalFromSAP +
+                    parseFloat(tempLoadingNote[0].plan_qty) -
+                    plan_qty_con,
+                plan_qty_con: plan_qty_con,
                 plant: hd_dt.plant,
                 description: hd_dt.desc_con,
                 uom: hd_dt.uom,
@@ -535,15 +559,6 @@ LoadingNoteModel.getById = async id_header => {
                 oth_batch: hd_dt.oth_batch,
                 oth_val_type: hd_dt.oth_valtype,
             };
-            const { rows: tempLoadingNote } = await client.query(
-                `SELECT SUM(PLAN_QTY) AS plan_qty
-            FROM LOADING_NOTE_DET DET
-            LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
-            WHERE HD.ID_DO = $1
-                AND DET.IS_ACTIVE = TRUE
-                AND DET.LN_NUM IS NULL`,
-                [hd_dt.id_do]
-            );
             return {
                 data: resp,
                 id_header: hd_dt.hd_id,
@@ -667,11 +682,10 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
                 CUST.KUNNR as cust_code,
                 CUST.name_1 as cust_name,
                 CONCAT(DET.DRIVER_ID,
-
                     ' - ',
                     DET.DRIVER_NAME) AS DRIVER,
                 DET.VHCL_ID,
-                TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
+                TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN,
                 DET.cre_date as CREATE_DATE,
                 DET.PLAN_QTY,
                 HD.UOM
@@ -1237,8 +1251,9 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow) => {
             for (const row of parentRow) {
                 const que_ch = `SELECT 
                 TO_CHAR(DET.CRE_DATE,
-            
                     'MM-DD-YYYY') AS CRE_DATE,
+                TO_CHAR(DET.TANGGAL_SURAT_JALAN,
+                    'MM-DD-YYYY') AS TANGGAL_SURAT_JALAN,
                 DET.DRIVER_ID,
                 DET.DRIVER_NAME,
                 DET.VHCL_ID,
@@ -1426,7 +1441,9 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             DET.VHCL_ID,
             DET.PLAN_QTY,
             TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
+            TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN,
             TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE_MOMENT,
+            TO_CHAR(DET.TANGGAL_SURAT_JALAN_MOMENT, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN_MOMENT,
             HD.UOM,
             DET.BRUTO,
             DET.TARRA,

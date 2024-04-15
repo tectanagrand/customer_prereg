@@ -51,8 +51,8 @@ export default function TableSelectedLNReq({ rowsData, sx }) {
                 cell: props => props.getValue(),
             },
             {
-                header: "Create Date",
-                accessorKey: "cre_date",
+                header: "Tanggal Surat Jalan",
+                accessorKey: "tanggal_surat_jalan",
                 cell: props => props.getValue(),
             },
             {

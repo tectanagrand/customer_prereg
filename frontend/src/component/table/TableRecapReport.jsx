@@ -66,9 +66,9 @@ export default function TableRecapReport({ onsetFilterData }) {
                 id: "exportln",
                 cell: ({ row }) => {
                     if (
-                        moment(row.original.cre_date_moment).isBefore(
-                            moment()
-                        ) &&
+                        moment(
+                            row.original.tanggal_surat_jalan_moment
+                        ).isBefore(moment()) &&
                         row.original.print_count < 3
                     ) {
                         return (
@@ -93,8 +93,12 @@ export default function TableRecapReport({ onsetFilterData }) {
                 accessorKey: "ln_num",
             },
             {
-                header: "Loading Note Date",
+                header: "Created Date",
                 accessorKey: "cre_date",
+            },
+            {
+                header: "Tanggal Surat Jalan",
+                accessorKey: "tanggal_surat_jalan",
             },
             {
                 header: "Do Number",
