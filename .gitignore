@@ -6,6 +6,7 @@ frontend/node_modules
 .env.production
 frontend/.env.development
 frontend/.env.production
+frontend/dist
 dev_rfc.log
 _noderfc.log
 public

@@ -29,7 +29,7 @@ const corsOption = {
     },
     methods: ["POST", "PUT", "GET", "OPTIONS", "HEAD", "DELETE", "PATCH"],
     credentials: true,
-    exposedHeaders: ["set-cookie", "Content-Disposition"],
+    exposedHeaders: ["set-cookie", "Content-Disposition", "X-CSRF-Token"],
 };
 app.use(cors(corsOption));
 app.use(express.json());
@@ -37,6 +37,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(csrfProtection);
 app.use("/static", express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "frontend/dist")));
+app.get("/*(!api)$", (req, res) => {
+    res.sendFile(path.join(__dirname, "frontend/dist", "index.html"));
+});
 app.use(router);
 // setInterval(() => {
 //     console.log(db.totalCount);
