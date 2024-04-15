@@ -264,13 +264,20 @@ MasterController.getDriverDataDB = async (req, res) => {
                  CT.city AS TEMPAT_LAHIR,
                  TO_CHAR(TANGGAL_LAHIR, 'DD-MM-YYYY') AS TANGGAL_LAHIR,
                  NO_TELP,
-                 FOTO_SIM
+                 FOTO_SIM,
+                 FOTO_DRIVER
                  FROM MST_DRIVER DRV
                  LEFT JOIN MST_CITIES CT ON CT.CODE = DRV.TEMPAT_LAHIR
                  ${where}
                  ORDER BY ID DESC`
             );
-            res.status(200).send(rows);
+            const { rows: client_host } = await client.query(
+                `SELECT hostname FROM hostname WHERE phase = 'server_dev'`
+            );
+            res.status(200).send({
+                data: rows,
+                source: `${client_host[0].hostname}/static/license/`,
+            });
         } catch (error) {
             throw error;
         } finally {
