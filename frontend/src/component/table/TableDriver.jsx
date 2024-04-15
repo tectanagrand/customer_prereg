@@ -16,7 +16,7 @@ import {
     Typography,
     Box,
 } from "@mui/material";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Edit, Delete } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 // import PaginationActionButton from "./PaginationActionButton";
@@ -26,6 +26,7 @@ export default function TableDriver({ refresh, editData, deleteData }) {
     const [rows, setRows] = useState([]);
     const rowData = useMemo(() => rows, [rows]);
     const axiosPrivate = useAxiosPrivate();
+    const source = useRef("");
     // const { onPaginationChange, pagination, limit, skip } = usePagination();
     // const { sorting, onSortingChange, order, field } = useSorting();
     // const { filters, onColumnFilterChange } = useFilter();
@@ -65,6 +66,30 @@ export default function TableDriver({ refresh, editData, deleteData }) {
                 header: "Foto SIM",
                 accessorKey: "foto_sim",
                 cell: props => props.getValue(),
+            },
+            {
+                header: "Foto Driver",
+                accessorKey: "foto_driver",
+                cell: ({ getValue }) => {
+                    console.log(`${source.current}${getValue()}`);
+                    return (
+                        <>
+                            <div>
+                                <img
+                                    style={{
+                                        width: "40px",
+                                        height: "40px",
+                                        objectFit: "cover",
+                                        position: "relative",
+                                        objectPosition: "25% 25%",
+                                    }}
+                                    src={`${source.current}/${getValue()}`}
+                                    alt={getValue()}
+                                ></img>
+                            </div>
+                        </>
+                    );
+                },
             },
             {
                 header: "Status",
@@ -143,7 +168,8 @@ export default function TableDriver({ refresh, editData, deleteData }) {
         (async () => {
             try {
                 const { data } = await axiosPrivate.get("/master/drvr");
-                setRows(data);
+                source.current = data.source;
+                setRows(data.data);
             } catch (error) {
                 console.error(error);
             }
