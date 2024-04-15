@@ -21,7 +21,7 @@ PDFController.exportSuratJalan = async (req, res) => {
                 DET.vhcl_id,
                 DET.fac_plant,
                 DET.ln_num,
-                TO_CHAR(DET.cre_date, 'DD-MM-YYYY') as CRE_DATE,
+                TO_CHAR(DET.tanggal_surat_jalan, 'DD-MM-YYYY') as CRE_DATE,
                 DET.plan_qty,
                 HD.UOM,
                 HD.DESC_CON,
