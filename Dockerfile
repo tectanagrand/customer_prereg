@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:20
 
 # Install dependencies for nwrfc
 COPY nwrfcsdk_linux/nwrfc_lin.zip /
@@ -9,7 +9,8 @@ RUN mkdir -p /usr/local/sap/nwrfcsdk && \
 RUN mkdir -p /etc/ld.so.conf.d
 
 # Add nwrfc library to ldconfig
-RUN echo "/usr/local/sap/nwrfcsdk/nwrfc_lin/lib" > /etc/ld.so.conf.d/nwrfcsdk.conf && ldconfig
+RUN echo "/usr/local/sap/nwrfcsdk/nwrfc_lin/lib" > /etc/ld.so.conf.d/nwrfcsdk.conf 
+RUN ldconfig -p | grep sap
 
 # RUN apk add --no-cache g++ make py3-pip libuuid
 
@@ -23,8 +24,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install npm dependencies
-RUN npm install && \
-    npm install -g pm2
+RUN npm install 
+RUN npm install -g pm2
 
 # Copy application files
 COPY . .
