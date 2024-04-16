@@ -4,6 +4,7 @@ sapnwrfc.ini
 frontend/node_modules
 .env.development
 .env.production
+.env.*
 frontend/.env.development
 frontend/.env.production
 frontend/dist

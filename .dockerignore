@@ -1,0 +1,16 @@
+Dockerfile
+.dockerignore
+.gitignore
+frontend/node_modules
+frontend/public
+frontend/src
+frontend/.eslintrc.cjs
+frontend/index.html
+frontend/package.json
+frontend/package-lock.json
+frontend/README.md
+frontend/vite.config.js
+public/license/*
+public/stnk/*
+node_modules
+nwrfcsdk

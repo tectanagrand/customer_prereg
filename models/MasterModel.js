@@ -2,7 +2,7 @@ const db = require("../config/connection");
 const noderfc = require("node-rfc");
 const TRANS = require("../config/transaction");
 const crud = require("../helper/crudquery");
-noderfc.setIniFileDirectory("../customer_prereg");
+noderfc.setIniFileDirectory(process.env.SAPINIFILE);
 
 const MasterModel = {};
 
