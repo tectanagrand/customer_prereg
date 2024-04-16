@@ -37,11 +37,14 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(csrfProtection);
 app.use("/static", express.static(path.join(__dirname, "public")));
-app.use(express.static(path.join(__dirname, "frontend/dist")));
-app.get("/*(!api)$", (req, res) => {
-    res.sendFile(path.join(__dirname, "frontend/dist", "index.html"));
+app.get("/api/getcsrftoken", (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
 });
 app.use(router);
+app.use(express.static(path.join(__dirname, "frontend/dist")));
+app.get("/*$", (req, res) => {
+    res.sendFile(path.join(__dirname, "frontend/dist", "index.html"));
+});
 // setInterval(() => {
 //     console.log(db.totalCount);
 // }, 1000);
