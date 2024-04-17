@@ -11,13 +11,12 @@ import {
     DialogActions,
     Box,
     Button,
+    TextField,
 } from "@mui/material";
 import { useEffect, useState, useMemo, useCallback } from "react";
-import SelectComp from "../../component/input/SelectComp";
 import { useForm } from "react-hook-form";
 import TableSelectedLNReq from "../../component/table/TableSelectedLNReq";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
-import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import AutocompleteComp from "../../component/input/AutocompleteComp";
 import { debounce } from "lodash";
@@ -25,6 +24,7 @@ import { useLocation } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import { useSession } from "../../provider/sessionProvider";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
+import { NumericFormat } from "react-number-format";
 
 export default function FormCreateLoadingNote() {
     const {
@@ -70,7 +70,7 @@ export default function FormCreateLoadingNote() {
     const [resetRow, setResetRow] = useState(false);
     const [modalSuccess, setModalscs] = useState(false);
     const [firstRow, setFirstRow] = useState(null);
-    const navigate = useNavigate();
+    const [remainingQty, _setRemaining] = useState(0);
     const location = useLocation();
     const { getPermission } = useSession();
     const [who, setWho] = useState("");
@@ -98,6 +98,10 @@ export default function FormCreateLoadingNote() {
         setFirstRow(value[0] ?? null);
         _setSelected(value);
     };
+
+    function setRemaining(value) {
+        _setRemaining(value);
+    }
 
     const onCloseModal = () => {
         setModalOpen(false);
@@ -305,6 +309,26 @@ export default function FormCreateLoadingNote() {
                             who={who}
                         />
                     </Paper>
+                    <Paper
+                        sx={{
+                            p: 3,
+                            display: "flex",
+                            gap: 2,
+                            mb: 2,
+                            maxWidth: "60rem",
+                        }}
+                    >
+                        <NumericFormat
+                            customInput={TextField}
+                            sx={{ input: { cursor: "default" } }}
+                            label="O/S Quantity"
+                            value={remainingQty}
+                            inputProps={{ readOnly: true }}
+                            thousandSeparator
+                            error={remainingQty < 0}
+                            helperText={remainingQty < 0 && "Quantity Exceeded"}
+                        />
+                    </Paper>
                 </div>
                 {!!errors.selected_req && (
                     <p style={{ color: "red" }}>
@@ -317,6 +341,8 @@ export default function FormCreateLoadingNote() {
                         CustNum={CustNumVal}
                         setLoading={setLoading}
                         setSelectedRowsUp={setSelected}
+                        setRemainingUp={setRemaining}
+                        remaining={remainingQty}
                         resetRows={resetRow}
                         who={who}
                     />
@@ -472,6 +498,7 @@ export default function FormCreateLoadingNote() {
                             //     }
                             // }}
                             type="submit"
+                            disabled={remainingQty < 0}
                         >
                             Push To SAP
                         </LoadingButton>

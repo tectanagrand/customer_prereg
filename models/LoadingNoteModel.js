@@ -1490,7 +1490,6 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
     }
     let que = `${getRecapData} ${whereQue}`;
     let val = whereVal;
-    console.log(que);
     try {
         const client = await db.connect();
         try {

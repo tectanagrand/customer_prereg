@@ -127,6 +127,8 @@ MasterModel.getSOData = async do_num => {
             OS: parseFloat(SLIP.ZTTLPROF) - totalPay,
             IS_PAID: parseFloat(SLIP.ZTTLPROF) - totalPay > 5000 ? false : true,
             TOTALSPEND: totalFromSAP + qtyTemp,
+            TOTALTEMP: qtyTemp,
+            TOTALSAP: totalFromSAP,
         };
     } catch (error) {
         console.log(error);

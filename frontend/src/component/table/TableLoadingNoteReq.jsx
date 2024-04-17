@@ -42,20 +42,18 @@ export default function TableLoadingNoteReq({
     CustNum,
     setLoading,
     setSelectedRowsUp,
+    setRemainingUp,
+    remaining,
     resetRows,
     who,
 }) {
-    // console.log(who);
     const axiosPrivate = useAxiosPrivate();
     const theme = useTheme();
     const [rows, setRows] = useState([]);
     const rowData = useMemo(() => rows, [rows]);
     const [rowSelected, setSelectedRows] = useState([]);
-    const selectedRows = useMemo(() => rowSelected, [rowSelected]);
     const [autoResetPageIndex, skipAutoResetPageIndex] = useSkipper();
-    const location = useLocation();
-    const path = location.pathname.split("/");
-    const curposPath = path[path.length - 1];
+    const initialOS = useRef(0);
 
     const uniformSelection = (table, row) => {
         const data_selected = table
@@ -79,9 +77,7 @@ export default function TableLoadingNoteReq({
             }
         }
     };
-    // const { onPaginationChange, pagination, limit, skip } = usePagination();
-    // const { sorting, onSortingChange, order, field } = useSorting();
-    // const { filters, onColumnFilterChange } = useFilter();
+
     const columns = useMemo(() => {
         let additional = [];
         let lnnum = [];
@@ -215,7 +211,9 @@ export default function TableLoadingNoteReq({
                                 value={value}
                                 onBlur={onBlur}
                                 onChange={e => {
-                                    setValue(e.target.value);
+                                    setValue(
+                                        e.target.value.replace(/,/g, "").trim()
+                                    );
                                 }}
                                 sx={{
                                     input: {
@@ -255,14 +253,30 @@ export default function TableLoadingNoteReq({
         meta: {
             updateData: (rowIndex, columnId, value) => {
                 skipAutoResetPageIndex();
+                let totalQuantity = remaining;
+                let totalUsed = 0;
                 setRows(prev =>
                     prev.map((row, index) => {
+                        totalQuantity += parseFloat(
+                            prev[index][columnId] === ""
+                                ? 0
+                                : prev[index][columnId]
+                        );
                         if (index === rowIndex) {
+                            totalUsed += parseFloat(value === "" ? 0 : value);
                             return { ...prev[rowIndex], [columnId]: value };
+                        } else {
+                            totalUsed += parseFloat(
+                                prev[index][columnId] === ""
+                                    ? 0
+                                    : prev[index][columnId]
+                            );
                         }
                         return row;
                     })
                 );
+
+                setRemainingUp(totalQuantity - totalUsed);
             },
         },
     });
@@ -273,11 +287,24 @@ export default function TableLoadingNoteReq({
 
     useEffect(() => {
         setLoading(true);
-        (async () => {
-            try {
-                // console.log(DoNum);
-                // console.log(CustNum);
-                if (DoNum !== "" && CustNum !== "") {
+        if (DoNum !== "" && CustNum !== "") {
+            const updateSAPRemaining = setInterval(async () => {
+                const { data: do_data } = await axiosPrivate.get(
+                    `/master/do?do_num=${DoNum}`
+                );
+                const os_data =
+                    parseFloat(do_data.SLIP.KWMENG) -
+                    parseFloat(do_data.TOTALSPEND);
+                setRemainingUp(prev => prev + (os_data - initialOS.current));
+            }, 120 * 1000);
+            (async () => {
+                try {
+                    const { data: do_data } = await axiosPrivate.get(
+                        `/master/do?do_num=${DoNum}`
+                    );
+                    const os_data =
+                        parseFloat(do_data.SLIP.KWMENG) -
+                        parseFloat(do_data.TOTALSPEND);
                     const { data } = await axiosPrivate.post("/ln/osreq", {
                         filters: [
                             { id: "id_do", value: DoNum },
@@ -285,16 +312,20 @@ export default function TableLoadingNoteReq({
                         ],
                         who: who,
                     });
+                    setRemainingUp(os_data);
                     setRows(data.data);
-                } else {
-                    setRows([]);
+                    initialOS.current = os_data;
+                } catch (error) {
+                    console.error(error);
+                } finally {
+                    setLoading(false);
                 }
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        })();
+            })();
+            return () => clearInterval(updateSAPRemaining);
+        } else {
+            setRows([]);
+            setRemainingUp(0);
+        }
     }, [DoNum, CustNum, resetRows]);
 
     // useEffect(() => {
