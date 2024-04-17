@@ -1443,7 +1443,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
             TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN,
             TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE_MOMENT,
-            TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN_MOMENT,
+            TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'MM-DD-YYYY') AS TANGGAL_SURAT_JALAN_MOMENT,
             HD.UOM,
             DET.BRUTO,
             DET.TARRA,
@@ -1454,8 +1454,9 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         FROM LOADING_NOTE_DET DET
         LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
         LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
-        LEFT JOIN MST_CUSTOMER CUST ON USR.SAP_CODE = CUST.KUNNR
-        WHERE DET.LN_NUM IS NOT NULL`;
+        LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+        WHERE DET.LN_NUM IS NOT NULL
+        ORDER BY DET.LN_NUM DESC`;
     let where = [];
     let whereVal = [];
     let ltindex = 0;

@@ -66,9 +66,11 @@ export default function TableRecapReport({ onsetFilterData }) {
                 id: "exportln",
                 cell: ({ row }) => {
                     if (
-                        moment(
-                            row.original.tanggal_surat_jalan_moment
-                        ).isBefore(moment()) &&
+                        moment()
+                            .subtract(1, "days")
+                            .isSameOrBefore(
+                                moment(row.original.cre_date_moment)
+                            ) &&
                         row.original.print_count < 3
                     ) {
                         return (
