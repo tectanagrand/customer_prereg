@@ -221,7 +221,7 @@ export default function VehicleDashboard() {
     return (
         <>
             <Toaster />
-            <Typography variant="h4">Request Vehicle Registration</Typography>
+            <Typography variant="h4">Request Driver Registration</Typography>
             <div style={{ display: "flex", margin: "1rem", gap: "1rem" }}>
                 <TableDriver
                     refresh={refresh}

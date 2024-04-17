@@ -132,7 +132,7 @@ export default function TableVehicle({ refresh, editData, deleteData }) {
         <>
             <TableContainer
                 sx={{
-                    height: "30rem",
+                    height: "38rem",
                     maxWidth: "90rem",
                 }}
             >
