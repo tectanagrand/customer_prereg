@@ -3,9 +3,18 @@ import { useEffect } from "react";
 import useRefreshToken from "./useRefreshToken";
 import { useSession } from "../provider/sessionProvider";
 
+const notNeeded = ["GET", "HEAD", "OPTIONS"];
 const useAxiosPrivate = () => {
     const refresh = useRefreshToken();
     const { session } = useSession();
+
+    useEffect(() => {
+        console.log("refresh");
+    }, [refresh]);
+
+    useEffect(() => {
+        console.log("session");
+    }, [session]);
 
     useEffect(() => {
         const requestIntercept = axiosPrivate.interceptors.request.use(
@@ -14,12 +23,15 @@ const useAxiosPrivate = () => {
                     config.headers["Authorization"] =
                         `Bearer ${session.access_token}`;
                 }
-                try {
-                    const response = await Axios.get("/getcsrftoken");
-                    const csrfToken = response.data.csrfToken;
-                    config.headers["X-CSRF-Token"] = csrfToken;
-                } catch (error) {
-                    console.error(error);
+                if (!notNeeded.includes(config.method.toUpperCase())) {
+                    // console.log(config.method);
+                    try {
+                        const response = await Axios.get("/getcsrftoken");
+                        const csrfToken = response.data.csrfToken;
+                        config.headers["X-CSRF-Token"] = csrfToken;
+                    } catch (error) {
+                        console.error(error);
+                    }
                 }
                 return config;
             },
