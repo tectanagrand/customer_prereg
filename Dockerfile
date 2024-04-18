@@ -1,21 +1,22 @@
 FROM node:20
 
 # Install dependencies for nwrfc
-COPY nwrfcsdk_linux/nwrfc_lin.zip /
-RUN mkdir -p /usr/local/sap/nwrfcsdk && \
-    unzip /nwrfc_lin.zip -d /usr/local/sap/nwrfcsdk && \
-    rm /nwrfc_lin.zip
+COPY nwrfcsdk_linux/nwrfcsdk.zip /
+RUN mkdir -p -m 777 /usr/local/sap/nwrfcsdk && \
+    unzip /nwrfcsdk.zip -d /usr/local/sap/nwrfcsdk && \
+    rm /nwrfcsdk.zip
 
 RUN mkdir -p /etc/ld.so.conf.d
 
 # Add nwrfc library to ldconfig
-RUN echo "/usr/local/sap/nwrfcsdk/nwrfc_lin/lib" > /etc/ld.so.conf.d/nwrfcsdk.conf 
-RUN ldconfig -p | grep sap
+RUN echo "/usr/local/sap/nwrfcsdk/lib" > /etc/ld.so.conf.d/nwrfcsdk.conf 
+RUN ldconfig -p
 
 # RUN apk add --no-cache g++ make py3-pip libuuid
 
 # Set environment variable for nwrfc
-ENV SAPNWRFC_HOME=/usr/local/sap/nwrfcsdk/nwrfc_lin
+ENV SAPNWRFC_HOME=/usr/local/sap/nwrfcsdk
+RUN chmod -R 777 $SAPNWRFC_HOME
 
 # Set working directory
 WORKDIR /app
