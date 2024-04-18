@@ -1,10 +1,11 @@
 import axios from "axios";
 import { useSession } from "../provider/sessionProvider";
+import { useCallback } from "react";
 import Cookies from "js-cookie";
 
 const useRefreshToken = () => {
     const { setAccessToken, logOut } = useSession();
-    const refresh = async () => {
+    const refresh = useCallback(async () => {
         try {
             const response = await axios.get(
                 `${import.meta.env.VITE_URL_LOC}/user/refresh`,
@@ -24,7 +25,7 @@ const useRefreshToken = () => {
                 window.location.replace(`/login`);
             }, 100);
         }
-    };
+    }, [setAccessToken]);
 
     return refresh;
 };
