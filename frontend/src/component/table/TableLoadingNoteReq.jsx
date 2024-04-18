@@ -287,7 +287,7 @@ export default function TableLoadingNoteReq({
 
     useEffect(() => {
         setLoading(true);
-        if (DoNum !== "" && CustNum !== "") {
+        if (DoNum !== "" && CustNum !== "" && DoNum && CustNum) {
             const updateSAPRemaining = setInterval(async () => {
                 const { data: do_data } = await axiosPrivate.get(
                     `/master/do?do_num=${DoNum}`
@@ -326,6 +326,7 @@ export default function TableLoadingNoteReq({
             setRows([]);
             setRemainingUp(0);
         }
+        setLoading(false);
     }, [DoNum, CustNum, resetRows]);
 
     // useEffect(() => {
