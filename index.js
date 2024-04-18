@@ -15,6 +15,15 @@ const whitelist = require("./config/allowedOrigin");
 const router = require("./routes");
 const SAPGetterChores = require("./helper/SAPGetterChores");
 const db = require("./config/connection");
+const ignoreMethod = ["GET", "HEAD", "OPTIONS"];
+
+const myCSRFProtection = (req, res, next) => {
+    if (!ignoreMethod.includes(req.method) || req.url === "/api/getcsrftoken") {
+        csrfProtection(req, res, next);
+    } else {
+        next();
+    }
+};
 
 const csrfProtection = csrf({
     cookie: true,
@@ -35,9 +44,10 @@ app.use(cors(corsOption));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(csrfProtection);
+app.use(myCSRFProtection);
 app.use("/static", express.static(path.join(__dirname, "public")));
 app.get("/api/getcsrftoken", (req, res) => {
+    console.log(req.method);
     res.json({ csrfToken: req.csrfToken() });
 });
 app.use(router);
