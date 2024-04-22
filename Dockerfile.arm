@@ -1,35 +1,4 @@
-FROM node:20
-
-# Install dependencies for nwrfc
-COPY nwrfcsdk_arm/nwrfcsdk.zip /
-RUN mkdir -p /usr/local/sap/nwrfcsdk && \
-    unzip /nwrfcsdk.zip -d /usr/local/sap/nwrfcsdk && \
-    rm /nwrfcsdk.zip
-
-RUN mkdir -p /etc/ld.so.conf.d
-
-# Add nwrfc library to ldconfig
-RUN echo "/usr/local/sap/nwrfcsdk/lib" > /etc/ld.so.conf.d/nwrfcsdk.conf 
-RUN ldconfig -p | grep sap
-
-# RUN apk add --no-cache g++ make py3-pip libuuid
-
-# # Set environment variable for nwrfc
-# ENV SAPNWRFC_HOME=/usr/local/sap/nwrfcsdk
-
-# Print the contents of the NW RFC SDK installation directory
-RUN ls -la /usr/local/sap/nwrfcsdk
-
-# Print the contents of the lib directory within the NW RFC SDK installation directory
-RUN ls -la /usr/local/sap/nwrfcsdk/lib
-
-# Set environment variable for nwrfc
-ENV SAPNWRFC_HOME=/usr/local/sap/nwrfcsdk
-ENV LD_LIBRARY_PATH=$SAPNWRFC_HOME/lib
-
-# Print the value of SAPNWRFC_HOME and LD_LIBRARY_PATH environment variables
-RUN echo "SAPNWRFC_HOME=$SAPNWRFC_HOME"
-RUN echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+FROM node:18-alpine
 
 
 # Set working directory
