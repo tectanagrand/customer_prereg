@@ -3,8 +3,8 @@ const express = require("express");
 const router = express.Router();
 
 router.get("/comp", MasterController.getComp);
-router.get("/driver", MasterController.getDriver);
-router.get("/truck", MasterController.getTruck);
+router.get("/driver", MasterController.getDriver2);
+router.get("/truck", MasterController.getTruck2);
 router.get("/do", MasterController.getSOData);
 router.get("/cust", MasterController.getDataCustDB);
 router.get("/oscust", MasterController.getOSDataCust);

@@ -4,11 +4,11 @@ const TRANS = require("../config/transaction");
 const ExcelJS = require("exceljs");
 const crud = require("../helper/crudquery");
 const uuid = require("uuidv4");
-const noderfc = require("node-rfc");
-const INDICATOR = require("../config/IndicateRFC");
+// const noderfc = require("node-rfc");
+// const INDICATOR = require("../config/IndicateRFC");
 const moment = require("moment");
-noderfc.setIniFileDirectory(process.env.SAPINIFILE);
-const poolRFC = require("../config/rfcconnection");
+// noderfc.setIniFileDirectory(process.env.SAPINIFILE);
+// const poolRFC = require("../config/rfcconnection");
 const EmailModel = require("../models/EmailModel");
 
 const LoadingNoteModel = {};
@@ -338,147 +338,248 @@ LoadingNoteModel.showAllLoadNote = async () => {
     }
 };
 
-LoadingNoteModel.finalizeLoadingNote = async (params, session) => {
-    const client = await db.connect();
-    const rfcclient = new noderfc.Client({ dest: "Q13" });
-    const today = new Date();
-    // let que, val;
-    const idLoad = params.uuid;
-    try {
-        await client.query(TRANS.BEGIN);
-        await rfcclient.open();
-        const is_draft = params.is_draft;
-        const payload = {
-            id_do: params.do_num,
-            inv_type: params.inv_type,
-            inv_tol_from: params.inv_type_tol_from,
-            inv_tol_to: params.inv_type_tol_to,
-            incoterms_1: params.incoterms_1,
-            incoterms_2: params.incoterms_2,
-            item_rule: params.rules,
-            con_num: params.con_num,
-            material_code: params.material,
-            os_deliv: params.os_deliv,
-            plant: params.plant,
-            description: params.description,
-            uom: params.uom,
-            driver_id: params.driver,
-            vhcl_num: params.vehicle,
-            created_date: params.loading_date,
-            pl_load_qty: params.planned_qty,
-            factory_plt: params.fac_plant,
-            factory_sloc: params.fac_store_loc,
-            oth_factory_plt: params.oth_plant,
-            oth_factory_sloc: params.oth_store_loc,
-            factory_batch: params.fac_batch,
-            oth_party_batch: params.oth_batch,
-            factory_valtype: params.fac_val_type,
-            oth_party_valtype: params.oth_val_type,
-            is_paid: params.is_paid,
-            driver_name: params.driver_name,
-            company_code: params.company_code,
-            media_tp: params.media_tp,
-            update_at: today,
-            update_by: session.id_user,
-        };
-        const param = {
-            I_RECORD_REGISTRA: {
-                BUKRS: params.company_code,
-                UPLOADID: "1",
-                DOTYPE: "S",
-                ITEMRULE: params.rules,
-                VBELN_REF: params.do_num,
-                POSNR: "000010",
-                EBELN_REF: "",
-                CREDAT: moment(params.loading_date).format("DD.MM.YYYY"),
-                MATNR: "",
-                PLN_LFIMG: params.planned_qty.toString(),
-                DWERKS: params.fac_plant,
-                DLGORT: params.fac_store_loc,
-                RWERKS: params.oth_plant,
-                RLGORT: params.oth_store_loc,
-                ZZTRANSP_TYPE: params.media_tp,
-                WANGKUTAN: "",
-                WNOSIM: params.driver,
-                WNOPOLISI: params.vehicle,
-                L_LFIMG: "0",
-                OP_LFIMG: "0",
-                DOPLINE: "0000",
-                VSLCD: "",
-                VOYNR: "",
-                DCHARG_1: params.company_code,
-                RCHARG_1: params.do_num,
-                RBWTAR_1: params.oth_val_type,
-            },
-        };
-        if (is_draft) {
-            payload.cur_pos = "FINA";
-        } else {
-            const sapPush = await rfcclient.call(
-                "ZRFC_PRE_REGISTRA_CUST",
-                param
-            );
-            if (INDICATOR.hasOwnProperty(sapPush.RFC_TEXT)) {
-                throw new Error(sapPush.RFC_TEXT);
-            } else if (sapPush.RFC_TEXT.includes("is not allowed")) {
-                throw new Error(sapPush.RFC_TEXT);
-            } else {
-                const loadingNoteNum = sapPush.RFC_TEXT.replace(
-                    /[^0-9]/g,
-                    ""
-                ).trim();
-                payload.id_loadnote = loadingNoteNum;
-            }
-            payload.cur_pos = "END";
-        }
-        const [que, val] = crud.updateItem(
-            "loading_note",
-            payload,
-            { uuid: idLoad },
-            "id_loadnote"
-        );
-        const { rows } = await client.query(que, val);
-        await client.query(TRANS.COMMIT);
-        return rows[0].id_loadnote;
-    } catch (error) {
-        await client.query(TRANS.ROLLBACK);
-        console.error(error);
-        throw error;
-    } finally {
-        client.release();
-    }
-};
+// LoadingNoteModel.finalizeLoadingNote = async (params, session) => {
+//     const client = await db.connect();
+//     const rfcclient = new noderfc.Client({ dest: "Q13" });
+//     const today = new Date();
+//     // let que, val;
+//     const idLoad = params.uuid;
+//     try {
+//         await client.query(TRANS.BEGIN);
+//         await rfcclient.open();
+//         const is_draft = params.is_draft;
+//         const payload = {
+//             id_do: params.do_num,
+//             inv_type: params.inv_type,
+//             inv_tol_from: params.inv_type_tol_from,
+//             inv_tol_to: params.inv_type_tol_to,
+//             incoterms_1: params.incoterms_1,
+//             incoterms_2: params.incoterms_2,
+//             item_rule: params.rules,
+//             con_num: params.con_num,
+//             material_code: params.material,
+//             os_deliv: params.os_deliv,
+//             plant: params.plant,
+//             description: params.description,
+//             uom: params.uom,
+//             driver_id: params.driver,
+//             vhcl_num: params.vehicle,
+//             created_date: params.loading_date,
+//             pl_load_qty: params.planned_qty,
+//             factory_plt: params.fac_plant,
+//             factory_sloc: params.fac_store_loc,
+//             oth_factory_plt: params.oth_plant,
+//             oth_factory_sloc: params.oth_store_loc,
+//             factory_batch: params.fac_batch,
+//             oth_party_batch: params.oth_batch,
+//             factory_valtype: params.fac_val_type,
+//             oth_party_valtype: params.oth_val_type,
+//             is_paid: params.is_paid,
+//             driver_name: params.driver_name,
+//             company_code: params.company_code,
+//             media_tp: params.media_tp,
+//             update_at: today,
+//             update_by: session.id_user,
+//         };
+//         const param = {
+//             I_RECORD_REGISTRA: {
+//                 BUKRS: params.company_code,
+//                 UPLOADID: "1",
+//                 DOTYPE: "S",
+//                 ITEMRULE: params.rules,
+//                 VBELN_REF: params.do_num,
+//                 POSNR: "000010",
+//                 EBELN_REF: "",
+//                 CREDAT: moment(params.loading_date).format("DD.MM.YYYY"),
+//                 MATNR: "",
+//                 PLN_LFIMG: params.planned_qty.toString(),
+//                 DWERKS: params.fac_plant,
+//                 DLGORT: params.fac_store_loc,
+//                 RWERKS: params.oth_plant,
+//                 RLGORT: params.oth_store_loc,
+//                 ZZTRANSP_TYPE: params.media_tp,
+//                 WANGKUTAN: "",
+//                 WNOSIM: params.driver,
+//                 WNOPOLISI: params.vehicle,
+//                 L_LFIMG: "0",
+//                 OP_LFIMG: "0",
+//                 DOPLINE: "0000",
+//                 VSLCD: "",
+//                 VOYNR: "",
+//                 DCHARG_1: params.company_code,
+//                 RCHARG_1: params.do_num,
+//                 RBWTAR_1: params.oth_val_type,
+//             },
+//         };
+//         if (is_draft) {
+//             payload.cur_pos = "FINA";
+//         } else {
+//             const sapPush = await rfcclient.call(
+//                 "ZRFC_PRE_REGISTRA_CUST",
+//                 param
+//             );
+//             if (INDICATOR.hasOwnProperty(sapPush.RFC_TEXT)) {
+//                 throw new Error(sapPush.RFC_TEXT);
+//             } else if (sapPush.RFC_TEXT.includes("is not allowed")) {
+//                 throw new Error(sapPush.RFC_TEXT);
+//             } else {
+//                 const loadingNoteNum = sapPush.RFC_TEXT.replace(
+//                     /[^0-9]/g,
+//                     ""
+//                 ).trim();
+//                 payload.id_loadnote = loadingNoteNum;
+//             }
+//             payload.cur_pos = "END";
+//         }
+//         const [que, val] = crud.updateItem(
+//             "loading_note",
+//             payload,
+//             { uuid: idLoad },
+//             "id_loadnote"
+//         );
+//         const { rows } = await client.query(que, val);
+//         await client.query(TRANS.COMMIT);
+//         return rows[0].id_loadnote;
+//     } catch (error) {
+//         await client.query(TRANS.ROLLBACK);
+//         console.error(error);
+//         throw error;
+//     } finally {
+//         client.release();
+//     }
+// };
 
-LoadingNoteModel.showSLoc = async plant => {
-    try {
-        const rfcclient = new noderfc.Client({ dest: "Q13" });
-        await rfcclient.open();
-        try {
-            const { I_PLANT, I_SLOC } = await rfcclient.call(
-                "ZRFC_PRE_REGISTRA_STORELOC",
-                {
-                    I_PLANT: plant,
-                }
-            );
-            const dataSloc = I_SLOC.map(item => ({
-                value: item.LGORT,
-                label: item.LGORT,
-            }));
-            return dataSloc;
-        } catch (error) {
-            throw error;
-        }
-    } catch (error) {
-        console.log(error);
-        throw error;
-    }
-};
+// LoadingNoteModel.showSLoc = async plant => {
+//     try {
+//         const rfcclient = new noderfc.Client({ dest: "Q13" });
+//         await rfcclient.open();
+//         try {
+//             const { I_PLANT, I_SLOC } = await rfcclient.call(
+//                 "ZRFC_PRE_REGISTRA_STORELOC",
+//                 {
+//                     I_PLANT: plant,
+//                 }
+//             );
+//             const dataSloc = I_SLOC.map(item => ({
+//                 value: item.LGORT,
+//                 label: item.LGORT,
+//             }));
+//             return dataSloc;
+//         } catch (error) {
+//             throw error;
+//         }
+//     } catch (error) {
+//         console.log(error);
+//         throw error;
+//     }
+// };
 
-LoadingNoteModel.getById = async id_header => {
+// LoadingNoteModel.getById = async id_header => {
+//     try {
+//         const client = await db.connect();
+//         const rfcclient = new noderfc.Client({ dest: "Q13" });
+//         await rfcclient.open();
+//         try {
+//             const { rows } = await client.query(
+//                 `SELECT HD.*,
+//                 DET.*
+//             FROM LOADING_NOTE_HD HD
+//             LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
+//             WHERE HD.hd_id = $1`,
+//                 [id_header]
+//             );
+//             let plan_qty_con = 0;
+//             const detail = rows.map(item => {
+//                 plan_qty_con += parseFloat(item.plan_qty);
+//                 return {
+//                     id_detail: item.det_id,
+//                     vehicle: { value: item.vhcl_id, label: item.vhcl_id },
+//                     driver: {
+//                         value: item.driver_id,
+//                         label: item.driver_id + " - " + item.driver_name,
+//                     },
+//                     loading_date: item.cre_date,
+//                     planned_qty: item.plan_qty,
+//                     media_tp: item.media_tp,
+//                     multi_do: item.multi_do,
+//                     is_multi: item.is_multi,
+//                 };
+//             });
+//             console.log(plan_qty_con);
+//             const hd_dt = rows[0];
+//             const rfcResponse = await rfcclient.call("ZRFC_PRE_REGISTRA_SLIP", {
+//                 I_VBELN: hd_dt.id_do,
+//             });
+//             let totalFromSAP = 0;
+//             rfcResponse.I_OUTDELIVERY.map(item => {
+//                 let planning = parseFloat(item.PLN_LFIMG);
+//                 let real = parseFloat(item.L_LFIMG);
+//                 totalFromSAP += real === 0 ? planning : real;
+//             });
+//             const { rows: tempLoadingNote } = await client.query(
+//                 `SELECT SUM(PLAN_QTY) AS plan_qty
+//                 FROM LOADING_NOTE_DET DET
+//                 LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+//                 WHERE HD.ID_DO = $1
+//                 AND DET.IS_ACTIVE = TRUE
+//                 AND DET.LN_NUM IS NULL`,
+//                 [hd_dt.id_do]
+//             );
+//             const resp = {
+//                 do_num: hd_dt.id_do,
+//                 inv_type: hd_dt.invoice_type,
+//                 inv_type_tol_from: hd_dt.tol_from,
+//                 inv_type_tol_to: hd_dt.tol_to,
+//                 incoterms: hd_dt.inco_1 + "-" + hd_dt.inco_2,
+//                 rules: hd_dt.rules,
+//                 con_num: hd_dt.con_num,
+//                 material: hd_dt.material,
+//                 con_qty: hd_dt.con_qty,
+//                 os_qty:
+//                     parseFloat(hd_dt.con_qty) -
+//                     totalFromSAP -
+//                     parseFloat(tempLoadingNote[0].plan_qty) +
+//                     plan_qty_con,
+//                 totalspend:
+//                     totalFromSAP +
+//                     parseFloat(tempLoadingNote[0].plan_qty) -
+//                     plan_qty_con,
+//                 plan_qty_con: plan_qty_con,
+//                 plant: hd_dt.plant,
+//                 description: hd_dt.desc_con,
+//                 uom: hd_dt.uom,
+//                 company: hd_dt.company,
+//                 load_detail: detail,
+//                 fac_plant: hd_dt.fac_plant,
+//                 fac_store_loc: hd_dt.fac_sloc,
+//                 fac_batch: hd_dt.fac_batch,
+//                 fac_val_type: hd_dt.fac_valtype,
+//                 oth_plant: hd_dt.oth_plant,
+//                 oth_store_loc: hd_dt.oth_sloc,
+//                 oth_batch: hd_dt.oth_batch,
+//                 oth_val_type: hd_dt.oth_valtype,
+//             };
+//             return {
+//                 data: resp,
+//                 id_header: hd_dt.hd_id,
+//                 cur_pos: hd_dt.cur_pos,
+//                 is_paid: hd_dt.is_paid,
+//                 cur_planqty: tempLoadingNote[0].plan_qty,
+//             };
+//         } catch (error) {
+//             throw error;
+//         } finally {
+//             client.release();
+//         }
+//     } catch (error) {
+//         console.log(error);
+//         throw error;
+//     }
+// };
+
+LoadingNoteModel.getById2 = async id_header => {
     try {
         const client = await db.connect();
-        const rfcclient = new noderfc.Client({ dest: "Q13" });
-        await rfcclient.open();
         try {
             const { rows } = await client.query(
                 `SELECT HD.*,
@@ -505,15 +606,20 @@ LoadingNoteModel.getById = async id_header => {
                     is_multi: item.is_multi,
                 };
             });
-            console.log(plan_qty_con);
             const hd_dt = rows[0];
-            const rfcResponse = await rfcclient.call("ZRFC_PRE_REGISTRA_SLIP", {
-                I_VBELN: hd_dt.id_do,
-            });
+            const { data: I_OUTDELIVERY } = await axios.get(
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${hd_dt.id_do}%27)&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
             let totalFromSAP = 0;
-            rfcResponse.I_OUTDELIVERY.map(item => {
-                let planning = parseFloat(item.PLN_LFIMG);
-                let real = parseFloat(item.L_LFIMG);
+            I_OUTDELIVERY.d.results.map(item => {
+                let planning = parseFloat(item.PlnLfimg);
+                let real = parseFloat(item.LLfimg);
                 totalFromSAP += real === 0 ? planning : real;
             });
             const { rows: tempLoadingNote } = await client.query(
@@ -830,116 +936,116 @@ LoadingNoteModel.getOSLoadingNoteNumWB = async (limit, offset, cust) => {
         throw error;
     }
 };
-LoadingNoteModel.finalizeLoadingNote_2 = async (params, session) => {
-    try {
-        const client = await db.connect();
-        let rfcclient = await poolRFC.acquire();
-        let dbpromise = [];
-        let loading_note = new Map();
-        let failed_case = new Map();
-        const today = new Date();
-        const uploadData = params.selected_req;
-        const fac_sloc = params.fac_sloc;
-        const fac_sloc_desc = params.fac_sloc_desc;
-        const fac_valtype = params.fac_valtype;
-        const oth_sloc = params.oth_sloc;
-        const oth_sloc_desc = params.oth_sloc_desc;
-        const oth_valtype = params.oth_valtype;
-        try {
-            await client.query(TRANS.BEGIN);
-            let index = 0;
-            for (item of uploadData) {
-                const param = {
-                    I_RECORD_REGISTRA: {
-                        BUKRS: item.company,
-                        UPLOADID: "1",
-                        DOTYPE: "S",
-                        ITEMRULE: item.rules,
-                        VBELN_REF: item.id_do,
-                        POSNR: "10",
-                        EBELN_REF: "",
-                        CREDAT: moment(item.create_date).format("DD.MM.YYYY"),
-                        MATNR: item.material,
-                        PLN_LFIMG: item.plan_qty,
-                        DWERKS: item.fac_plant,
-                        DLGORT: fac_sloc,
-                        RWERKS: item.oth_plant,
-                        RLGORT: oth_sloc,
-                        ZZTRANSP_TYPE: item.media_tp,
-                        WANGKUTAN: "",
-                        WNOSIM: item.driver_id,
-                        WNOPOLISI: item.vhcl_id,
-                        L_LFIMG: "0",
-                        OP_LFIMG: "0",
-                        DOPLINE: "0000",
-                        VSLCD: "",
-                        VOYNR: "",
-                        DCHARG_1: item.company,
-                        RCHARG_1: item.id_do,
-                        RBWTAR_1: oth_valtype,
-                    },
-                };
-                const data = await rfcclient.call(
-                    "ZRFC_PRE_REGISTRA_CUST",
-                    param
-                );
-                if (
-                    data?.RFC_TEXT &&
-                    data?.RFC_TEXT.includes("successfully created")
-                ) {
-                    loading_note.set(
-                        uploadData[index].id,
-                        data?.RFC_TEXT.replace(/[^0-9]/g, "").trim()
-                    );
-                } else {
-                    failed_case.set(
-                        `${uploadData[index].id_do}-${uploadData[index].vhcl_id}-${uploadData[index].id}`,
-                        data?.RFC_TEXT
-                    );
-                }
-                index++;
-            }
-            loading_note.forEach((value, key) => {
-                const payload = {
-                    ln_num: value,
-                    is_pushed: true,
-                    fac_sloc: fac_sloc,
-                    oth_sloc: oth_sloc,
-                    fac_sloc_desc: fac_sloc_desc,
-                    oth_sloc_desc: oth_sloc_desc,
-                    fac_valtype: fac_valtype,
-                    oth_valtype: oth_valtype,
-                    update_at: today,
-                    update_by: session.id_user,
-                };
-                const [que, val] = crud.updateItem(
-                    "loading_note_det",
-                    payload,
-                    { det_id: key },
-                    "ln_num"
-                );
-                dbpromise.push(client.query(que, val));
-            });
-            const resultDb = await Promise.all(dbpromise);
-            // console.log(resultDb);
-            await client.query(TRANS.COMMIT);
-            return {
-                loading_note: Object.fromEntries(loading_note.entries()),
-                failed: Object.fromEntries(failed_case.entries()),
-            };
-        } catch (error) {
-            console.log(error);
-            await client.query(TRANS.ROLLBACK);
-            throw error;
-        } finally {
-            client.release();
-            poolRFC.release(rfcclient);
-        }
-    } catch (error) {
-        console.log(error);
-        throw error;
-    }
-};
+// LoadingNoteModel.finalizeLoadingNote_2 = async (params, session) => {
+//     try {
+//         const client = await db.connect();
+//         let rfcclient = await poolRFC.acquire();
+//         let dbpromise = [];
+//         let loading_note = new Map();
+//         let failed_case = new Map();
+//         const today = new Date();
+//         const uploadData = params.selected_req;
+//         const fac_sloc = params.fac_sloc;
+//         const fac_sloc_desc = params.fac_sloc_desc;
+//         const fac_valtype = params.fac_valtype;
+//         const oth_sloc = params.oth_sloc;
+//         const oth_sloc_desc = params.oth_sloc_desc;
+//         const oth_valtype = params.oth_valtype;
+//         try {
+//             await client.query(TRANS.BEGIN);
+//             let index = 0;
+//             for (item of uploadData) {
+//                 const param = {
+//                     I_RECORD_REGISTRA: {
+//                         BUKRS: item.company,
+//                         UPLOADID: "1",
+//                         DOTYPE: "S",
+//                         ITEMRULE: item.rules,
+//                         VBELN_REF: item.id_do,
+//                         POSNR: "10",
+//                         EBELN_REF: "",
+//                         CREDAT: moment(item.create_date).format("DD.MM.YYYY"),
+//                         MATNR: item.material,
+//                         PLN_LFIMG: item.plan_qty,
+//                         DWERKS: item.fac_plant,
+//                         DLGORT: fac_sloc,
+//                         RWERKS: item.oth_plant,
+//                         RLGORT: oth_sloc,
+//                         ZZTRANSP_TYPE: item.media_tp,
+//                         WANGKUTAN: "",
+//                         WNOSIM: item.driver_id,
+//                         WNOPOLISI: item.vhcl_id,
+//                         L_LFIMG: "0",
+//                         OP_LFIMG: "0",
+//                         DOPLINE: "0000",
+//                         VSLCD: "",
+//                         VOYNR: "",
+//                         DCHARG_1: item.company,
+//                         RCHARG_1: item.id_do,
+//                         RBWTAR_1: oth_valtype,
+//                     },
+//                 };
+//                 const data = await rfcclient.call(
+//                     "ZRFC_PRE_REGISTRA_CUST",
+//                     param
+//                 );
+//                 if (
+//                     data?.RFC_TEXT &&
+//                     data?.RFC_TEXT.includes("successfully created")
+//                 ) {
+//                     loading_note.set(
+//                         uploadData[index].id,
+//                         data?.RFC_TEXT.replace(/[^0-9]/g, "").trim()
+//                     );
+//                 } else {
+//                     failed_case.set(
+//                         `${uploadData[index].id_do}-${uploadData[index].vhcl_id}-${uploadData[index].id}`,
+//                         data?.RFC_TEXT
+//                     );
+//                 }
+//                 index++;
+//             }
+//             loading_note.forEach((value, key) => {
+//                 const payload = {
+//                     ln_num: value,
+//                     is_pushed: true,
+//                     fac_sloc: fac_sloc,
+//                     oth_sloc: oth_sloc,
+//                     fac_sloc_desc: fac_sloc_desc,
+//                     oth_sloc_desc: oth_sloc_desc,
+//                     fac_valtype: fac_valtype,
+//                     oth_valtype: oth_valtype,
+//                     update_at: today,
+//                     update_by: session.id_user,
+//                 };
+//                 const [que, val] = crud.updateItem(
+//                     "loading_note_det",
+//                     payload,
+//                     { det_id: key },
+//                     "ln_num"
+//                 );
+//                 dbpromise.push(client.query(que, val));
+//             });
+//             const resultDb = await Promise.all(dbpromise);
+//             // console.log(resultDb);
+//             await client.query(TRANS.COMMIT);
+//             return {
+//                 loading_note: Object.fromEntries(loading_note.entries()),
+//                 failed: Object.fromEntries(failed_case.entries()),
+//             };
+//         } catch (error) {
+//             console.log(error);
+//             await client.query(TRANS.ROLLBACK);
+//             throw error;
+//         } finally {
+//             client.release();
+//             poolRFC.release(rfcclient);
+//         }
+//     } catch (error) {
+//         console.log(error);
+//         throw error;
+//     }
+// };
 
 LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
     try {

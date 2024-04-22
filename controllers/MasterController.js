@@ -33,12 +33,38 @@ MasterController.getDriver = async (req, res) => {
     }
 };
 
+MasterController.getDriver2 = async (req, res) => {
+    try {
+        const q = req.query.q;
+        const dataComp = await Master.getDriverData2(q);
+        res.status(200).send(dataComp);
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 MasterController.getTruck = async (req, res) => {
     try {
         const q = req.query.q;
         const limit = req.query.limit;
         const offset = req.query.offset;
         const dataComp = await Master.getVehicleData(q, limit, offset);
+        res.status(200).send(dataComp);
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getTruck2 = async (req, res) => {
+    try {
+        const q = req.query.q;
+        const dataComp = await Master.getVehicleData2(q);
         res.status(200).send(dataComp);
     } catch (error) {
         console.log(error);
@@ -81,7 +107,7 @@ MasterController.getDataSLoc = async (req, res) => {
     const plant = req.query.plant;
     const material = req.query.material;
     try {
-        const data = await Master.getStoreLoc(plant, material);
+        const data = await Master.getStoreLoc2(plant, material);
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
@@ -111,7 +137,7 @@ MasterController.getDataDOList = async (req, res) => {
 
 MasterController.seedDataCust = async (req, res) => {
     try {
-        const insertData = await Master.seedMstCust();
+        const insertData = await Master.seedMstCust2();
         res.status(200).send({
             message: "Success Seeding Mst Customer",
         });

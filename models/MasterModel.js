@@ -1,8 +1,10 @@
 const db = require("../config/connection");
-const noderfc = require("node-rfc");
+// const noderfc = require("node-rfc");
 const TRANS = require("../config/transaction");
 const crud = require("../helper/crudquery");
-noderfc.setIniFileDirectory(process.env.SAPINIFILE);
+const axios = require("axios");
+const MappingKeys = require("../helper/MappingKeys");
+// noderfc.setIniFileDirectory(process.env.SAPINIFILE);
 
 const MasterModel = {};
 
@@ -50,6 +52,36 @@ MasterModel.getDriverData = async (q, limit, offset) => {
     }
 };
 
+MasterModel.getDriverData2 = async q => {
+    try {
+        let filter = "";
+        if (isNaN(parseInt(q))) {
+            filter = `Snama%20eq%20%27${q}%27`;
+        } else {
+            filter = `Snosim%20eq%20%27${q}%27`;
+        }
+        console.log(filter);
+        const { data: driverData } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SIMSet?$filter=(${filter})&$format=json`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        const T_SIM = driverData.d.results.map(item =>
+            MappingKeys.ToUpperKeys(item)
+        );
+        return {
+            data: T_SIM,
+        };
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
+
 MasterModel.getVehicleData = async (q, limit, offset) => {
     const client = new noderfc.Client({ dest: "Q13" });
     await client.open();
@@ -70,7 +102,137 @@ MasterModel.getVehicleData = async (q, limit, offset) => {
     }
 };
 
+MasterModel.getVehicleData2 = async q => {
+    try {
+        const { data: dataVehicle } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/TRUCKSet?$filter=(Nnopolisi eq '${q}')&$format=json
+        `,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        const T_TRUCK = dataVehicle.d.results.map(item =>
+            MappingKeys.ToUpperKeys(item)
+        );
+        return {
+            data: T_TRUCK,
+        };
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+};
+
 MasterModel.getSOData = async do_num => {
+    const psqlclient = await db.connect();
+    try {
+        let totalPay = 0;
+        let totalFromSAP = 0;
+        const param = {
+            I_VBELN: do_num,
+        };
+        const { data: ZSLIP_get } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${do_num}')&$format=json
+        `,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        let I_ZSLIP = {};
+        Object.keys(ZSLIP_get.d.results[0]).map(item => {
+            if (item !== "__metadata") {
+                I_ZSLIP[item.toUpperCase()] = ZSLIP_get.d.results[0][item];
+            }
+        });
+        const { data: ZPINO_get } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZPINOSet?$filter=(Vbeln eq '${do_num}')&$format=json
+        `,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        const I_ZPINO = ZPINO_get.d.results.map(item => {
+            const itemTemp = {};
+            Object.keys(item).map(data => {
+                if (data !== "__metadata") {
+                    itemTemp[data.toUpperCase()] = item[data];
+                }
+            });
+            return itemTemp;
+        });
+        const { rows: tempLoadingNote } = await psqlclient.query(
+            `SELECT SUM(PLAN_QTY) AS plan_qty
+        FROM LOADING_NOTE_DET DET
+        LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+        WHERE HD.ID_DO = $1
+            AND DET.IS_ACTIVE = TRUE
+            AND DET.LN_NUM IS NULL`,
+            [do_num]
+        );
+        const qtyTemp = parseFloat(tempLoadingNote[0].plan_qty) ?? 0;
+        const { data: I_OUTDELIVERY } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${do_num}%27)&$format=json`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        I_OUTDELIVERY.d.results.map(item => {
+            let planning = parseFloat(item.PlnLfimg);
+            let real = parseFloat(item.LLfimg);
+            totalFromSAP += real === 0 ? planning : real;
+        });
+        console.log(qtyTemp);
+        console.log(totalFromSAP);
+
+        if (I_ZSLIP.length === 0) {
+            throw new Error("SO Not Found");
+        }
+        const PINO = I_ZPINO.map(item => ({
+            ...item,
+            WRBTR: item.WRBTR.trim().replace(/[.,]/g, "").replace(",", "."),
+        }));
+        PINO.forEach(item => {
+            totalPay += parseFloat(item.WRBTR);
+        });
+        const SLIPZ = I_ZSLIP;
+
+        const SLIP = {
+            ...SLIPZ,
+            KWMENG: parseFloat(SLIPZ.KWMENG.split(".")[0]),
+            ZTTLPROF: SLIPZ.ZTTLPROF.trim()
+                .replace(/[.,]/g, "")
+                .replace(",", "."),
+        };
+        return {
+            SLIP: SLIP,
+            PINO: PINO,
+            OS: parseFloat(SLIP.ZTTLPROF) - totalPay,
+            IS_PAID: parseFloat(SLIP.ZTTLPROF) - totalPay > 5000 ? false : true,
+            TOTALSPEND: totalFromSAP + qtyTemp,
+            TOTALTEMP: qtyTemp,
+            TOTALSAP: totalFromSAP,
+        };
+    } catch (error) {
+        console.log(error);
+        throw error;
+    } finally {
+        psqlclient.release();
+    }
+};
+
+MasterModel.getSOData2 = async do_num => {
     const client = new noderfc.Client({ dest: "Q13" });
     const psqlclient = await db.connect();
     await client.open();
@@ -138,23 +300,23 @@ MasterModel.getSOData = async do_num => {
     }
 };
 
-MasterModel.getCustData = async () => {
-    try {
-        const rfcclient = new noderfc.Client({ dest: "Q13" });
-        await rfcclient.open();
-        try {
-            const datarfc = rfcclient.call("ZRFC_PRE_REGISTRA_KUNNR", {
-                I_ERDAT: "20220101", // YYYYMMDD
-            });
-            return datarfc;
-        } catch (error) {
-            throw error;
-        }
-    } catch (error) {
-        console.error(error);
-        throw error;
-    }
-};
+// MasterModel.getCustData = async () => {
+//     try {
+//         const rfcclient = new noderfc.Client({ dest: "Q13" });
+//         await rfcclient.open();
+//         try {
+//             const datarfc = rfcclient.call("ZRFC_PRE_REGISTRA_KUNNR", {
+//                 I_ERDAT: "20220101", // YYYYMMDD
+//             });
+//             return datarfc;
+//         } catch (error) {
+//             throw error;
+//         }
+//     } catch (error) {
+//         console.error(error);
+//         throw error;
+//     }
+// };
 
 // MasterModel.getStoreLoc = async (plant, rule) => {
 //     console.log(plant, rule);
@@ -176,17 +338,74 @@ MasterModel.getCustData = async () => {
 //     }
 // };
 
-MasterModel.getStoreLoc = async (plant, material) => {
+// MasterModel.getStoreLoc = async (plant, material) => {
+//     try {
+//         const rfcclient = new noderfc.Client({ dest: "Q13" });
+//         await rfcclient.open();
+//         try {
+//             const { I_SLOC, I_VALTYPE } = await rfcclient.call(
+//                 "ZRFC_PRE_REGISTRA_STORELOC",
+//                 {
+//                     I_PLANT: plant,
+//                     I_MATERIAL: material,
+//                 }
+//             );
+//             const dataSloc = I_SLOC.map(item => ({
+//                 value: item.LGORT,
+//                 label: item.LGORT + " - " + item.LGOBE,
+//             }));
+//             const dataVtype = I_VALTYPE.map(item => ({
+//                 value: item.BWTAR,
+//                 label: item.BWTAR,
+//             }));
+
+//             return { sloc: dataSloc, valtype: dataVtype };
+//         } catch (error) {
+//             throw error;
+//         }
+//     } catch (error) {
+//         console.error(error);
+//         throw error;
+//     }
+// };
+
+MasterModel.getStoreLoc2 = async (plant, material) => {
     try {
-        const rfcclient = new noderfc.Client({ dest: "Q13" });
-        await rfcclient.open();
         try {
-            const { I_SLOC, I_VALTYPE } = await rfcclient.call(
-                "ZRFC_PRE_REGISTRA_STORELOC",
+            // const { I_SLOC, I_VALTYPE } = await rfcclient.call(
+            //     "ZRFC_PRE_REGISTRA_STORELOC",
+            //     {
+            //         I_PLANT: plant,
+            //         I_MATERIAL: material,
+            //     }
+            // );
+
+            const { data: dataIsloc } = await axios.get(
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SLOCSet?$filter=(Plant eq '${plant}')&$format=json
+            `,
                 {
-                    I_PLANT: plant,
-                    I_MATERIAL: material,
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
                 }
+            );
+            const { data: dataValtype } = await axios.get(
+                `
+            http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/VALTYPESet?$filter=(Matnr eq '${material}')and(Plant eq '${plant}')&$format=json
+            `,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            const I_SLOC = dataIsloc.d.results.map(item =>
+                MappingKeys.ToUpperKeys(item)
+            );
+            const I_VALTYPE = dataValtype.d.results.map(item =>
+                MappingKeys.ToUpperKeys(item)
             );
             const dataSloc = I_SLOC.map(item => ({
                 value: item.LGORT,
@@ -207,27 +426,72 @@ MasterModel.getStoreLoc = async (plant, material) => {
     }
 };
 
-MasterModel.seedMstCust = async () => {
+// MasterModel.seedMstCust = async () => {
+//     try {
+//         const rfcclient = new noderfc.Client({ dest: "Q13" });
+//         await rfcclient.open();
+//         const client = await db.connect();
+//         let promises = [];
+//         try {
+//             await client.query(TRANS.BEGIN);
+//             await client.query("DELETE FROM mst_customer");
+//             const { T_KUNNR } = await rfcclient.call(
+//                 "ZRFC_PRE_REGISTRA_KUNNR",
+//                 {
+//                     I_ERDAT: "19900101", // YYYYMMDD
+//                 }
+//             );
+//             T_KUNNR.forEach(item => {
+//                 const payload = {
+//                     kunnr: item.KUNNR,
+//                     name_1: item.NAME1,
+//                     ort_1: item.ORT01,
+//                     erdat: item.ERDAT,
+//                 };
+//                 const [que, val] = crud.insertItem(
+//                     "mst_customer",
+//                     payload,
+//                     "kunnr"
+//                 );
+//                 promises.push(client.query(que, val));
+//             });
+//             const dataInsert = Promise.all(promises);
+//             await client.query(TRANS.COMMIT);
+//         } catch (error) {
+//             await client.query(TRANS.ROLLBACK);
+//             throw error;
+//         } finally {
+//             client.release();
+//         }
+//     } catch (error) {
+//         console.error(error);
+//         throw error;
+//     }
+// };
+
+MasterModel.seedMstCust2 = async () => {
     try {
-        const rfcclient = new noderfc.Client({ dest: "Q13" });
-        await rfcclient.open();
         const client = await db.connect();
         let promises = [];
         try {
             await client.query(TRANS.BEGIN);
             await client.query("DELETE FROM mst_customer");
-            const { T_KUNNR } = await rfcclient.call(
-                "ZRFC_PRE_REGISTRA_KUNNR",
+            const { data: custData } = await axios.get(
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRSet?$filter=(Erdat eq datetime'1990-01-01T00:00:00')&$format=json`,
                 {
-                    I_ERDAT: "19900101", // YYYYMMDD
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
                 }
             );
-            T_KUNNR.forEach(item => {
+            custData.d.results.forEach(item => {
+                const dte = item.Erdatshow.split(".");
                 const payload = {
-                    kunnr: item.KUNNR,
-                    name_1: item.NAME1,
-                    ort_1: item.ORT01,
-                    erdat: item.ERDAT,
+                    kunnr: item.Kunnr,
+                    name_1: item.Name1,
+                    ort_1: item.Ort01,
+                    erdat: dte[1] + "-" + dte[0] + "-" + dte[2],
                 };
                 const [que, val] = crud.insertItem(
                     "mst_customer",
@@ -236,13 +500,11 @@ MasterModel.seedMstCust = async () => {
                 );
                 promises.push(client.query(que, val));
             });
-            const dataInsert = Promise.all(promises);
+            const insertData = await Promise.all(promises);
             await client.query(TRANS.COMMIT);
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
             throw error;
-        } finally {
-            client.release();
         }
     } catch (error) {
         console.error(error);
@@ -250,22 +512,68 @@ MasterModel.seedMstCust = async () => {
     }
 };
 
+// MasterModel.updateCustData2 = async () => {
+//     try {
+//         const client = await db.connect();
+//         let promises = [];
+//         try {
+//             const {rows : lastData} = await client.query(`SELECT TO_CHAR(erdat, 'YYYY-MM-DD' ) AS ERDAT FROM MST_CUSTOMER ORDER BY ERDAT DESC` ) ;
+//             const lastDate = lastData[0].ERDAT ;
+//             await client.query(TRANS.BEGIN);
+//             await client.query("DELETE FROM mst_customer");
+//             const { data: custData } = await axios.get(
+//                 `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRSet?$filter=(Erdat eq datetime'${lastDate}T00:00:00')&$format=json`,
+//                 {
+//                     auth: {
+//                         username: process.env.UNAMESAP,
+//                         password: process.env.PWDSAP,
+//                     },
+//                 }
+//             );
+//             custData.d.results.forEach(item => {
+//                 const dte = item.Erdatshow.split(".");
+//                 const payload = {
+//                     kunnr: item.Kunnr,
+//                     name_1: item.Name1,
+//                     ort_1: item.Ort01,
+//                     erdat: dte[1] + "-" + dte[0] + "-" + dte[2],
+//                 };
+//                 const [que, val] = crud.insertItem(
+//                     "mst_customer",
+//                     payload,
+//                     "kunnr"
+//                 );
+//                 promises.push(client.query(que, val));
+//             });
+//             const insertData = await Promise.all(promises);
+//             await client.query(TRANS.COMMIT);
+//         } catch (error) {
+//             await client.query(TRANS.ROLLBACK);
+//             throw error;
+//         }
+//     } catch (error) {
+//         console.error(error);
+//         throw error;
+//     }
+// };
+
 MasterModel.getDOList = async cust_id => {
     try {
-        const rfcclient = new noderfc.Client({ dest: "Q13" });
-        await rfcclient.open();
         try {
-            const { T_DOKUNNR } = await rfcclient.call(
-                "ZRFC_PRE_REGISTRA_DOKUNNR",
+            const { data } = await axios.get(
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOKUNNRSet?$filter=(Kunnr%20eq%20%27${cust_id}%27)&$format=json`,
                 {
-                    I_KUNNR: cust_id,
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
                 }
             );
-            console.log(T_DOKUNNR);
-            return T_DOKUNNR.map(item => ({
-                value: item.VBELN,
-                label: item.VBELN,
+            const resultData = data.d.results.map(item => ({
+                value: item.Vbeln,
+                label: item.Vbeln,
             }));
+            return resultData;
         } catch (error) {
             throw error;
         }

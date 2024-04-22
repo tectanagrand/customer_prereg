@@ -97,7 +97,7 @@ LoadingNoteController.getById = async (req, res) => {
     const idloadnote = req.query.idloadnote;
     const client = await db.connect();
     try {
-        const result = await LoadNote.getById(idloadnote);
+        const result = await LoadNote.getById2(idloadnote);
         res.status(200).send(result);
     } catch (error) {
         console.error(error);
