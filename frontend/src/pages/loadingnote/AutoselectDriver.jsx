@@ -15,7 +15,7 @@ export default function AutoSelectDriver({
     const max = 999999;
     const [dataRow, setDataRow] = useState([]);
     let paginationRef = useRef({
-        offset: 1,
+        offset: 99999,
         hasMore: true,
     });
 
@@ -26,7 +26,7 @@ export default function AutoSelectDriver({
         setLoading(true);
         try {
             const { data: rowData } = await axiosPrivate.get(
-                `master/driver?q=${q}&limit=${limit}&offset=${offset}`
+                `master/driver?q=${q}`
             );
             return {
                 list: rowData.data,
@@ -74,26 +74,30 @@ export default function AutoSelectDriver({
     };
 
     useEffect(() => {
-        (async () => {
-            paginationRef.current.offset = 1;
-            try {
-                const { list, pagination: resPagination } = await fetchData(
-                    limit,
-                    paginationRef.current.offset,
-                    searchQuery
-                );
-                const dataList = list?.map(item => ({
-                    ...item,
-                    value: item.SNOSIM,
-                    id: item.SNOSIM,
-                    label: item.SNOSIM + " - " + item.SNAMA,
-                }));
-                setDataRow([...dataList]);
-                paginationRef.current = resPagination;
-            } catch (error) {
-                console.error(error);
-            }
-        })();
+        if (searchQuery !== "") {
+            (async () => {
+                paginationRef.current.offset = 1;
+                try {
+                    const { list, pagination: resPagination } = await fetchData(
+                        limit,
+                        paginationRef.current.offset,
+                        searchQuery
+                    );
+                    const dataList = list?.map(item => ({
+                        ...item,
+                        value: item.SNOSIM,
+                        id: item.SNOSIM,
+                        label: item.SNOSIM + " - " + item.SNAMA,
+                    }));
+                    setDataRow([...dataList]);
+                    paginationRef.current = resPagination;
+                } catch (error) {
+                    console.error(error);
+                }
+            })();
+        } else {
+            setDataRow([]);
+        }
     }, [searchQuery]);
 
     return (
