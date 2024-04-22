@@ -707,6 +707,7 @@ EmailGen.PushedSAP = row => {
                 #tabledet {
                     width: 100%;
                     word-wrap: break-word;
+                    overflow: scroll;
                 }
     
                 #tabledet th {
@@ -718,6 +719,7 @@ EmailGen.PushedSAP = row => {
                     font-size: 8pt;
                     background-color: #800000;
                     color: white;
+                    width: 100px;
                 }
     
                 #tabledet td {
@@ -725,6 +727,7 @@ EmailGen.PushedSAP = row => {
                     padding: 1rem;
                     font-weight: 800;
                     color: rgb(0, 0, 0);
+                    width: 100px;
                     border: 1px solid white;
                     background-color: #ffd1d1;
                     border-collapse: collapse;
@@ -921,6 +924,8 @@ EmailGen.PushedSAP = row => {
                             </table>
                         </tr>
                         <tr>
+                        <div style="min-width: 100vw; overflow-x: scroll">
+                        
                             <table id="tabledet">
                                 <tr>
                                     <th rowspan="2">DO Number</th>
@@ -950,6 +955,7 @@ EmailGen.PushedSAP = row => {
                                     <td>Lorem Ipsum</td>
                                 </tr> -->
                             </table>
+                        </div>
                         </tr>
                         <tr>
                             <table style="width: 100%">
