@@ -5,6 +5,7 @@ import {
     Box,
     Button,
     IconButton,
+    Tooltip,
 } from "@mui/material";
 import SelectComp from "../../component/input/SelectComp";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
@@ -26,6 +27,7 @@ import {
 import { LoadingButton } from "@mui/lab";
 import toast, { Toaster } from "react-hot-toast";
 import AutocompleteComp from "../../component/input/AutocompleteComp";
+import { RefreshOutlined } from "@mui/icons-material";
 
 export default function NewUserRegFormPage() {
     // const [customerID, setCustID] = useState("");
@@ -36,6 +38,7 @@ export default function NewUserRegFormPage() {
     const [role, _setRole] = useState("");
     const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(false);
+    const [loadingRf, setLoadingRf] = useState(false);
     const [plantOp, setPlantop] = useState([]);
     const { session, getPermission } = useSession();
     const theme = useTheme();
@@ -197,6 +200,19 @@ export default function NewUserRegFormPage() {
         }
     };
 
+    const RefreshDataCust = async () => {
+        setLoadingRf(true);
+        try {
+            const { data } = await axiosPrivate.get("/master/seedcust");
+            toast.success("Success refresh master data customer");
+        } catch (error) {
+            console.error(error);
+            toast.error("Error refresh master data customer");
+        } finally {
+            setLoadingRf(false);
+        }
+    };
+
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
@@ -245,26 +261,42 @@ export default function NewUserRegFormPage() {
                     </Grid>
                     {!searchParams.get("iduser") && (
                         <Grid item xs={6}>
-                            <AutoSelectUserSAP
-                                name="customer_id"
-                                label="Customer ID"
-                                control={control}
-                                onChangeControlOvr={onChangeControlOvrCust}
-                                fullWidth={true}
-                                disabled={
-                                    !(
-                                        currentRole === "CUSTOMER" ||
-                                        currentRole === "ADMIN"
-                                    )
-                                }
-                                sx={{
-                                    label: {
-                                        "&.Mui-disabled": {
-                                            color: theme.palette.grey[400],
+                            <Box sx={{ display: "flex", gap: 1 }}>
+                                <AutoSelectUserSAP
+                                    name="customer_id"
+                                    label="Customer ID"
+                                    control={control}
+                                    onChangeControlOvr={onChangeControlOvrCust}
+                                    fullWidth={true}
+                                    disabled={
+                                        !(
+                                            currentRole === "CUSTOMER" ||
+                                            currentRole === "ADMIN"
+                                        )
+                                    }
+                                    sx={{
+                                        label: {
+                                            "&.Mui-disabled": {
+                                                color: theme.palette.grey[400],
+                                            },
                                         },
-                                    },
-                                }}
-                            />
+                                    }}
+                                />
+                                <Tooltip title="Refresh Customer">
+                                    <LoadingButton
+                                        sx={{
+                                            minWidth: "1rem",
+                                            minHeight: "1rem",
+                                        }}
+                                        onClick={e => {
+                                            RefreshDataCust();
+                                        }}
+                                        loading={loadingRf}
+                                    >
+                                        <RefreshOutlined />
+                                    </LoadingButton>
+                                </Tooltip>
+                            </Box>
                         </Grid>
                     )}
                 </Grid>
