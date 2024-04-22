@@ -14,7 +14,6 @@ import { useState } from "react";
 import { LoadingButton } from "@mui/lab";
 
 export default function LoginPage() {
-    console.log("login page rendered");
     const { setSession } = useSession();
     const { setMenu } = useMenu();
     const axiosPrivate = useAxiosPrivate();
