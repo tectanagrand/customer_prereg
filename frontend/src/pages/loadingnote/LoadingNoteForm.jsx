@@ -287,9 +287,9 @@ export default function LoadingNoteForm() {
             const dataMap = {
                 do_num: value,
                 inv_type: slip.ZZINVOICETYPE,
-                inv_type_tol_from: slip.UEBTO_INV + " %",
-                inv_type_tol_to: slip.UNTTO_INV + " %",
-                incoterms: slip.INCO1 + " " + slip.INCO2,
+                inv_type_tol_from: slip.UEBTOINV + " %",
+                inv_type_tol_to: slip.UNTTOINV + " %",
+                incoterms: slip.INCO1 + "-" + slip.INCO2,
                 rules: slip.ITEMRULE,
                 con_num: slip.CTRNO,
                 material: slip.MATNR,
