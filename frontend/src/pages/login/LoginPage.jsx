@@ -14,6 +14,7 @@ import { useState } from "react";
 import { LoadingButton } from "@mui/lab";
 
 export default function LoginPage() {
+    console.log("login page rendered");
     const { setSession } = useSession();
     const { setMenu } = useMenu();
     const axiosPrivate = useAxiosPrivate();
@@ -24,8 +25,8 @@ export default function LoginPage() {
         password: "",
     };
     const loginUser = async values => {
+        setLoading(true);
         try {
-            setLoading(true);
             const { data: userData } = await axiosPrivate.post("/user/login", {
                 unemail: values.username,
                 password: values.password,
