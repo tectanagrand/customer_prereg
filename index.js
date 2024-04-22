@@ -26,7 +26,7 @@ const myCSRFProtection = (req, res, next) => {
 };
 
 const csrfProtection = csrf({
-    cookie: true,
+    cookie: { sameSite: "none" },
 });
 const corsOption = {
     origin: function (req, callback) {
