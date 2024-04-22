@@ -1,7 +1,8 @@
-import { axiosPrivate, Axios } from "../api/axios";
+import { axiosPrivate } from "../api/axios";
 import { useEffect } from "react";
 import useRefreshToken from "./useRefreshToken";
 import { useSession } from "../provider/sessionProvider";
+import axios from "axios";
 
 const notNeeded = ["GET", "HEAD", "OPTIONS"];
 const useAxiosPrivate = () => {
@@ -9,16 +10,9 @@ const useAxiosPrivate = () => {
     const { session } = useSession();
 
     useEffect(() => {
-        console.log("refresh");
-    }, [refresh]);
-
-    useEffect(() => {
-        console.log("session");
-    }, [session]);
-
-    useEffect(() => {
         const requestIntercept = axiosPrivate.interceptors.request.use(
             async config => {
+                console.log(config);
                 if (!config.headers["Authorization"]) {
                     config.headers["Authorization"] =
                         `Bearer ${session.access_token}`;
@@ -26,7 +20,10 @@ const useAxiosPrivate = () => {
                 if (!notNeeded.includes(config.method.toUpperCase())) {
                     // console.log(config.method);
                     try {
-                        const response = await Axios.get("/getcsrftoken");
+                        const response = await axios.get(
+                            `${import.meta.env.VITE_URL_LOC}/getcsrftoken`,
+                            { withCredentials: true }
+                        );
                         const csrfToken = response.data.csrfToken;
                         config.headers["X-CSRF-Token"] = csrfToken;
                     } catch (error) {
@@ -53,10 +50,11 @@ const useAxiosPrivate = () => {
             }
         );
         return () => {
+            console.log("clean up  axios private");
             axiosPrivate.interceptors.request.eject(requestIntercept);
             axiosPrivate.interceptors.response.eject(responseIntercept);
         };
-    }, [session, refresh]);
+    }, [refresh, session]);
 
     return axiosPrivate;
 };
