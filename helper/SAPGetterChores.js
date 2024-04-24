@@ -58,7 +58,7 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 WHERE RL.ROLE_NAME = 'KRANIWB'
                 GROUP BY RL.ROLE_NAME, US.PLANT_CODE) EM_WB ON EM_WB.plant_code = hd.plant
               LEFT JOIN MST_CUSTOMER CUS ON CUS.KUNNR = USR_CR.USERNAME
-                WHERE LN_NUM IS NULL`
+                WHERE LN_NUM IS NULL AND DET.IS_ACTIVE = TRUE`
             );
 
             for (const row of rows) {
@@ -76,10 +76,12 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 if (rows.length > 0) {
                     if (rows[0][1] === null && rows[0][2] !== null) {
                         payload = {
-                            error_msg: rows[0][2],
+                            error_msg:
+                                rows[0][2] + " , Please create new request",
+                            is_active: false,
                         };
                         orapayload = {
-                            ISRETRIVEDBYSAP: "FALSE",
+                            FLAG_WEB_PULL: "T",
                         };
                     } else if (rows[0][1] !== null) {
                         payload = {
@@ -131,23 +133,36 @@ SAPGetterChores.LoadingNoteSync = async () => {
                       </td>
                     </tr>
                     `;
-
-                    if (!email_creator.has(row.email_creator)) {
-                        email_creator.set(row.email_creator, [payloadEmail]);
-                    } else {
-                        email_creator.get(row.email_creator).push(payloadEmail);
+                    if (row.email_creator !== null) {
+                        if (!email_creator.has(row.email_creator)) {
+                            email_creator.set(row.email_creator, [
+                                payloadEmail,
+                            ]);
+                        } else {
+                            email_creator
+                                .get(row.email_creator)
+                                .push(payloadEmail);
+                        }
                     }
 
-                    if (!email_updater.has(row.email_updater)) {
-                        email_updater.set(row.email_updater, [payloadEmail]);
-                    } else {
-                        email_updater.get(row.email_updater).push(payloadEmail);
+                    if (row.email_updater !== null) {
+                        if (!email_updater.has(row.email_updater)) {
+                            email_updater.set(row.email_updater, [
+                                payloadEmail,
+                            ]);
+                        } else {
+                            email_updater
+                                .get(row.email_updater)
+                                .push(payloadEmail);
+                        }
                     }
 
-                    if (!email_wb.has(row.email_wb)) {
-                        email_wb.set(row.email_wb, [payloadEmail]);
-                    } else {
-                        email_wb.get(row.email_wb).push(payloadEmail);
+                    if (row.email_wb !== null) {
+                        if (!email_wb.has(row.email_wb)) {
+                            email_wb.set(row.email_wb, [payloadEmail]);
+                        } else {
+                            email_wb.get(row.email_wb).push(payloadEmail);
+                        }
                     }
 
                     const id_db = row.det_id;
@@ -168,7 +183,6 @@ SAPGetterChores.LoadingNoteSync = async () => {
                     continue;
                 }
             }
-
             if (email_creator.size > 0) {
                 await EmailModel.NotifyEmail(email_creator);
             }
