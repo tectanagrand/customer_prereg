@@ -10,7 +10,7 @@ import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import { useSession } from "../../provider/sessionProvider";
 import { useMenu } from "../../provider/MenuProvider";
-import { useState } from "react";
+import { useState, lazy } from "react";
 import { LoadingButton } from "@mui/lab";
 
 export default function LoginPage() {
@@ -60,10 +60,7 @@ export default function LoginPage() {
         >
             <Toaster />
             <Box sx={{ width: "100%", height: "100vh" }}>
-                <LazyBackground
-                    img={imgbg}
-                    style={{ width: "100%", height: "100vh" }}
-                />
+                <LazyBackground img={imgbg} />
             </Box>
             <Box sx={{ flexGrow: 1, width: "100%", p: 10 }}>
                 <Box

@@ -9,20 +9,21 @@ export default function LazyBackground({ img, children, style, noblur }) {
     return (
         <div
             style={{
-                backgroundImage: `url(${img})`,
-                backgroundRepeat: "no-repeat",
-                backgroundPosition: "center center",
-                backgroundSize: "cover",
                 filter: noblur ? "none" : loaded ? "none" : "blur(20px)",
                 transition: !noblur && "filter 0.5s",
+                minWidth: "50vw",
                 ...style,
             }}
         >
             <img
                 src={img}
                 alt=""
+                loading="lazy"
                 onLoad={handleLoad}
-                style={{ display: "none" }}
+                style={{
+                    minHeight: "100vh",
+                    objectFit: "cover",
+                }}
             />
             {loaded && children}
         </div>
