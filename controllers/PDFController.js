@@ -62,16 +62,16 @@ PDFController.exportSuratJalan = async (req, res) => {
                 { det_id: load_noteid },
                 "det_id"
             );
-            console.log(queUp);
+            // console.log(queUp);
             await client.query(queUp, insUp);
-            doc.opacity(0.3);
+            doc.opacity(0.2);
             doc.rotate(-35);
-            doc.fontSize(60).text(watermark, -200, 200);
-            doc.text("KPN CORP", -200, 300);
+            // doc.fontSize(60).text(watermark, -200, 200);
+            // doc.text("KPN CORP", -200, 300);
             doc.fontSize(60).text(watermark, -200, 400);
             doc.text("KPN CORP", -200, 500);
-            doc.fontSize(60).text(watermark, -200, 600);
-            doc.text("KPN CORP", -200, 700);
+            // doc.fontSize(60).text(watermark, -200, 600);
+            // doc.text("KPN CORP", -200, 700);
 
             doc.save();
             doc.rotate(35);
