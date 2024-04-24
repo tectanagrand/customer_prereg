@@ -119,7 +119,7 @@ UserController.setNewPassword = async (req, res) => {
 
 UserController.editUser = async (req, res) => {
     const payload = req.body;
-    console.log(payload);
+    // console.log(payload);
     const session = req.cookies;
     try {
         const verif = await User.editUser(payload, session);
@@ -153,7 +153,7 @@ UserController.resendOTP = async (req, res) => {
     const payload = req.body;
     try {
         const verif = await User.resendOTP(payload);
-        console.log(verif);
+        // console.log(verif);
         res.status(200).send({
             id_user: verif.id_user,
             message: "OTP sent",
