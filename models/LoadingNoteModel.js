@@ -632,6 +632,10 @@ LoadingNoteModel.getById2 = async id_header => {
                 AND DET.LN_NUM IS NULL`,
                 [hd_dt.id_do]
             );
+
+            const qtyTemp = tempLoadingNote[0].plan_qty
+                ? parseFloat(tempLoadingNote[0].plan_qty)
+                : 0;
             const resp = {
                 do_num: hd_dt.id_do,
                 inv_type: hd_dt.invoice_type,
@@ -645,12 +649,9 @@ LoadingNoteModel.getById2 = async id_header => {
                 os_qty:
                     parseFloat(hd_dt.con_qty) -
                     totalFromSAP -
-                    parseFloat(tempLoadingNote[0].plan_qty) +
+                    qtyTemp +
                     plan_qty_con,
-                totalspend:
-                    totalFromSAP +
-                    parseFloat(tempLoadingNote[0].plan_qty) -
-                    plan_qty_con,
+                totalspend: totalFromSAP + qtyTemp - plan_qty_con,
                 plan_qty_con: plan_qty_con,
                 plant: hd_dt.plant,
                 description: hd_dt.desc_con,
@@ -671,7 +672,7 @@ LoadingNoteModel.getById2 = async id_header => {
                 id_header: hd_dt.hd_id,
                 cur_pos: hd_dt.cur_pos,
                 is_paid: hd_dt.is_paid,
-                cur_planqty: tempLoadingNote[0].plan_qty,
+                cur_planqty: qtyTemp,
             };
         } catch (error) {
             throw error;
@@ -1195,7 +1196,7 @@ LoadingNoteModel.cancelLoadingNote = async (params, session) => {
             await client.query(queDel, valDel);
             for (const data of canceledData) {
                 // const {rows} = await client.query('SELECT ln_num WHERE det_id = $1', [data.id]) ;
-                console.log(data.create_by);
+                // console.log(data.create_by);
                 target.add(data.create_by);
                 cancelledRows.push(`
                 <tr>
@@ -1222,7 +1223,7 @@ LoadingNoteModel.cancelLoadingNote = async (params, session) => {
                 await client.query(queCh, valCh);
             }
             let arrayOfUser = Array.from(target).map(item => `${item}`);
-            console.log(arrayOfUser);
+            // console.log(arrayOfUser);
             const { rows } = await client.query(
                 `SELECT STRING_AGG(EMAIL, ',') AS EMAIL FROM MST_EMAIL WHERE ID_USER IN ($1)`,
                 [arrayOfUser.join(",")]
@@ -1326,7 +1327,9 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow) => {
                             WHERE DET.LN_NUM IS NOT NULL
                             GROUP BY HD_FK
                 ) LNU ON HD.HD_ID = LNU.HD_FK `;
-                whereClause = `WHERE HD.CREATE_BY = $1 AND LNU.CTRLN IS NULL ORDER BY HD.CREATE_AT DESC`;
+                whereClause = `WHERE HD.CREATE_BY = $1 AND ((DET.CTROS IS NOT NULL AND
+                    NOW () < HD.CREATE_AT + INTERVAL '1' DAY) OR (LNU.CTRLN IS NULL AND DET.CTROS IS NULL) OR (LNU.CTRLN IS NOT NULL) )
+                ORDER BY HD.CREATE_AT DESC`;
             } else {
                 leftJoin = `LEFT JOIN (
                     SELECT HD_FK, COUNT(DET_ID) AS CTROS FROM LOADING_NOTE_DET DET
@@ -1343,14 +1346,13 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow) => {
                 whereClause = `WHERE HD.CUR_POS = 'FINA' AND DET.CTROS IS NOT NULL AND LNU.CTRLN IS NULL`;
             }
 
+            const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
             if (isallow) {
-                const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
                 const { rows } = await client.query(getDataSess, [
                     session.id_user,
                 ]);
                 parentRow = rows;
             } else {
-                const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
                 const { rows } = await client.query(getDataSess);
                 parentRow = rows;
             }
