@@ -235,7 +235,7 @@ UserModel.editUser = async (payload, session) => {
                         "phone number already taken by another user"
                     );
                 }
-                console.log(payload.id_user);
+                // console.log(payload.id_user);
                 const cleanseAll = await client.query(
                     "DELETE FROM MST_TELF WHERE id_user = $1",
                     [payload.id_user]
@@ -298,7 +298,7 @@ UserModel.resendOTP = async ({ email, type }) => {
             "SELECT * FROM mst_user where email = $1",
             [email]
         );
-        console.log(type);
+        // console.log(type);
         if (userData[0].is_active && type == "new") {
             throw new Error("USER ALREADY REG");
         }
