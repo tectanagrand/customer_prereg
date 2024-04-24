@@ -127,7 +127,7 @@ export default function TableSelectDriver({ refresh, setSelectedRowsUp }) {
     // }, [rows]);
 
     useEffect(() => {
-        console.log(selectedRows);
+        // console.log(selectedRows);
         const dataSelected = table
             .getSelectedRowModel()
             .rows.map(item => item.original);
