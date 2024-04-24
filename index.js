@@ -5,7 +5,7 @@ const dotenv = require("dotenv").config({
 });
 const port = process.env.PORT;
 const os = require("os");
-const http = require("http");
+const https = require("https");
 const path = require("path");
 const cors = require("cors");
 const csrf = require("csurf");
@@ -25,8 +25,13 @@ const myCSRFProtection = (req, res, next) => {
     }
 };
 
+const servOption = {
+    cert: fs.readFileSync("./ssl/certificate.crt"),
+    key: fs.readFileSync("./ssl/private-key.pem"),
+};
+
 const csrfProtection = csrf({
-    cookie: { sameSite: "none" },
+    cookie: { sameSite: "none", secure: true },
 });
 const corsOption = {
     origin: function (req, callback) {
@@ -47,7 +52,6 @@ app.use(cookieParser());
 app.use(myCSRFProtection);
 app.use("/static", express.static(path.join(__dirname, "public")));
 app.get("/api/getcsrftoken", (req, res) => {
-    console.log(req.method);
     res.json({ csrfToken: req.csrfToken() });
 });
 app.use(router);
@@ -59,6 +63,28 @@ app.get("/*$", (req, res) => {
 //     console.log(db.totalCount);
 // }, 1000);
 
-app.listen(port, "0.0.0.0", () => {
-    console.log(`App running on ${port}`);
-});
+if (process.env.NODE_ENV === "production") {
+    const server1 = https.createServer(servOption, app);
+    const server2 = https.createServer(servOption, app);
+    const server3 = https.createServer(servOption, app);
+
+    server1.listen(5000, () => {
+        console.log(`App running 5000`);
+    });
+
+    server2.listen(443, () => {
+        console.log(`App running 443`);
+    });
+
+    server3.listen(80, () => {
+        console.log(`App running 80`);
+    });
+} else {
+    const server = https.createServer(servOption, app);
+    server.listen(port, () => {
+        console.log("app running");
+    });
+}
+// app.listen(port, "0.0.0.0", () => {
+//     console.log(`App running on ${port}`);
+// });
