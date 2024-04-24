@@ -60,7 +60,7 @@ MasterModel.getDriverData2 = async q => {
         } else {
             filter = `Snosim%20eq%20%27${q}%27`;
         }
-        console.log(filter);
+        // console.log(filter);
         const { data: driverData } = await axios.get(
             `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SIMSet?$filter=(${filter})&$format=json`,
             {
@@ -178,7 +178,9 @@ MasterModel.getSOData = async do_num => {
             AND DET.LN_NUM IS NULL`,
             [do_num]
         );
-        const qtyTemp = parseFloat(tempLoadingNote[0].plan_qty) ?? 0;
+        const qtyTemp = tempLoadingNote[0].plan_qty
+            ? parseFloat(tempLoadingNote[0].plan_qty)
+            : 0;
         const { data: I_OUTDELIVERY } = await axios.get(
             `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${do_num}%27)&$format=json`,
             {
@@ -189,12 +191,16 @@ MasterModel.getSOData = async do_num => {
             }
         );
         I_OUTDELIVERY.d.results.map(item => {
+            // console.log(item);
             let planning = parseFloat(item.PlnLfimg);
             let real = parseFloat(item.LLfimg);
+            // console.log(planning);
+            // console.log(real);
             totalFromSAP += real === 0 ? planning : real;
         });
-        console.log(qtyTemp);
-        console.log(totalFromSAP);
+        // console.log(qtyTemp);
+        // console.log(totalFromSAP);
+        // console.log(tempLoadingNote);
 
         if (I_ZSLIP.length === 0) {
             throw new Error("SO Not Found");
@@ -260,9 +266,9 @@ MasterModel.getSOData2 = async do_num => {
             let real = parseFloat(item.L_LFIMG);
             totalFromSAP += real === 0 ? planning : real;
         });
-        console.log(rfcResponse);
-        console.log(qtyTemp);
-        console.log(totalFromSAP);
+        // console.log(rfcResponse);
+        // console.log(qtyTemp);
+        // console.log(totalFromSAP);
 
         if (I_ZSLIP.length === 0) {
             throw new Error("SO Not Found");
