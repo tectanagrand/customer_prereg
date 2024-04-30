@@ -347,4 +347,45 @@ LoadingNoteController.getDefValtypeSloc = async (req, res) => {
         });
     }
 };
+
+LoadingNoteController.LoadingNoteDashboard = async (req, res) => {
+    const id_user = req.cookies.id_user;
+    const do_num = req.query.do_num;
+    const limit = req.query.limit;
+    const offset = req.query.offset;
+    try {
+        const client = await db.connect();
+        try {
+            const { rows: dataLn } = await client.query(
+                `SELECT ln_num, plan_qty, actual_qty, bruto, tarra, netto, ffa, moist, dirt, hd.uom, tanggal_surat_jalan, TO_CHAR(TANGGAL_SURAT_JALAN, 'Month') as current_month, hd.id_do from loading_note_det det
+            left join loading_note_hd hd on det.hd_fk = hd.hd_id
+            where hd.create_by = $1
+            and hd.id_do = $2
+            LIMIT ${limit} OFFSET ${offset}`,
+                [id_user, do_num]
+            );
+            const { rowCount } = await client.query(
+                `SELECT ln_num, plan_qty, actual_qty, bruto, tarra, netto, ffa, moist, dirt, hd.uom, tanggal_surat_jalan, TO_CHAR(TANGGAL_SURAT_JALAN, 'Month') as current_month, hd.id_do from loading_note_det det
+            left join loading_note_hd hd on det.hd_fk = hd.hd_id
+            where hd.create_by = $1
+            and hd.id_do = $2`,
+                [id_user, do_num]
+            );
+            res.status(200).send({
+                data: dataLn,
+                size: rowCount,
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = LoadingNoteController;

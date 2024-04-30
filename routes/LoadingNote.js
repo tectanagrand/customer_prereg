@@ -27,5 +27,6 @@ router.post("/recapss", LoadNote.getDataRecapSS);
 router.post("/genxls", LoadNote.generateExcel);
 router.post("/pdf", PDF.exportSuratJalan);
 router.get("/defslocvtp", LoadNote.getDefValtypeSloc);
+router.get("/dash", LoadNote.LoadingNoteDashboard);
 
 module.exports = router;
