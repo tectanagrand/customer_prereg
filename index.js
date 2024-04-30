@@ -80,9 +80,8 @@ if (process.env.NODE_ENV === "production") {
         console.log(`App running 80`);
     });
 } else {
-    const server = https.createServer(servOption, app);
-    server.listen(port, () => {
-        console.log("app running");
+    app.listen(port, "0.0.0.0", () => {
+        console.log(`App running on ${port}`);
     });
 }
 // app.listen(port, "0.0.0.0", () => {

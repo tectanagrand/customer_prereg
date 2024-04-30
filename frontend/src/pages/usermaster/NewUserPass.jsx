@@ -2,7 +2,7 @@ import { TextFieldComp } from "../../component/input/TextFieldComp";
 import { PasswordWithEyes } from "../../component/input/PasswordWithEyes";
 import { useForm } from "react-hook-form";
 import toast, { Toaster } from "react-hot-toast";
-import LazyBackground from "../login/LazyBackground";
+import LazyBackgroundA from "../login/LazyBackgroundA";
 import imgbg from "../../images/gama-tower.jpg";
 import { useTheme } from "@mui/material/styles";
 import { Typography, Container, SvgIcon } from "@mui/material";
@@ -50,7 +50,7 @@ export default function NewUserPass() {
         }
     };
     return (
-        <LazyBackground
+        <LazyBackgroundA
             img={imgbg}
             style={{ width: "100%", height: "100%" }}
             noblur={true}
@@ -128,6 +128,6 @@ export default function NewUserPass() {
                     </div>
                 </form>
             </Container>
-        </LazyBackground>
+        </LazyBackgroundA>
     );
 }

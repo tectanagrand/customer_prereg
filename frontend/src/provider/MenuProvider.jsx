@@ -25,11 +25,18 @@ const MenuProvider = ({ children }) => {
         //     localStorage.setItem("menu", JSON.stringify(Menu));
         // }, 2000);
         const simFetch = async () => {
-            const getData = await axiosPrivate.post("/page/showall", {
-                role_id: Cookies.get("role_id"),
-            });
-            _setMenu(new Map(Object.entries(getData.data)));
-            localStorage.setItem("permission", JSON.stringify(getData.data));
+            try {
+                const getData = await axiosPrivate.post("/page/showall", {
+                    role_id: Cookies.get("role_id"),
+                });
+                _setMenu(new Map(Object.entries(getData.data)));
+                localStorage.setItem(
+                    "permission",
+                    JSON.stringify(getData.data)
+                );
+            } catch (error) {
+                console.error(error);
+            }
         };
         if (Cookies.get("role")) {
             simFetch();

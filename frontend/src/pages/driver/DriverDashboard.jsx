@@ -1,5 +1,5 @@
 import { LoadingButton } from "@mui/lab";
-import { Edit, UploadFile, InsertPhotoOutlined } from "@mui/icons-material";
+import { UploadFile, InsertPhotoOutlined } from "@mui/icons-material";
 import moment from "moment";
 import AutocompleteComp from "../../component/input/AutocompleteComp";
 import DatePickerComp from "../../component/input/DatePickerComp";
@@ -15,8 +15,6 @@ import {
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Viewer } from "@react-pdf-viewer/core";
-import PatternInputComp from "../../component/input/PatternInputTxt";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import TableDriver from "../../component/table/TableDriver";

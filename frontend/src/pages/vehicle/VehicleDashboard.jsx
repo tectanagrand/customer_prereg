@@ -1,6 +1,5 @@
 import { LoadingButton } from "@mui/lab";
 import { UploadFile } from "@mui/icons-material";
-import PatternFieldComp from "../../component/input/PatternFieldComp";
 import {
     Dialog,
     DialogTitle,
@@ -11,7 +10,6 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Viewer } from "@react-pdf-viewer/core";
 import PatternInputComp from "../../component/input/PatternInputTxt";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";

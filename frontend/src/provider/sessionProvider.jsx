@@ -6,35 +6,15 @@ const SessionContext = createContext();
 
 const SessionProvider = ({ children }) => {
     const [session, setSession_] = useState({
-        fullname:
-            Cookies.get("fullname") === undefined
-                ? ""
-                : Cookies.get("fullname"),
-        username:
-            Cookies.get("username") === undefined
-                ? ""
-                : Cookies.get("username"),
-        access_token:
-            Cookies.get("access_token") === undefined
-                ? ""
-                : Cookies.get("access_token"),
-        id_user:
-            Cookies.get("id_user") === undefined ? "" : Cookies.get("id_user"),
-        role: Cookies.get("role") === undefined ? "" : Cookies.get("role"),
-        role_id:
-            Cookies.get("role_id") === undefined ? "" : Cookies.get("role_id"),
-        plant_code:
-            Cookies.get("plant_code") === undefined
-                ? ""
-                : Cookies.get("plant_code"),
-        permission:
-            localStorage.getItem("permission") === undefined
-                ? {}
-                : JSON.parse(localStorage.getItem("permission")),
-        auth:
-            localStorage.getItem("auth") === undefined
-                ? ""
-                : JSON.parse(localStorage.getItem("auth")),
+        fullname: Cookies.get("fullname") || "",
+        username: Cookies.get("username") || "",
+        access_token: Cookies.get("access_token") || "",
+        id_user: Cookies.get("id_user") || "",
+        role: Cookies.get("role") || "",
+        role_id: Cookies.get("role_id") || "",
+        plant_code: Cookies.get("plant_code") || "",
+        permission: JSON.parse(localStorage.getItem("permission")) || {},
+        auth: JSON.parse(localStorage.getItem("auth")) || {},
     });
 
     const setSession = data => {
@@ -64,16 +44,6 @@ const SessionProvider = ({ children }) => {
     };
 
     const setAccessToken = act => {
-        // setSession_({
-        //     fullname: Cookies.get("fullname"),
-        //     username: Cookies.get("username"),
-        //     email: Cookies.get("email"),
-        //     access_token: act,
-        //     id_user: Cookies.get("id_user"),
-        //     role: Cookies.get("role"),
-        //     permission: JSON.parse(localStorage.getItem("permission")),
-        //     groupid: Cookies.get("groupid"),
-        // });
         setSession_({
             ...session,
             access_token: act,

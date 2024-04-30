@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, lazy, Suspense } from "react";
 import { styled, useTheme } from "@mui/material/styles";
 import SvgIcon from "@mui/material/SvgIcon";
 import Box from "@mui/material/Box";
@@ -6,22 +6,23 @@ import MuiDrawer from "@mui/material/Drawer";
 import MuiAppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import CssBaseline from "@mui/material/CssBaseline";
-import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
-import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
-import NavSection from "./NavSection";
+import LoadingSuspense from "../loadingscreen/Loading";
+import { Outlet, useLocation } from "react-router-dom";
+// import NavSection from "./NavSection";
 import { useMenu } from "../../provider/MenuProvider";
 import { useNavigate } from "react-router-dom";
 // import { useSession } from "../../provider/sessionProvider";
-import useAxiosPrivate from "../../hooks/useAxiosPrivate";
-import KpnLogo from "../../images/kpn-logo-3.svg?react";
-import KpnNav from "../../images/kpn-logo.svg?react";
+// import KpnLogo from "../../images/kpn-logo-3.svg?react";
+// import KpnNav from "../../images/kpn-logo.svg?react";
 import AvatarComp from "./AvatarComp";
-import { Button } from "@mui/material";
+
+const NavSection = lazy(() => import("./NavSection"));
+const KpnLogo = lazy(() => import("../../images/kpn-logo-3.svg?react"));
+const KpnNav = lazy(() => import("../../images/kpn-logo.svg?react"));
 
 const drawerWidth = 240;
 
@@ -172,15 +173,18 @@ export default function Dashboard() {
                             color="white"
                         />
                     </IconButton>
-                    <Typography
-                        variant="h6"
-                        noWrap
-                        component="div"
-                        sx={{ flexGrow: 1 }}
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            width: "100%",
+                        }}
                     >
-                        Customer Pre Registration App
-                    </Typography>
-                    <AvatarComp></AvatarComp>
+                        <div style={{ flexGrow: 1 }}>
+                            <h3>Customer Pre Registration App</h3>
+                        </div>
+                        <AvatarComp></AvatarComp>
+                    </div>
                 </Toolbar>
             </AppBar>
             <Drawer variant="permanent" open={open}>
@@ -212,7 +216,9 @@ export default function Dashboard() {
                 sx={{ flexGrow: 1, p: 3, height: "100%", width: "100%" }}
             >
                 <DrawerHeader />
-                <Outlet />
+                <Suspense fallback={<LoadingSuspense />}>
+                    <Outlet />
+                </Suspense>
             </Box>
         </Box>
     );

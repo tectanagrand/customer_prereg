@@ -15,6 +15,8 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 // import DriverDashboard from "../pages/driver/DriverDashboard";
 // import SendEmail from "../pages/sendemail/SendEmail";
 import { lazy } from "react";
+import { ErrorRouter } from "../ErrorRouter";
+import DashboardCustomer from "../pages/dashboard/DashboardCustomer";
 
 const Dashboard = lazy(() => import("../pages/dashboard/Dashboard"));
 const LoginPage = lazy(() => import("../pages/login/LoginPage"));
@@ -48,23 +50,32 @@ export const routes = createBrowserRouter([
     {
         path: "/",
         children: [{ path: "", element: <Navigate to="login" /> }],
+        errorElement: <ErrorRouter />,
     },
     {
         path: "login",
         element: <LoginPage />,
+        errorElement: <ErrorRouter />,
     },
     {
         path: "verif",
         element: <NewUserValidateOTP />,
+        errorElement: <ErrorRouter />,
     },
     {
         path: "setnewpwd",
         element: <NewUserPass />,
+        errorElement: <ErrorRouter />,
     },
     {
         path: "dashboard",
         element: <Dashboard />,
+        errorElement: <ErrorRouter />,
         children: [
+            {
+                path: "",
+                element: <DashboardCustomer />,
+            },
             {
                 path: "users",
                 element: <User />,

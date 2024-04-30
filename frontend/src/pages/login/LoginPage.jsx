@@ -125,7 +125,7 @@ export default function LoginPage() {
                             <Link
                                 sx={{ mr: "3rem" }}
                                 onClick={() => {
-                                    navigate("/newverif");
+                                    navigate("/verif");
                                 }}
                             >
                                 Already Registered?
