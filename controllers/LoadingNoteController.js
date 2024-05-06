@@ -254,6 +254,18 @@ LoadingNoteController.getAllDataLNbyUser = async (req, res) => {
     }
 };
 
+LoadingNoteController.getAllDataLNbyUserFRC = async (req, res) => {
+    try {
+        const session = req.cookies;
+        const isallow = req.query.isallow === "true" ? true : false;
+        const data = await LoadNote.getAllDataLNbyUser_FRC(session, isallow);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: error.message });
+    }
+};
+
 LoadingNoteController.getDataOSUser = async (req, res) => {
     try {
         const session = req.cookies;
@@ -375,6 +387,56 @@ LoadingNoteController.LoadingNoteDashboard = async (req, res) => {
                 data: dataLn,
                 size: rowCount,
             });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.ChartDashboard = async (req, res) => {
+    const year = req.query.year;
+    const id_do = req.query.id_do;
+    try {
+        const client = await db.connect();
+        const startyear = `${year}-01-01`;
+        const endyear = `${year}-12-01`;
+        try {
+            const { rows } = await client.query(
+                `
+                SELECT
+                TO_CHAR(GENERATE_SERIES, 'MM') AS CTR,
+                SUBSTR(TO_CHAR(GENERATE_SERIES, 'Month'), 1, 3) AS MTH,
+                COALESCE(VAL_DET.PLAN_QTY, 0) AS PLAN_QTY,
+                COALESCE(VAL_DET.ACTUAL_QTY, 0) AS ACTUAL_QTY,
+                COALESCE(VAL_DET.FFA, 0) AS FFA,
+                COALESCE(VAL_DET.MOIST, 0) AS MOIST,
+                COALESCE(VAL_DET.DIRT, 0) AS DIRT
+            FROM GENERATE_SERIES($1::date, $2::date, '1 month'::interval)
+            LEFT JOIN (
+                SELECT 
+                    TO_CHAR(TANGGAL_SURAT_JALAN, 'MM') AS CTR,
+                    SUBSTR(TO_CHAR(TANGGAL_SURAT_JALAN, 'Month'), 1, 3) AS MTH,
+                    COALESCE(SUM(PLAN_QTY), 0) AS PLAN_QTY,
+                    COALESCE(SUM(ACTUAL_QTY), 0) AS ACTUAL_QTY,
+                    COALESCE(AVG(FFA), 0) AS FFA,
+                    COALESCE(AVG(MOIST), 0) AS MOIST,
+                    COALESCE(AVG(DIRT), 0) AS DIRT
+                FROM LOADING_NOTE_DET DET
+                LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+                WHERE DET.LN_NUM IS NOT NULL AND TO_CHAR(TANGGAL_SURAT_JALAN, 'YYYY') = $3 AND HD.id_do = $4
+                GROUP BY MTH, CTR
+            ) AS VAL_DET ON VAL_DET.CTR = TO_CHAR(GENERATE_SERIES, 'MM');
+            `,
+                [startyear, endyear, year, id_do]
+            );
+            res.status(200).send(rows);
         } catch (error) {
             throw error;
         } finally {

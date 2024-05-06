@@ -103,7 +103,7 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
             const details = params.load_detail;
             const id_header =
                 params.id_header !== "" ? params.id_header : uuid.uuid();
-            const payloadHeader = {
+            let payloadHeader = {
                 hd_id: id_header,
                 id_do: params.do_num,
                 invoice_type: params.inv_type,
@@ -125,6 +125,9 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                 is_paid: params.is_paid,
                 cur_pos: "INIT",
             };
+            if (params.sto_num && params.sto_num !== "") {
+                payloadHeader.id_sto = params.sto_num;
+            }
             if (params.id_header === "") {
                 [que, val] = crud.insertItem(
                     "loading_note_hd",
@@ -638,6 +641,7 @@ LoadingNoteModel.getById2 = async id_header => {
                 : 0;
             const resp = {
                 do_num: hd_dt.id_do,
+                sto_num: hd_dt.id_sto,
                 inv_type: hd_dt.invoice_type,
                 inv_type_tol_from: hd_dt.tol_from,
                 inv_type_tol_to: hd_dt.tol_to,
@@ -770,6 +774,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
             const baseQ = `SELECT DET.det_id as id,
                 HD.hd_id,
                 HD.ID_DO,
+                HD.ID_STO,
                 HD.PLANT,
                 HD.RULES,
                 HD.company,
@@ -1084,8 +1089,8 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     DOTYPE: "S",
                     ITEMRULE: item.rules,
                     VBELN_REF: item.id_do,
+                    EBELN_REF: item.id_sto,
                     POSNR: "000010",
-                    EBELN_REF: "",
                     // CREDAT: moment(item.create_date).format("DD.MM.YYYY"),
                     CREDAT: new Date(item.create_date),
                     MATNR: item.material,
@@ -1327,7 +1332,7 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow) => {
                             WHERE DET.LN_NUM IS NOT NULL
                             GROUP BY HD_FK
                 ) LNU ON HD.HD_ID = LNU.HD_FK `;
-                whereClause = `WHERE HD.CREATE_BY = $1 AND ((DET.CTROS IS NOT NULL AND
+                whereClause = `WHERE HD.CREATE_BY = $1 AND HD.INCO_1 LIKE '%LCO%' AND ((DET.CTROS IS NOT NULL AND
                     NOW () < HD.CREATE_AT + INTERVAL '1' DAY) OR (LNU.CTRLN IS NULL AND DET.CTROS IS NULL) OR (LNU.CTRLN IS NOT NULL) )
                 ORDER BY HD.CREATE_AT DESC`;
             } else {
@@ -1343,7 +1348,113 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow) => {
                             WHERE DET.LN_NUM IS NOT NULL
                             GROUP BY HD_FK
                 ) LNU ON HD.HD_ID = LNU.HD_FK`;
-                whereClause = `WHERE HD.CUR_POS = 'FINA' AND DET.CTROS IS NOT NULL AND LNU.CTRLN IS NULL`;
+                whereClause = `WHERE HD.CUR_POS = 'FINA' AND HD.INCO_1 LIKE '%LCO%' AND DET.CTROS IS NOT NULL AND LNU.CTRLN IS NULL`;
+            }
+
+            const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
+            if (isallow) {
+                const { rows } = await client.query(getDataSess, [
+                    session.id_user,
+                ]);
+                parentRow = rows;
+            } else {
+                const { rows } = await client.query(getDataSess);
+                parentRow = rows;
+            }
+
+            for (const row of parentRow) {
+                const que_ch = `SELECT 
+                TO_CHAR(DET.CRE_DATE,
+                    'MM-DD-YYYY') AS CRE_DATE,
+                TO_CHAR(DET.TANGGAL_SURAT_JALAN,
+                    'MM-DD-YYYY') AS TANGGAL_SURAT_JALAN,
+                DET.DRIVER_ID,
+                DET.DRIVER_NAME,
+                DET.VHCL_ID,
+                MKY.key_desc as media_tp,
+                DET.PLAN_QTY,
+                HD.UOM,
+                DET.ERROR_MSG,
+                CASE 
+                    WHEN HD.CUR_POS = 'INIT' THEN 'CUSTOMER'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.PUSH_SAP_DATE IS NULL) THEN 'LOGISTIC'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.PUSH_SAP_DATE IS NOT NULL ) AND (DET.LN_NUM IS NULL OR DET.LN_NUM = '')  THEN 'PUSHED SAP'
+                    WHEN HD.CUR_POS = 'FINA' AND (DET.LN_NUM IS NOT NULL OR DET.LN_NUM <> '') THEN 'SUCCESS'
+                    ELSE ''
+                END
+                AS CURRENT_POS
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN LOADING_NOTE_DET DET ON DET.HD_FK = HD.HD_ID
+            LEFT JOIN MST_KEY MKY ON MKY.key_item = DET.media_tp
+                `;
+                const getDataCh = `${que_ch} WHERE HD.create_by = $1 AND HD.HD_ID = $2`;
+                const { rows: rowCh } = await client.query(getDataCh, [
+                    session.id_user,
+                    row.hd_id,
+                ]);
+                finaData.push({ ...row, sub_table: rowCh });
+            }
+
+            return finaData;
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.getAllDataLNbyUser_FRC = async (session, isallow) => {
+    try {
+        const client = await db.connect();
+        let finaData = [];
+        let parentRow;
+        let leftJoin;
+        let whereClause;
+        const que_par = `SELECT HD.HD_ID,
+            HD.ID_DO,
+            HD.RULES,
+            HD.CON_NUM,
+            HD.CON_QTY,
+            HD.UOM,
+            HD.PLANT,
+            HD.COMPANY,
+            DET.CTROS,
+            HD.CUR_POS
+        FROM LOADING_NOTE_HD HD`;
+        try {
+            if (isallow) {
+                leftJoin = `LEFT JOIN (
+                    SELECT HD_FK, COUNT(DET_ID) AS CTROS FROM LOADING_NOTE_DET DET
+                    LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+                    WHERE DET.LN_NUM IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS <> 'FINA' 
+                    GROUP BY HD_FK
+                ) DET ON HD.HD_ID = DET.HD_FK
+                LEFT JOIN (
+                    SELECT HD_FK, COUNT(DET_ID) AS CTRLN FROM LOADING_NOTE_DET DET
+                            LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+                            WHERE DET.LN_NUM IS NOT NULL
+                            GROUP BY HD_FK
+                ) LNU ON HD.HD_ID = LNU.HD_FK `;
+                whereClause = `WHERE HD.CREATE_BY = $1 AND HD.INCO_1 LIKE '%FRC%' AND ((DET.CTROS IS NOT NULL AND
+                    NOW () < HD.CREATE_AT + INTERVAL '1' DAY) OR (LNU.CTRLN IS NULL AND DET.CTROS IS NULL) OR (LNU.CTRLN IS NOT NULL) )
+                ORDER BY HD.CREATE_AT DESC`;
+            } else {
+                leftJoin = `LEFT JOIN (
+                    SELECT HD_FK, COUNT(DET_ID) AS CTROS FROM LOADING_NOTE_DET DET
+                    LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+                    WHERE DET.LN_NUM IS NULL AND DET.PUSH_SAP_DATE IS NOT NULL AND HD.CUR_POS = 'FINA' 
+                    GROUP BY HD_FK
+                ) DET ON HD.HD_ID = DET.HD_FK
+                LEFT JOIN (
+                    SELECT HD_FK, COUNT(DET_ID) AS CTRLN FROM LOADING_NOTE_DET DET
+                            LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+                            WHERE DET.LN_NUM IS NOT NULL
+                            GROUP BY HD_FK
+                ) LNU ON HD.HD_ID = LNU.HD_FK`;
+                whereClause = `WHERE HD.CUR_POS = 'FINA' AND HD.INCO_1 LIKE '%FRC%' AND DET.CTROS IS NOT NULL AND LNU.CTRLN IS NULL`;
             }
 
             const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
