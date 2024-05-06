@@ -591,6 +591,32 @@ MasterModel.getDOList = async cust_id => {
     }
 };
 
+MasterModel.getSTOList = async (cust_id, do_num) => {
+    try {
+        try {
+            const { data } = await axios.get(
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOKUNNRSTOSet?$filter=(Vbeln%20eq%20%27${do_num}%27)and(Kunnr%20eq%20%27${cust_id}%27)&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            const resultData = data.d.results.map(item => ({
+                value: item.Ebeln,
+                label: item.Ebeln,
+            }));
+            return resultData;
+        } catch (error) {
+            throw error;
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
 MasterModel.getCustDataDB = async (limit, offset, q) => {
     try {
         const client = await db.connect();

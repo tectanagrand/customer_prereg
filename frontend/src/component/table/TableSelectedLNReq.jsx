@@ -26,6 +26,11 @@ export default function TableSelectedLNReq({ rowsData, sx }) {
                 cell: props => props.getValue(),
             },
             {
+                header: "STO Number",
+                accessorKey: "id_sto",
+                cell: props => props.getValue(),
+            },
+            {
                 header: "Item Rule",
                 accessorKey: "rules",
                 cell: props => props.getValue(),

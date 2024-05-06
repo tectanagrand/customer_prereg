@@ -18,7 +18,7 @@ export default function AutoCompleteDOList({
     });
 
     let overrideChange = debounce(e => {
-        setQuery(e.target.value);
+        setQuery(e.target.value ?? "");
     }, 1000);
 
     const [searchQuery, setQuery] = useState("");

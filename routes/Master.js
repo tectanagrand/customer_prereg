@@ -12,6 +12,7 @@ router.get("/oscustwb", MasterController.getOSDataCustWB);
 router.get("/sloc", MasterController.getDataSLoc);
 router.get("/valtype", MasterController.getDataValTypeDB);
 router.get("/dolist", MasterController.getDataDOList);
+router.get("/stolist", MasterController.getDataSTOList);
 router.get("/seedcust", MasterController.seedDataCust);
 router.get("/vhcl", MasterController.getVehicleDataDB);
 router.get("/drvr", MasterController.getDriverDataDB);

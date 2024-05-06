@@ -47,7 +47,7 @@ import AutocompleteFilter from "../input/AutocompleteFilterComp";
 import { useTheme } from "@mui/material/styles";
 import { useSession } from "../../provider/sessionProvider";
 
-export default function TableParentCustDashboard() {
+export default function TableParentCustDashboardFRC() {
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
     const [dataCust, setDataCust] = useState([]);
@@ -61,8 +61,6 @@ export default function TableParentCustDashboard() {
     });
     const navigate = useNavigate();
     const { getPermission } = useSession();
-
-    console.log(getPermission("LOCO Request"));
 
     const buttonAction = async (action, data) => {
         if (action === "edit") {
@@ -156,7 +154,7 @@ export default function TableParentCustDashboard() {
                     let buttons = [];
                     if (
                         props.row.original.ctros > 0 &&
-                        getPermission("LOCO Request").fcreate
+                        getPermission("FRANCO Req.").fcreate
                     ) {
                         buttons.push(
                             <Tooltip
@@ -241,10 +239,10 @@ export default function TableParentCustDashboard() {
 
     useEffect(() => {
         (async () => {
-            const allow = getPermission("LOCO Request").fcreate;
+            const allow = getPermission("FRANCO Req.").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
-                    "/ln/lnuser?isallow=" + allow,
+                    "/ln/lnuserfrc?isallow=" + allow,
                     {
                         withCredentials: true,
                     }
@@ -260,7 +258,7 @@ export default function TableParentCustDashboard() {
     return (
         <>
             <Toaster />
-            {getPermission("LOCO Request").fcreate && (
+            {getPermission("FRANCO Req.").fcreate && (
                 <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                     <Button
                         sx={{ width: 200, heigth: 50, margin: 2 }}

@@ -37,7 +37,7 @@ export default function LoginPage() {
                 if (userData.role === "LOGISTIC") {
                     navigate("/dashboard/osreq");
                 } else {
-                    navigate("/dashboard/loadingnote");
+                    navigate("/dashboard/loco");
                 }
             }, 1000);
         } catch (error) {

@@ -3,28 +3,30 @@ import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
-export default function SelectDOComp({
-    control,
-    name,
-    label,
-    preop,
-    onChangeOvr,
-}) {
+export default function SelectSTOComp({ control, name, label, preop, do_num }) {
     const axiosPrivate = useAxiosPrivate();
     const [isLoading, setLoading] = useState(false);
-    const [doOP, setDOOp] = useState([]);
+    const [stoOP, setSTOOp] = useState([]);
+    console.log(do_num);
 
     useEffect(() => {
-        setDOOp([{ value: preop, label: preop }]);
+        setSTOOp([{ value: preop, label: preop }]);
     }, [preop]);
 
-    const getDataDO = async () => {
+    const getDataSTO = async () => {
+        if (!do_num) {
+            toast.error("Please provide DO Number");
+            return;
+        }
         try {
             setLoading(true);
-            const { data } = await axiosPrivate.get("/master/dolist", {
-                withCredentials: true,
-            });
-            setDOOp(data);
+            const { data } = await axiosPrivate.get(
+                "/master/stolist?do_num=" + do_num,
+                {
+                    withCredentials: true,
+                }
+            );
+            setSTOOp(data);
             // toast.success("Success Load DO");
         } catch (error) {
             console.error(error);
@@ -37,13 +39,12 @@ export default function SelectDOComp({
     return (
         <>
             <SelectComp
-                onChangeovr={onChangeOvr}
                 name={name}
                 label={label}
                 fullWidth
                 control={control}
-                options={doOP}
-                onOpen={() => getDataDO()}
+                options={stoOP}
+                onOpen={() => getDataSTO()}
                 sx={{
                     mr: 3,
                     maxWidth: "16rem",

@@ -156,6 +156,11 @@ export default function TableLoadingNoteReq({
                 accessorKey: "id_do",
                 cell: props => props.getValue(),
             },
+            {
+                header: "STO Number",
+                accessorKey: "id_sto",
+                cell: props => props.getValue(),
+            },
             ...lnnum,
             {
                 header: "Plant",

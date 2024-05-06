@@ -135,6 +135,27 @@ MasterController.getDataDOList = async (req, res) => {
     }
 };
 
+MasterController.getDataSTOList = async (req, res) => {
+    try {
+        const cust_id = req.cookies.username;
+        const do_num = req.query.do_num;
+        const dataRFC = await Master.getSTOList(cust_id, do_num);
+        if (dataRFC.length === 0) {
+            throw new Error("NO STO");
+        }
+        res.status(200).send(dataRFC);
+    } catch (error) {
+        console.error(error);
+        if (error.message === "NO STO") {
+            res.status(400).send({
+                message: "Not any STO exist, please contact administrator",
+            });
+        } else {
+            res.status(500).send(error);
+        }
+    }
+};
+
 MasterController.seedDataCust = async (req, res) => {
     try {
         const insertData = await Master.seedMstCust2();
