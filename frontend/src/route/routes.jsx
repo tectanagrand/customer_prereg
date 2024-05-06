@@ -16,7 +16,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 // import SendEmail from "../pages/sendemail/SendEmail";
 import { lazy } from "react";
 import { ErrorRouter } from "../ErrorRouter";
-import DashboardCustomer from "../pages/dashboard/DashboardCustomer";
+// import DashboardCustomer from "../pages/dashboard/DashboardCustomer";
 
 const Dashboard = lazy(() => import("../pages/dashboard/Dashboard"));
 const LoginPage = lazy(() => import("../pages/login/LoginPage"));
@@ -26,11 +26,17 @@ const MenuAccessPage = lazy(() => import("../pages/menuaccess/MenuAccessPage"));
 const LoadingNoteForm = lazy(
     () => import("../pages/loadingnote/LoadingNoteForm")
 );
+const LoadingNoteFormFRC = lazy(
+    () => import("../pages/loadingnote/LoadingNoteFormFRC")
+);
 const FormCreateLoadingNote = lazy(
     () => import("../pages/osreq/FormCreateLoadingNote")
 );
 const TableParentCustDashboard = lazy(
     () => import("../component/table/TableParentCustDashboardLN")
+);
+const TableParentCustDashboardFRC = lazy(
+    () => import("../component/table/TableParentCustDashboardFRC")
 );
 const RecapLoadingNote = lazy(() => import("../pages/recap/RecapLoadingNote"));
 const NewUserRegFormPage = lazy(
@@ -45,6 +51,9 @@ const VehicleDashboard = lazy(
 );
 const DriverDashboard = lazy(() => import("../pages/driver/DriverDashboard"));
 const SendEmail = lazy(() => import("../pages/sendemail/SendEmail"));
+const DashboardCustomer = lazy(
+    () => import("../pages/dashboard/DashboardCustomer")
+);
 
 export const routes = createBrowserRouter([
     {
@@ -93,12 +102,20 @@ export const routes = createBrowserRouter([
                 element: <MenuAccessPage />,
             },
             {
-                path: "loadingnote/",
+                path: "loco/",
                 element: <TableParentCustDashboard />,
             },
             {
-                path: "loadingnote/create",
+                path: "loco/create",
                 element: <LoadingNoteForm />,
+            },
+            {
+                path: "franco/",
+                element: <TableParentCustDashboardFRC />,
+            },
+            {
+                path: "franco/create",
+                element: <LoadingNoteFormFRC />,
             },
             {
                 path: "osreq/",

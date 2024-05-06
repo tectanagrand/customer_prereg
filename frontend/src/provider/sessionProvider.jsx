@@ -70,6 +70,7 @@ const SessionProvider = ({ children }) => {
             return "";
         }
         const permissions = JSON.parse(localStorage.getItem("auth"));
+        console.log(permissions);
         const curPermission = permissions[page]
             ? permissions[page]
             : { fcreate: false, fread: false, fupdate: false, fdelete: false };

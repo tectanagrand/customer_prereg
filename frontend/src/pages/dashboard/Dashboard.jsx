@@ -190,9 +190,12 @@ export default function Dashboard() {
             <Drawer variant="permanent" open={open}>
                 <DrawerHeader>
                     <SvgIcon
-                        sx={{ width: "70%", height: "100%" }}
+                        sx={{ width: "70%", height: "100%", cursor: "pointer" }}
                         component={KpnLogo}
                         viewBox="10 50 700 100"
+                        onClick={e => {
+                            navigate("/dashboard");
+                        }}
                     ></SvgIcon>
                     <IconButton onClick={handleDrawerClose}>
                         {theme.direction === "rtl" ? (

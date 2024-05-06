@@ -12,7 +12,6 @@ const useAxiosPrivate = () => {
     useEffect(() => {
         const requestIntercept = axiosPrivate.interceptors.request.use(
             async config => {
-                console.log(config);
                 if (!config.headers["Authorization"]) {
                     config.headers["Authorization"] =
                         `Bearer ${session.access_token}`;
@@ -50,7 +49,6 @@ const useAxiosPrivate = () => {
             }
         );
         return () => {
-            console.log("clean up  axios private");
             axiosPrivate.interceptors.request.eject(requestIntercept);
             axiosPrivate.interceptors.response.eject(responseIntercept);
         };

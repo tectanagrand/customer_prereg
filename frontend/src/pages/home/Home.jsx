@@ -6,7 +6,7 @@ export default function Home() {
     const { getPermission } = useSession();
     return (
         <>
-            {getPermission("O/S Request").fread ? (
+            {getPermission("LOCO Request").fread ? (
                 <HomeLogistics />
             ) : (
                 <HomeCustomer />
