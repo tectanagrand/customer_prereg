@@ -29,7 +29,7 @@ import AutocompleteFilter from "../input/AutocompleteFilterComp";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import moment from "moment/moment";
 
-export default function TableRecapReport({ onsetFilterData }) {
+export default function TableRecapReport({ onsetFilterData, isLoading }) {
     const axiosPrivate = useAxiosPrivate();
     const exportData = async id_loadnote => {
         try {
@@ -204,17 +204,19 @@ export default function TableRecapReport({ onsetFilterData }) {
             customer_id: "",
         });
         (async () => {
-            try {
-                const { data } = await axiosPrivate.post("/ln/recapss", {
-                    filters: dataColFilter,
-                    customer_id: "",
-                });
-                setData(data);
-            } catch (error) {
-                console.error(error);
+            if (!isLoading) {
+                try {
+                    const { data } = await axiosPrivate.post("/ln/recapss", {
+                        filters: dataColFilter,
+                        customer_id: "",
+                    });
+                    setData(data);
+                } catch (error) {
+                    console.error(error);
+                }
             }
         })();
-    }, [columnFilter, refresh]);
+    }, [columnFilter, refresh, isLoading]);
 
     const table = useReactTable({
         data: data,
@@ -236,7 +238,7 @@ export default function TableRecapReport({ onsetFilterData }) {
     return (
         <TableContainer
             sx={{
-                maxWidth: "85vw",
+                maxWidth: "96vw",
                 height: "80vh",
             }}
         >

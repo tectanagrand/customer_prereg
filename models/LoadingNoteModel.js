@@ -1675,8 +1675,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
         LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
         LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
-        WHERE DET.LN_NUM IS NOT NULL
-        ORDER BY DET.LN_NUM DESC`;
+        WHERE DET.LN_NUM IS NOT NULL`;
     let where = [];
     let whereVal = [];
     let ltindex = 0;
@@ -1684,6 +1683,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
     filters.forEach((item, index) => {
         let value = item.value;
         let id = item.id;
+        let date = false;
         if (item.id === "Incoterms") {
             value = item.value.split("-")[0].trim();
             id = "inco_1";
@@ -1696,20 +1696,34 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         } else if (item.id === "Planning Quantity") {
             value = item.value.split(" ")[0].trim();
             id = "plan_qty";
+        } else if (item.id === "cre_date") {
+            value = `TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+            id = "cre_date";
+            date = true;
+        } else if (item.id === "tanggal_surat_jalan") {
+            value = `TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+            id = "tanggal_surat_jalan";
+            date = true;
         }
-        where.push(`${id} = $${index + 1}`);
-        ltindex++;
-        whereVal.push(value);
+        if (!date) {
+            where.push(`${id} = $${index + 1}`);
+            whereVal.push(value);
+            ltindex++;
+        } else {
+            where.push(`${id} = ${value}`);
+        }
     });
     if (customer_id !== "") {
-        where.push(`kunnr = $${ltindex}`);
+        where.push(`kunnr = $${ltindex + 1}`);
         whereVal.push(customer_id);
     }
     if (where.length != 0) {
         whereQue = `AND ${where.join(" AND ")}`;
     }
-    let que = `${getRecapData} ${whereQue}`;
+    let que = `${getRecapData} ${whereQue} ORDER BY DET.LN_NUM DESC`;
     let val = whereVal;
+    console.log(que);
+    console.log(val);
     try {
         const client = await db.connect();
         try {
@@ -1743,6 +1757,76 @@ LoadingNoteModel.generateExcel = async (filters, customer_id) => {
         recapSheet.columns = col;
         recapSheet.addRows(rowData);
         return bookRecap;
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+LoadingNoteModel.syncDataWB = async () => {
+    try {
+        const client = await db.connect();
+        try {
+            let updatedLN = [];
+            await client.query(TRANS.BEGIN);
+            const { rows } = await client.query(`
+            SELECT det_id, ln_num FROM loading_note_det WHERE ln_num is not null 
+            AND bruto is null
+            and tarra is null
+            and netto is null
+            and ffa is null
+            and moist is null
+            and dirt is null`);
+            for (const row of rows) {
+                // console.log(row.ln_num);
+                // console.log(
+                //     `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QQWBSet?$filter=(Zdconr%20eq%20%27${row.ln_num}%27)&$format=json`
+                // );
+                const { data: WBData } = await axios.get(
+                    `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QQWBSet?$filter=(Zdconr%20eq%20%27${row.ln_num}%27)&$format=json`,
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                // console.log(WBData);
+                if (WBData.d.results.length === 0) {
+                    continue;
+                }
+                const dataWB = WBData.d.results[0];
+                const payload = {
+                    bruto: dataWB.Wbrutopb,
+                    tarra: dataWB.Wtarrapb,
+                    netto: dataWB.Wnettopb2,
+                    receive: dataWB.Wnettopb1,
+                    deduction: dataWB.Wtotpot,
+                    bruto_oth: dataWB.Wbrutokb,
+                    tarra_oth: dataWB.Wtarrakb,
+                    netto_oth: dataWB.Wnettokb,
+                    ffa: dataWB.Ffa,
+                    moist: dataWB.Moist,
+                    dirt: dataWB.Dirt,
+                };
+                const [queVal, insVal] = crud.updateItem(
+                    "loading_note_det",
+                    payload,
+                    { ln_num: row.ln_num },
+                    "ln_num"
+                );
+                const { rows: UpWB } = await client.query(queVal, insVal);
+                updatedLN.push(UpWB[0].ln_num);
+            }
+            // console.log(updatedLN);
+            await client.query(TRANS.COMMIT);
+            return updatedLN;
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
     } catch (error) {
         console.error(error);
         throw error;

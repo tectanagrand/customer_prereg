@@ -30,5 +30,6 @@ router.post("/pdf", PDF.exportSuratJalan);
 router.get("/defslocvtp", LoadNote.getDefValtypeSloc);
 router.get("/dash", LoadNote.LoadingNoteDashboard);
 router.get("/chartdash", LoadNote.ChartDashboard);
+router.get("/syncwb", LoadNote.syncDataWB);
 
 module.exports = router;

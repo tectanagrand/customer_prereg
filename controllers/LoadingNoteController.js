@@ -302,7 +302,10 @@ LoadingNoteController.getDataRecap = async (req, res) => {
 LoadingNoteController.getDataRecapSS = async (req, res) => {
     try {
         const filters = req.body.filters;
-        const customer_id = req.body.customer_id;
+        let customer_id = req.cookies.username;
+        if (req.cookies.role === "ADMIN" || req.cookies.role === "LOGISTIC") {
+            customer_id = "";
+        }
         const data = await LoadNote.getSSRecap(filters, customer_id);
         res.status(200).send(data);
     } catch (error) {
@@ -316,7 +319,10 @@ LoadingNoteController.getDataRecapSS = async (req, res) => {
 LoadingNoteController.generateExcel = async (req, res) => {
     try {
         const filters = req.body.filters;
-        const customer_id = req.body.customer_id;
+        let customer_id = req.cookies.username;
+        if (req.cookies.role === "ADMIN" || req.cookies.role === "LOGISTIC") {
+            customer_id = "";
+        }
         const data = await LoadNote.generateExcel(filters, customer_id);
         res.setHeader(
             "Content-Type",
@@ -442,6 +448,21 @@ LoadingNoteController.ChartDashboard = async (req, res) => {
         } finally {
             client.release();
         }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.syncDataWB = async (req, res) => {
+    try {
+        const syncedData = await LoadNote.syncDataWB();
+        res.status(200).send({
+            message: "Updated Successfully",
+            data: syncedData,
+        });
     } catch (error) {
         console.error(error);
         res.status(500).send({
