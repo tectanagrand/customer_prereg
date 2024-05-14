@@ -79,6 +79,11 @@ if (process.env.NODE_ENV === "production") {
     server3.listen(80, () => {
         console.log(`App running 80`);
     });
+} else if (process.env.NODE_ENV === "development") {
+    const server1 = https.createServer(servOption, app);
+    server1.listen(5000, () => {
+        console.log(`App running 5000`);
+    });
 } else {
     app.listen(port, "0.0.0.0", () => {
         console.log(`App running on ${port}`);

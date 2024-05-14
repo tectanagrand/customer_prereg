@@ -497,7 +497,7 @@ MasterModel.seedMstCust2 = async () => {
                     kunnr: item.Kunnr,
                     name_1: item.Name1,
                     ort_1: item.Ort01,
-                    erdat: dte[1] + "-" + dte[0] + "-" + dte[2],
+                    erdat: dte[2] + "-" + dte[1] + "-" + dte[0],
                 };
                 const [que, val] = crud.insertItem(
                     "mst_customer",
@@ -545,7 +545,7 @@ MasterModel.updateMstCust = async () => {
                     kunnr: item.Kunnr,
                     name_1: item.Name1,
                     ort_1: item.Ort01,
-                    erdat: dte[1] + "-" + dte[0] + "-" + dte[2],
+                    erdat: dte[2] + "-" + dte[1] + "-" + dte[0],
                 };
                 const [que, val] = crud.insertItem(
                     "mst_customer",
@@ -587,7 +587,7 @@ MasterModel.seedMstVen = async () => {
                 const payload = {
                     lifnr: item.Lifnr,
                     name_1: item.Name1,
-                    erdat: dte[1] + "-" + dte[0] + "-" + dte[2],
+                    erdat: dte[2] + "-" + dte[1] + "-" + dte[0],
                 };
                 const [que, val] = crud.insertItem(
                     "mst_vendor",
@@ -634,7 +634,7 @@ MasterModel.updateMstVen = async () => {
                 const payload = {
                     lifnr: item.Lifnr,
                     name_1: item.Name1,
-                    erdat: dte[1] + "-" + dte[0] + "-" + dte[2],
+                    erdat: dte[2] + "-" + dte[1] + "-" + dte[0],
                 };
                 const [que, val] = crud.insertItem(
                     "mst_vendor",
