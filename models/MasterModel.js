@@ -520,6 +520,141 @@ MasterModel.seedMstCust2 = async () => {
     }
 };
 
+MasterModel.updateMstCust = async () => {
+    try {
+        const client = await db.connect();
+        let promises = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows: lastDate } = await client.query(
+                `SELECT TO_CHAR(erdat, 'YYYY-MM-DD') as ERDAT from mst_customer ORDER BY ERDAT DESC LIMIT 1 ;`
+            );
+            let dateLast = lastDate[0].erdat;
+            const { data: custData } = await axios.get(
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRSet?$filter=(Erdat eq datetime'${dateLast}T00:00:00')&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            custData.d.results.forEach(item => {
+                const dte = item.Erdatshow.split(".");
+                const payload = {
+                    kunnr: item.Kunnr,
+                    name_1: item.Name1,
+                    ort_1: item.Ort01,
+                    erdat: dte[1] + "-" + dte[0] + "-" + dte[2],
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_customer",
+                    payload,
+                    "kunnr"
+                );
+                promises.push(client.query(que, val));
+            });
+            const insertData = await Promise.all(promises);
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.seedMstVen = async () => {
+    try {
+        const client = await db.connect();
+        let promises = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            await client.query("DELETE FROM mst_vendor");
+            const { data: venData } = await axios.get(
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFNRSet?$filter=(Erdat eq datetime'1990-01-01T00:00:00')&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            venData.d.results.forEach(item => {
+                const dte = item.Erdatshow.split(".");
+                const payload = {
+                    lifnr: item.Lifnr,
+                    name_1: item.Name1,
+                    erdat: dte[1] + "-" + dte[0] + "-" + dte[2],
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_vendor",
+                    payload,
+                    "lifnr"
+                );
+                promises.push(client.query(que, val));
+            });
+            const insertData = await Promise.all(promises);
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.updateMstVen = async () => {
+    try {
+        const client = await db.connect();
+        let promises = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows: lastDate } = await client.query(
+                `SELECT TO_CHAR(erdat, 'YYYY-MM-DD') as ERDAT from mst_vendor ORDER BY ERDAT DESC LIMIT 1 ;`
+            );
+            let dateLast = lastDate[0].erdat;
+            const { data: custData } = await axios.get(
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFNRSet?$filter=(Erdat eq datetime'${dateLast}T00:00:00')&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            custData.d.results.forEach(item => {
+                const dte = item.Erdatshow.split(".");
+                const payload = {
+                    lifnr: item.Lifnr,
+                    name_1: item.Name1,
+                    erdat: dte[1] + "-" + dte[0] + "-" + dte[2],
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_vendor",
+                    payload,
+                    "kunnr"
+                );
+                promises.push(client.query(que, val));
+            });
+            const insertData = await Promise.all(promises);
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
 // MasterModel.updateCustData2 = async () => {
 //     try {
 //         const client = await db.connect();
@@ -631,6 +766,35 @@ MasterModel.getCustDataDB = async (limit, offset, q) => {
             );
             const { rows } = await client.query(
                 "SELECT COUNT(*) AS ctr FROM MST_CUSTOMER WHERE (lower(name_1) like $1 or lower(kunnr) like $2) AND kunnr like '%000'",
+                [`%${q}%`, `%${q}%`]
+            );
+            return {
+                data: dataComp,
+                count: rows[0].ctr,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.getVenDataDB = async (limit, offset, q) => {
+    try {
+        const client = await db.connect();
+
+        try {
+            const { rows: dataComp } = await client.query(
+                `SELECT lifnr, CONCAT (name_1, ' - ', lifnr) as name FROM MST_VENDOR 
+                WHERE (lower(name_1) like $1 or lower(lifnr) like $2) 
+                LIMIT $3 OFFSET $4`,
+                [`%${q}%`, `%${q}%`, limit, offset]
+            );
+            const { rows } = await client.query(
+                "SELECT COUNT(*) AS ctr FROM MST_VENDOR WHERE (lower(name_1) like $1 or lower(lifnr) like $2)",
                 [`%${q}%`, `%${q}%`]
             );
             return {

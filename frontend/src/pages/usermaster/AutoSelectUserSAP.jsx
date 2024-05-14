@@ -9,9 +9,11 @@ export default function AutoSelectUserSAP({
     control,
     rules,
     onChangeControlOvr,
+    roleName,
     ...props
 }) {
     const axiosPrivate = useAxiosPrivate();
+    const role = useRef(roleName);
     const limit = 10;
     const [dataRow, setDataRow] = useState([]);
     let paginationRef = useRef({
@@ -25,17 +27,22 @@ export default function AutoSelectUserSAP({
     const fetchData = async (limit, offset, q) => {
         setLoading(true);
         try {
-            const { data: rowData } = await axiosPrivate.get(
-                `master/cust?limit=${limit}&offset=${offset}&q=${q}`
-            );
-
-            return {
-                list: rowData.data,
-                pagination: {
-                    offset: offset + limit,
-                    hasMore: offset + limit < rowData.count,
-                },
-            };
+            let query = "";
+            if (role.current === "CUSTOMER") {
+                query = `master/cust?limit=${limit}&offset=${offset}&q=${q}`;
+            } else if (role.current === "VENDOR") {
+                query = `master/ven?limit=${limit}&offset=${offset}&q=${q}`;
+            }
+            if (query !== "") {
+                const { data: rowData } = await axiosPrivate.get(query);
+                return {
+                    list: rowData.data,
+                    pagination: {
+                        offset: offset + limit,
+                        hasMore: offset + limit < rowData.count,
+                    },
+                };
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -44,37 +51,41 @@ export default function AutoSelectUserSAP({
     };
 
     const fetchMore = async () => {
-        if (!paginationRef.current.hasMore) return;
-        setLoading(true);
-        try {
-            const { list, pagination: resPagination } = await fetchData(
-                limit,
-                paginationRef.current.offset,
-                searchQuery
-            );
-            const dataList = list?.map(item => ({
-                ...item,
-                value: item.kunnr,
-                id: item.kunnr,
-                label: item.name,
-            }));
+        if (role.current !== "" && role.current) {
+            if (!paginationRef.current.hasMore) return;
+            setLoading(true);
+            try {
+                const { list, pagination: resPagination } = await fetchData(
+                    limit,
+                    paginationRef.current.offset,
+                    searchQuery
+                );
+                const dataList = list?.map(item => ({
+                    ...item,
+                    value:
+                        role.current === "CUSTOMER" ? item.kunnr : item.lifnr,
+                    id: role.current === "CUSTOMER" ? item.kunnr : item.lifnr,
+                    label: item.name,
+                }));
 
-            setDataRow(prev => [
-                ...prev,
-                ...dataList.filter(
-                    x => !prev.map(u => u.value).includes(x.value)
-                ),
-            ]);
+                setDataRow(prev => [
+                    ...prev,
+                    ...dataList.filter(
+                        x => !prev.map(u => u.value).includes(x.value)
+                    ),
+                ]);
 
-            paginationRef.current = resPagination;
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
+                paginationRef.current = resPagination;
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
     useEffect(() => {
+        role.current = roleName;
         (async () => {
             paginationRef.current.offset = 0;
             try {
@@ -85,8 +96,9 @@ export default function AutoSelectUserSAP({
                 );
                 const dataList = list?.map(item => ({
                     ...item,
-                    value: item.kunnr,
-                    id: item.kunnr,
+                    value:
+                        role.current === "CUSTOMER" ? item.kunnr : item.lifnr,
+                    id: role.current === "CUSTOMER" ? item.kunnr : item.lifnr,
                     label: item.name,
                 }));
                 setDataRow([...dataList]);
@@ -95,7 +107,7 @@ export default function AutoSelectUserSAP({
                 console.error(error);
             }
         })();
-    }, [searchQuery]);
+    }, [searchQuery, roleName]);
 
     return (
         <>

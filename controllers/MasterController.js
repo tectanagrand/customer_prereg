@@ -170,12 +170,69 @@ MasterController.seedDataCust = async (req, res) => {
     }
 };
 
+MasterController.seedDataVen = async (req, res) => {
+    try {
+        const insertData = await Master.seedMstVen();
+        res.status(200).send({
+            message: "Success Seeding Mst Vendor",
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.upDataVen = async (req, res) => {
+    try {
+        const insertData = await Master.updateMstVen();
+        res.status(200).send({
+            message: "Success Updating Mst Vendor",
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.upDataCust = async (req, res) => {
+    try {
+        const insertData = await Master.updateMstCust();
+        res.status(200).send({
+            message: "Success Updating Mst Cust",
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 MasterController.getDataCustDB = async (req, res) => {
     try {
         const limit = req.query.limit;
         const offset = req.query.offset;
         const q = req.query.q.toLowerCase();
         const dataComp = await Master.getCustDataDB(limit, offset, q);
+        res.status(200).send(dataComp);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getDataVenDB = async (req, res) => {
+    try {
+        const limit = req.query.limit;
+        const offset = req.query.offset;
+        const q = req.query.q.toLowerCase();
+        const dataComp = await Master.getVenDataDB(limit, offset, q);
         res.status(200).send(dataComp);
     } catch (error) {
         console.error(error);

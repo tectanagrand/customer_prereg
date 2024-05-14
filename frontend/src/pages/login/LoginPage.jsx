@@ -36,6 +36,10 @@ export default function LoginPage() {
             setTimeout(() => {
                 if (userData.role === "LOGISTIC") {
                     navigate("/dashboard/osreq");
+                } else if (userData.role === "CUSTOMER") {
+                    navigate("/dashboard/loco");
+                } else if (userData.role === "VENDOR") {
+                    navigate("/dashboard/franco");
                 } else {
                     navigate("/dashboard/loco");
                 }

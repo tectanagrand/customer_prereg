@@ -13,7 +13,7 @@ import { PasswordWithEyes } from "../../component/input/PasswordWithEyes";
 import PatternFieldComp from "../../component/input/PatternFieldComp";
 import AutoSelectUserSAP from "./AutoSelectUserSAP";
 import { useFieldArray, useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "../../provider/sessionProvider";
 import { useTheme } from "@mui/material/styles";
 import { Cancel, Password } from "@mui/icons-material";
@@ -44,6 +44,7 @@ export default function NewUserRegFormPage() {
     const theme = useTheme();
     const [roleOp, setRoleOp] = useState([{ value: "", label: "" }]);
     const currentRole = roleOp.find(({ value }) => value === role)?.label;
+
     const {
         control,
         handleSubmit,
@@ -85,7 +86,10 @@ export default function NewUserRegFormPage() {
 
     const onChangeControlOvrCust = value => {
         if (value) {
-            setValue("username", value.kunnr);
+            setValue(
+                "username",
+                role === "CUSTOMER" ? value.kunnr : value.lifnr
+            );
             setValue("fullname", value.name.split("-")[0].trim());
         } else {
             setValue("username", "");
@@ -148,7 +152,7 @@ export default function NewUserRegFormPage() {
     }, []);
 
     const setRole = valueOv => {
-        _setRole(valueOv);
+        _setRole(roleOp.find(({ value }) => value === valueOv)?.label);
         if (
             roleOp.find(({ value }) => value === valueOv)?.label === "LOGISTIC"
         ) {
@@ -203,11 +207,17 @@ export default function NewUserRegFormPage() {
     const RefreshDataCust = async () => {
         setLoadingRf(true);
         try {
-            const { data } = await axiosPrivate.get("/master/seedcust");
-            toast.success("Success refresh master data customer");
+            let query = "";
+            if (role === "CUSTOMER") {
+                query = "/master/updatecust";
+            } else if (role === "VENDOR") {
+                query = "/master/updateven";
+            }
+            const { data } = await axiosPrivate.get(query);
+            toast.success("Success refresh master data ");
         } catch (error) {
             console.error(error);
-            toast.error("Error refresh master data customer");
+            toast.error("Error refresh master data ");
         } finally {
             setLoadingRf(false);
         }
@@ -270,8 +280,9 @@ export default function NewUserRegFormPage() {
                                     fullWidth={true}
                                     disabled={
                                         !(
-                                            currentRole === "CUSTOMER" ||
-                                            currentRole === "ADMIN"
+                                            role === "CUSTOMER" ||
+                                            role === "ADMIN" ||
+                                            role === "VENDOR"
                                         )
                                     }
                                     sx={{
@@ -281,6 +292,7 @@ export default function NewUserRegFormPage() {
                                             },
                                         },
                                     }}
+                                    roleName={role}
                                 />
                                 <Tooltip title="Refresh Customer">
                                     <LoadingButton
@@ -307,7 +319,7 @@ export default function NewUserRegFormPage() {
                             label="Username"
                             name="username"
                             disabled={
-                                currentRole === "CUSTOMER" ||
+                                role === "CUSTOMER" ||
                                 !!searchParams.get("iduser")
                             }
                             rules={{ required: true }}
@@ -319,13 +331,13 @@ export default function NewUserRegFormPage() {
                             label="Full Name"
                             name="fullname"
                             disabled={
-                                currentRole === "CUSTOMER" ||
+                                role === "CUSTOMER" ||
                                 !!searchParams.get("iduser")
                             }
                             rules={{ required: true }}
                         />
                     </Grid>
-                    {(currentRole === "KRANIWB" || currentRole === "ADMIN") && (
+                    {(role === "KRANIWB" || role === "ADMIN") && (
                         <Grid item xs={6}>
                             <AutocompleteComp
                                 name="plant_code"

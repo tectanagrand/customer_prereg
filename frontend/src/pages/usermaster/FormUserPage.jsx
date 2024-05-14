@@ -18,6 +18,7 @@ export default function FormUserPage() {
     const [btnClicked, setBtnclicked] = useState(false);
     const { getPermission } = useSession();
     const [roleState, _setRoleState] = useState("");
+    const [roleName, setRoleName] = useState("");
     const { session } = useSession();
     const location = useLocation();
     const allowUpdate = getPermission("User Master").fupdate;
@@ -29,6 +30,8 @@ export default function FormUserPage() {
 
     const setRoleState = value => {
         _setRoleState(value);
+        console.log(role.find(({ value }) => value === roleState)?.label);
+        setRoleName(role.find(({ value }) => value === roleState)?.label);
     };
 
     const { handleSubmit, control, reset, getFieldState } = useForm({
@@ -253,6 +256,7 @@ export default function FormUserPage() {
                                                     v?.value !== "" &&
                                                     v !== null,
                                             }}
+                                            role={roleName}
                                         />
                                     </Grid>
                                 )}
