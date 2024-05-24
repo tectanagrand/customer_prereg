@@ -511,8 +511,6 @@ MasterModel.seedMstCust2 = async () => {
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
             throw error;
-        } finally {
-            client.release();
         }
     } catch (error) {
         console.error(error);
