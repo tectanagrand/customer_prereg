@@ -13,6 +13,7 @@ router.get("/oscustwb", MasterController.getOSDataCustWB);
 router.get("/sloc", MasterController.getDataSLoc);
 router.get("/valtype", MasterController.getDataValTypeDB);
 router.get("/dolist", MasterController.getDataDOList);
+router.get("/frcdolist", MasterController.getDataDOFrc);
 router.get("/stolist", MasterController.getDataSTOList);
 router.get("/seedcust", MasterController.seedDataCust);
 router.get("/seedven", MasterController.seedDataVen);
@@ -23,5 +24,6 @@ router.get("/drvr", MasterController.getDriverDataDB);
 router.get("/city", MasterController.getDataCities);
 router.get("/plt", MasterController.getCompanyPlant);
 router.get("/mediatp", MasterController.getMediaTP);
+router.get("/checksto", MasterController.getSTOData);
 
 module.exports = router;

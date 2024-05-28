@@ -65,14 +65,7 @@ export default function TableRecapReport({ onsetFilterData, isLoading }) {
             {
                 id: "exportln",
                 cell: ({ row }) => {
-                    if (
-                        moment()
-                            .subtract(1, "days")
-                            .isSameOrBefore(
-                                moment(row.original.cre_date_moment)
-                            ) &&
-                        row.original.print_count < 3
-                    ) {
+                    if (row.original.print_count < 3) {
                         return (
                             <Tooltip title="Download PDF">
                                 <IconButton

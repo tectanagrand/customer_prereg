@@ -22,7 +22,7 @@ import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
-import SelectDOComp from "./SelectDOComp";
+import SelectDOFRCComp from "./SelectDOFRCComp";
 import SelectSTOComp from "./SelectSTOComp";
 import SelectMultiDOComp from "./SelectMultiDoComp";
 import { useTheme } from "@mui/material/styles";
@@ -60,8 +60,7 @@ export default function LoadingNoteFormFRC() {
     const [medtpOP, setMedTPOP] = useState([]);
     const [checkedMulti, setCheckedMulti] = useState([]);
     const [uomQty, setUomQty] = useState("Kg");
-    const [preOp, setPreOp] = useState("");
-    const [preSTOOp, setPreSTOOp] = useState("");
+    const [preOp, setPreOp] = useState(null);
     const [pltRule, setPltRule] = useState({ plant: "", material: "" });
     const lastIdx = useRef(0);
     const [do_num, _setDONum] = useState("");
@@ -150,9 +149,6 @@ export default function LoadingNoteFormFRC() {
                         load_detail: load_detail,
                     });
                     setPreOp(data.data.do_num);
-                    if (data.data?.sto_num) {
-                        setPreSTOOp(data.data.sto_num);
-                    }
                     uuidLN.current = data.id_header;
                     position.current = data.cur_pos;
                     setPltRule({
@@ -312,7 +308,7 @@ export default function LoadingNoteFormFRC() {
                 plant: slip.WERKS,
                 description: slip.MAKTX,
                 uom: slip.VRKME,
-                company: slip.WERKS.replace(/[0-9]/g, ""),
+                company: slip.WERKS.slice(0, 2),
                 oth_plant: slip.WERKS,
                 fac_plant: slip.WERKS,
                 oth_batch: value,
@@ -391,6 +387,22 @@ export default function LoadingNoteFormFRC() {
         }
     };
 
+    const handleCheckSTO = async () => {
+        try {
+            const { data, status } = await axiosPrivate.get(
+                `/master/checksto?sto=${getValues("sto_num")}`
+            );
+            if (status === 200) {
+                toast.success("STO Number Exist");
+            } else {
+                throw new Error("STO Not Found");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(error.message);
+        }
+    };
+
     const checkExistingOsQty = () => {
         const plansData = getValues("load_detail");
         let con_os = parseFloat(getValues("con_qty")) - usedQty.current;
@@ -460,6 +472,22 @@ export default function LoadingNoteFormFRC() {
                         <Typography variant="h5">Detail Order</Typography>
                         <Divider sx={{ my: 3 }} />
                         <div>
+                            <div style={{ display: "flex", gap: "1rem" }}>
+                                <TextFieldComp
+                                    control={control}
+                                    label={"STO Number"}
+                                    name="sto_num"
+                                    sx={{ maxWidth: "17rem" }}
+                                    toUpperCase={true}
+                                />
+                                <LoadingButton
+                                    onClick={() => handleCheckSTO()}
+                                    loading={isLoading}
+                                    sx={{ height: "2rem" }}
+                                >
+                                    Check STO
+                                </LoadingButton>
+                            </div>
                             <div style={{ display: "flex" }}>
                                 {/* <SelectComp
                                     name="do_num"
@@ -476,12 +504,13 @@ export default function LoadingNoteFormFRC() {
                                     }}
                                     lazy={true}
                                 /> */}
-                                <SelectDOComp
+                                <SelectDOFRCComp
                                     control={control}
                                     name="do_num"
                                     label="DO Number"
                                     preop={preOp}
                                     onChangeOvr={setDONum}
+                                    getValue={getValues}
                                 />
                                 <LoadingButton
                                     onClick={() =>
@@ -493,13 +522,6 @@ export default function LoadingNoteFormFRC() {
                                     Check Payment
                                 </LoadingButton>
                             </div>
-                            <SelectSTOComp
-                                control={control}
-                                name="sto_num"
-                                label="STO Number"
-                                preop={preSTOOp}
-                                do_num={do_num}
-                            />
                         </div>
                         <div
                             style={{

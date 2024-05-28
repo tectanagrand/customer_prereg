@@ -1,5 +1,6 @@
 const Master = require("../models/MasterModel");
 const db = require("../config/connection");
+const axios = require("axios");
 
 const MasterController = {};
 
@@ -90,6 +91,40 @@ MasterController.getSOData = async (req, res) => {
     }
 };
 
+MasterController.getSTOData = async (req, res) => {
+    try {
+        const userLog = req.cookies.username;
+        const sto_num = req.query.sto;
+        console.log(userLog);
+        console.log(sto_num);
+        const { data } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFSTOSet?$filter=
+        (Lifnr%20eq%20%27${userLog}%27)and(Ebeln%20eq%20%27${sto_num}%27)
+        &$format=json&$format=json`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        console.log(data);
+        if (data.d.results.length > 0) {
+            res.status(200).send({
+                exist: true,
+            });
+        } else {
+            res.status(400).send({
+                message: "STO Number not found",
+            });
+        }
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 MasterController.getDataCust = async (req, res) => {
     try {
         const dataRFC = await Master.getCustData();
@@ -123,6 +158,38 @@ MasterController.getDataDOList = async (req, res) => {
             throw new Error("NO DO");
         }
         res.status(200).send(dataRFC);
+    } catch (error) {
+        console.error(error);
+        if (error.message === "NO DO") {
+            res.status(400).send({
+                message: "Not any DO exist, please contact administrator",
+            });
+        } else {
+            res.status(500).send(error);
+        }
+    }
+};
+
+MasterController.getDataDOFrc = async (req, res) => {
+    try {
+        const cust_id = req.cookies.username;
+        const { data } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOSTOSet?$filter=(Ebeln eq '${req.query.sto}')&$format=json`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        const DoList = data.d.results.map(item => ({
+            value: item.ZzvbelnV1,
+            label: item.ZzvbelnV1,
+        }));
+        if (DoList.length === 0) {
+            throw new Error("NO DO");
+        }
+        res.status(200).send(DoList);
     } catch (error) {
         console.error(error);
         if (error.message === "NO DO") {

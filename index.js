@@ -81,8 +81,8 @@ if (process.env.NODE_ENV === "production") {
     });
 } else if (process.env.NODE_ENV === "development") {
     const server1 = https.createServer(servOption, app);
-    server1.listen(5000, () => {
-        console.log(`App running 5000`);
+    server1.listen(process.env.PORT, () => {
+        console.log(`App running ${process.env.PORT}`);
     });
 } else {
     app.listen(port, "0.0.0.0", () => {

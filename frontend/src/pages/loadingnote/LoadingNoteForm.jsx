@@ -298,7 +298,7 @@ export default function LoadingNoteForm() {
                 plant: slip.WERKS,
                 description: slip.MAKTX,
                 uom: slip.VRKME,
-                company: slip.WERKS.replace(/[0-9]/g, ""),
+                company: slip.WERKS.slice(0, 2),
                 oth_plant: slip.WERKS,
                 fac_plant: slip.WERKS,
                 oth_batch: value,
