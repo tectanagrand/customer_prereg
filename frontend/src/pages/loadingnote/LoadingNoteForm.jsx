@@ -266,7 +266,7 @@ export default function LoadingNoteForm() {
             }
             if (!is_draft) {
                 setTimeout(() => {
-                    navigate("/dashboard/loadingnote");
+                    navigate("/dashboard/loco");
                 }, 2000);
             }
         } catch (error) {
