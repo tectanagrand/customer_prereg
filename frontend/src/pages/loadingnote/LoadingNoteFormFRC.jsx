@@ -23,7 +23,6 @@ import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
 import SelectDOFRCComp from "./SelectDOFRCComp";
-import SelectSTOComp from "./SelectSTOComp";
 import SelectMultiDOComp from "./SelectMultiDoComp";
 import { useTheme } from "@mui/material/styles";
 import CheckBoxComp from "../../component/input/CheckBoxComp";
@@ -80,6 +79,7 @@ export default function LoadingNoteFormFRC() {
         defaultValues: {
             do_num: "",
             sto_num: "",
+            trans_type: "",
             inv_type: "",
             inv_type_tol_from: "0 %",
             inv_type_tol_to: "0 %",
@@ -394,12 +394,13 @@ export default function LoadingNoteFormFRC() {
             );
             if (status === 200) {
                 toast.success("STO Number Exist");
+                setValue("trans_type", data.ttype);
             } else {
                 throw new Error("STO Not Found");
             }
         } catch (error) {
             console.error(error);
-            toast.error(error.message);
+            toast.error(error.response.data.message);
         }
     };
 
@@ -441,7 +442,8 @@ export default function LoadingNoteFormFRC() {
         <>
             <Toaster />
             <Typography variant="h4">
-                Customer Loading Note Registration Form
+                {session.role === "VENDOR" ? "Vendor" : "Customer "} Loading
+                Note Registration Form
             </Typography>
             <br />
             <form
@@ -479,6 +481,14 @@ export default function LoadingNoteFormFRC() {
                                     name="sto_num"
                                     sx={{ maxWidth: "17rem" }}
                                     toUpperCase={true}
+                                />
+                                <TextFieldComp
+                                    control={control}
+                                    label={"Trans. Type"}
+                                    name="trans_type"
+                                    sx={{ maxWidth: "10rem" }}
+                                    toUpperCase={true}
+                                    disabled
                                 />
                                 <LoadingButton
                                     onClick={() => handleCheckSTO()}
@@ -571,6 +581,7 @@ export default function LoadingNoteFormFRC() {
                                     <InputAdornment>{uomQty}</InputAdornment>
                                 }
                                 thousandSeparator
+                                disabled
                             />
                             <NumericFieldComp
                                 name="os_qty"
