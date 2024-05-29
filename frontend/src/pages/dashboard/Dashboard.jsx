@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense, useEffect } from "react";
 import { styled, useTheme } from "@mui/material/styles";
 import SvgIcon from "@mui/material/SvgIcon";
 import Box from "@mui/material/Box";
@@ -14,10 +14,11 @@ import LoadingSuspense from "../loadingscreen/Loading";
 import { Outlet, useLocation } from "react-router-dom";
 // import NavSection from "./NavSection";
 import { useMenu } from "../../provider/MenuProvider";
-import { useNavigate } from "react-router-dom";
-// import { useSession } from "../../provider/sessionProvider";
+import { useNavigate, Navigate } from "react-router-dom";
+import { useSession } from "../../provider/sessionProvider";
 // import KpnLogo from "../../images/kpn-logo-3.svg?react";
 // import KpnNav from "../../images/kpn-logo.svg?react";
+import Cookies from "js-cookie";
 import AvatarComp from "./AvatarComp";
 
 const NavSection = lazy(() => import("./NavSection"));
@@ -91,7 +92,7 @@ export default function Dashboard() {
     const theme = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
-    // const { session, setSession } = useSession();
+    const { session, setSession } = useSession();
     const { permission } = useMenu();
     // const axiosPrivate = useAxiosPrivate();
 
@@ -144,12 +145,12 @@ export default function Dashboard() {
         setNavmenu(menu);
     };
 
-    // if (
-    //     Cookies.get("accessToken") === undefined ||
-    //     Cookies.get("accessToken") === ""
-    // ) {
-    //     return <Navigate to="/login" />;
-    // }
+    if (
+        Cookies.get("access_token") === undefined ||
+        Cookies.get("access_token") === ""
+    ) {
+        return <Navigate to="/login" />;
+    }
 
     return (
         <Box sx={{ display: "flex" }}>

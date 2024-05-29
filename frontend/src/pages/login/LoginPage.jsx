@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { Box, Typography, SvgIcon, Button, Link } from "@mui/material";
 import { PasswordWithEyes } from "../../component/input/PasswordWithEyes";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
@@ -10,8 +10,9 @@ import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import { useSession } from "../../provider/sessionProvider";
 import { useMenu } from "../../provider/MenuProvider";
-import { useState, lazy } from "react";
+import { useState, lazy, useEffect } from "react";
 import { LoadingButton } from "@mui/lab";
+import Cookies from "js-cookie";
 
 export default function LoginPage() {
     const { setSession } = useSession();
@@ -52,6 +53,30 @@ export default function LoginPage() {
         }
     };
     const { control, handleSubmit } = useForm({ defaultValues: defaultValue });
+
+    // useEffect(() => {
+    //     if (Cookies.get("access_token") || Cookies.get("access_token") !== "") {
+    //         if (Cookies.get("role") === "LOGISTIC") {
+    //             navigate("/dashboard/osreq") ;
+    //         } else if (Cookies.get("role") === "CUSTOMER") {
+    //             navigate("/dashboard/loco") ;
+    //         } else if (Cookies.get("role") === "VENDOR") {
+    //             navigate("/dashboard/franco") ;
+    //         } else {
+    //             navigate("/dashboard/osreq") ;
+    //         }
+    //     }
+    // }, []);
+
+    useEffect(() => {
+        if (Cookies.get("access_token")) {
+            navigate("/dashboard/loco");
+        }
+    }, [navigate]);
+
+    if (Cookies.get("access_token")) {
+        return <Navigate to="/dashboard/loco" />;
+    }
     return (
         <Box
             sx={{
