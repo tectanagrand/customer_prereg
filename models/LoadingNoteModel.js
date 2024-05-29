@@ -127,6 +127,7 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
             };
             if (params.sto_num && params.sto_num !== "") {
                 payloadHeader.id_sto = params.sto_num;
+                payloadHeader.trans_type = params.trans_type;
             }
             if (params.id_header === "") {
                 [que, val] = crud.insertItem(
@@ -642,6 +643,7 @@ LoadingNoteModel.getById2 = async id_header => {
             const resp = {
                 do_num: hd_dt.id_do,
                 sto_num: hd_dt.id_sto,
+                trans_type: hd_dt.trans_type,
                 inv_type: hd_dt.invoice_type,
                 inv_type_tol_from: hd_dt.tol_from,
                 inv_type_tol_to: hd_dt.tol_to,
@@ -788,6 +790,8 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
                 DET.oth_sloc_desc,
                 DET.fac_valtype,
                 DET.oth_valtype,
+                DET.fac_batch,
+                DET.oth_batch,
                 DET.media_tp,
                 DET.driver_id,
                 DET.create_by,
