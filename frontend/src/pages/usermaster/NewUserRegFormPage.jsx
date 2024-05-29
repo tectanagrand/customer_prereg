@@ -88,7 +88,9 @@ export default function NewUserRegFormPage() {
         if (value) {
             setValue(
                 "username",
-                role === "CUSTOMER" ? value.kunnr : value.lifnr
+                role === "CUSTOMER" || role === "INTERCO"
+                    ? value.kunnr
+                    : value.lifnr
             );
             setValue("fullname", value.name.split("-")[0].trim());
         } else {
@@ -212,6 +214,8 @@ export default function NewUserRegFormPage() {
                 query = "/master/updatecust";
             } else if (role === "VENDOR") {
                 query = "/master/updateven";
+            } else if (role === "INTERCO") {
+                query = "/master/updateintrc";
             }
             const { data } = await axiosPrivate.get(query);
             toast.success("Success refresh master data ");
@@ -282,7 +286,8 @@ export default function NewUserRegFormPage() {
                                         !(
                                             role === "CUSTOMER" ||
                                             role === "ADMIN" ||
-                                            role === "VENDOR"
+                                            role === "VENDOR" ||
+                                            role === "INTERCO"
                                         )
                                     }
                                     sx={{

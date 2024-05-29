@@ -32,6 +32,8 @@ export default function AutoSelectUserSAP({
                 query = `master/cust?limit=${limit}&offset=${offset}&q=${q}`;
             } else if (role.current === "VENDOR") {
                 query = `master/ven?limit=${limit}&offset=${offset}&q=${q}`;
+            } else if (role.current === "INTERCO") {
+                query = `master/inter?limit=${limit}&offset=${offset}&q=${q}`;
             }
             if (query !== "") {
                 const { data: rowData } = await axiosPrivate.get(query);
@@ -63,8 +65,15 @@ export default function AutoSelectUserSAP({
                 const dataList = list?.map(item => ({
                     ...item,
                     value:
-                        role.current === "CUSTOMER" ? item.kunnr : item.lifnr,
-                    id: role.current === "CUSTOMER" ? item.kunnr : item.lifnr,
+                        role.current === "CUSTOMER" ||
+                        role.current === "INTERCO"
+                            ? item.kunnr
+                            : item.lifnr,
+                    id:
+                        role.current === "CUSTOMER" ||
+                        role.current === "INTERCO"
+                            ? item.kunnr
+                            : item.lifnr,
                     label: item.name,
                 }));
 
@@ -97,8 +106,15 @@ export default function AutoSelectUserSAP({
                 const dataList = list?.map(item => ({
                     ...item,
                     value:
-                        role.current === "CUSTOMER" ? item.kunnr : item.lifnr,
-                    id: role.current === "CUSTOMER" ? item.kunnr : item.lifnr,
+                        role.current === "CUSTOMER" ||
+                        role.current === "INTERCO"
+                            ? item.kunnr
+                            : item.lifnr,
+                    id:
+                        role.current === "CUSTOMER" ||
+                        role.current === "INTERCO"
+                            ? item.kunnr
+                            : item.lifnr,
                     label: item.name,
                 }));
                 setDataRow([...dataList]);
