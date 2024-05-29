@@ -108,10 +108,19 @@ MasterController.getSTOData = async (req, res) => {
                 },
             }
         );
-        console.log(data);
+        const { data: ttype } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOTYPESet?$filter=(Ebeln%20eq%20%27${sto_num}%27)&$format=json`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
         if (data.d.results.length > 0) {
             res.status(200).send({
                 exist: true,
+                ttype: ttype.d.results[0].ZztransType,
             });
         } else {
             res.status(400).send({
@@ -279,6 +288,20 @@ MasterController.upDataCust = async (req, res) => {
     }
 };
 
+MasterController.upDataInterco = async (req, res) => {
+    try {
+        const insertData = await Master.updateMstInterco();
+        res.status(200).send({
+            message: "Success Updating Mst Interco",
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 MasterController.getDataCustDB = async (req, res) => {
     try {
         const limit = req.query.limit;
@@ -300,6 +323,21 @@ MasterController.getDataVenDB = async (req, res) => {
         const offset = req.query.offset;
         const q = req.query.q.toLowerCase();
         const dataComp = await Master.getVenDataDB(limit, offset, q);
+        res.status(200).send(dataComp);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getDataInterDB = async (req, res) => {
+    try {
+        const limit = req.query.limit;
+        const offset = req.query.offset;
+        const q = req.query.q.toLowerCase();
+        const dataComp = await Master.getInterDataDB(limit, offset, q);
         res.status(200).send(dataComp);
     } catch (error) {
         console.error(error);

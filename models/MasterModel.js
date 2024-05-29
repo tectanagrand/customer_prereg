@@ -198,9 +198,21 @@ MasterModel.getSOData = async do_num => {
             // console.log(real);
             totalFromSAP += real === 0 ? planning : real;
         });
-        // console.log(qtyTemp);
-        // console.log(totalFromSAP);
-        // console.log(tempLoadingNote);
+
+        const { data: DOTRXDELETE } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${do_num}%27)&$format=json`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        if (DOTRXDELETE.d.results.length > 0) {
+            DOTRXDELETE.d.results.map(item => {
+                totalFromSAP -= parseFloat(item.PlnLfimg);
+            });
+        }
 
         if (I_ZSLIP.length === 0) {
             throw new Error("SO Not Found");
@@ -520,6 +532,97 @@ MasterModel.seedMstCust2 = async () => {
     }
 };
 
+MasterModel.seedMstInterco = async () => {
+    try {
+        const client = await db.connect();
+        let promises = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            await client.query("DELETE FROM mst_customer");
+            const { data: custData } = await axios.get(
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRCISet?$filter=(Erdat eq datetime'1990-01-01T00:00:00')&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            custData.d.results.forEach(item => {
+                const dte = item.Erdatshow.split(".");
+                const payload = {
+                    kunnr: item.Kunnr,
+                    name_1: item.Name1,
+                    ort_1: item.Ort01,
+                    erdat: dte[2] + "-" + dte[1] + "-" + dte[0],
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_interco",
+                    payload,
+                    "kunnr"
+                );
+                promises.push(client.query(que, val));
+            });
+            const insertData = await Promise.all(promises);
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.updateMstInterco = async () => {
+    try {
+        const client = await db.connect();
+        let promises = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows: lastDate } = await client.query(
+                `SELECT TO_CHAR(erdat, 'YYYY-MM-DD') as ERDAT from mst_interco ORDER BY ERDAT DESC LIMIT 1 ;`
+            );
+            let dateLast = lastDate[0]?.erdat;
+            const { data: custData } = await axios.get(
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRCISet?$filter=(Erdat eq datetime'${dateLast ?? "1990-01-01"}T00:00:00')&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            custData.d.results.forEach(item => {
+                const dte = item.Erdatshow.split(".");
+                const payload = {
+                    kunnr: item.Kunnr,
+                    name_1: item.Name1,
+                    ort_1: item.Ort01,
+                    erdat: dte[2] + "-" + dte[1] + "-" + dte[0],
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_interco",
+                    payload,
+                    "kunnr"
+                );
+                promises.push(client.query(que, val));
+            });
+            const insertData = await Promise.all(promises);
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
 MasterModel.updateMstCust = async () => {
     try {
         const client = await db.connect();
@@ -766,6 +869,36 @@ MasterModel.getCustDataDB = async (limit, offset, q) => {
             );
             const { rows } = await client.query(
                 "SELECT COUNT(*) AS ctr FROM MST_CUSTOMER WHERE (lower(name_1) like $1 or lower(kunnr) like $2) AND kunnr like '%000'",
+                [`%${q}%`, `%${q}%`]
+            );
+            return {
+                data: dataComp,
+                count: rows[0].ctr,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.getInterDataDB = async (limit, offset, q) => {
+    try {
+        const client = await db.connect();
+
+        try {
+            const { rows: dataComp } = await client.query(
+                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name FROM MST_INTERCO 
+                WHERE (lower(name_1) like $1 or lower(kunnr) like $2) 
+                AND kunnr like '%000'
+                LIMIT $3 OFFSET $4`,
+                [`%${q}%`, `%${q}%`, limit, offset]
+            );
+            const { rows } = await client.query(
+                "SELECT COUNT(*) AS ctr FROM MST_INTERCO WHERE (lower(name_1) like $1 or lower(kunnr) like $2) AND kunnr like '%000'",
                 [`%${q}%`, `%${q}%`]
             );
             return {
