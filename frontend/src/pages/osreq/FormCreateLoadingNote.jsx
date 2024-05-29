@@ -39,8 +39,10 @@ export default function FormCreateLoadingNote() {
     } = useForm({
         defaultValues: {
             fac_sloc: "",
+            fac_batch: "",
             fac_valtype: "",
             oth_sloc: "",
+            oth_batch: "",
             oth_valtype: "",
             selected_req: [],
         },
@@ -60,6 +62,8 @@ export default function FormCreateLoadingNote() {
     const [DoNum, setDoNum] = useState("");
     const [CustNum, setCustNum] = useState("");
     const [slocop, setSlocop] = useState([]);
+    const [facBatchOp, setFacBatchOp] = useState([]);
+    const [othBatchOp, setOthBatchOp] = useState([]);
     const [valtypeOp, setvpOp] = useState([]);
     const [isLoading, _setLoading] = useState(false);
     const [loadingPush, setLoadingPush] = useState(false);
@@ -137,6 +141,8 @@ export default function FormCreateLoadingNote() {
                     fac_valtype: "",
                     oth_sloc: "",
                     oth_valtype: "",
+                    fac_batch: "",
+                    oth_batch: "",
                     selected_req: [],
                 });
             } else {
@@ -159,14 +165,33 @@ export default function FormCreateLoadingNote() {
                         const { data } = await axiosPrivate.get(
                             `/ln/defslocvtp?plant=${firstRow.plant}`
                         );
-                        fac_sloc = data.fac_sloc;
-                        fac_sloc_desc = data.fac_sloc_desc;
-                        fac_valtype = data.fac_valtype;
-                        oth_sloc = data.oth_sloc;
-                        oth_sloc_desc = data.oth_sloc_desc;
-                        oth_valtype = data.oth_valtype;
+                        const { data: Op } = await axiosPrivate.get(
+                            `/master/sloc?plant=${firstRow?.plant}&material=${firstRow?.material}`
+                        );
+                        if (data !== "") {
+                            fac_sloc = data.fac_sloc;
+                            fac_sloc_desc = data.fac_sloc_desc;
+                            fac_valtype = data.fac_valtype;
+                            oth_sloc = data.oth_sloc;
+                            oth_sloc_desc = data.oth_sloc_desc;
+                            oth_valtype = data.oth_valtype;
+                        } else {
+                            fac_sloc = Op.sloc[0].value;
+                            fac_sloc_desc = Op.sloc[0].label;
+                            fac_valtype = Op.valtype[0].value;
+                            oth_sloc = Op.sloc[0].value;
+                            oth_sloc_desc = Op.sloc[0].label;
+                            oth_valtype = Op.valtype[0].value;
+                        }
                     }
-
+                    setValue("fac_batch", {
+                        value: firstRow.fac_batch,
+                        label: firstRow.fac_batch,
+                    });
+                    setValue("oth_batch", {
+                        value: firstRow.oth_batch,
+                        label: firstRow.oth_batch,
+                    });
                     setValue("fac_sloc", {
                         value: fac_sloc,
                         label: fac_sloc + " - " + fac_sloc_desc,
@@ -247,6 +272,8 @@ export default function FormCreateLoadingNote() {
             reset({
                 fac_sloc: "",
                 fac_valtype: "",
+                fac_batch: "",
+                oth_batch: "",
                 oth_sloc: "",
                 oth_valtype: "",
                 selected_req: [],
@@ -414,11 +441,62 @@ export default function FormCreateLoadingNote() {
                             rules={{ required: "Please Insert" }}
                         />
                         <AutocompleteComp
+                            name="oth_batch"
+                            label="Other Party Batch"
+                            control={control}
+                            options={othBatchOp}
+                            freeSolo
+                            sx={{
+                                maxWidth: "20rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            // disabled={who === "log"}
+                            rules={{ required: "Please Insert" }}
+                        />
+                        <AutocompleteComp
+                            name="fac_batch"
+                            label="Factory Batch"
+                            control={control}
+                            options={facBatchOp}
+                            rules={{ required: "Please Insert" }}
+                            freeSolo={true}
+                            sx={{
+                                maxWidth: "20rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            // disabled={who === "log"}
+                        />
+                        <AutocompleteComp
                             name="fac_valtype"
-                            label="Factory Val. Type"
+                            label="Factory Party Val. Type"
                             control={control}
                             options={valtypeOp}
-                            rules={{ required: "Please Insert" }}
                             sx={{
                                 maxWidth: "20rem",
                                 input: {
@@ -437,6 +515,7 @@ export default function FormCreateLoadingNote() {
                                 },
                             }}
                             disabled={who === "log"}
+                            rules={{ required: "Please Insert" }}
                         />
                         <AutocompleteComp
                             name="oth_valtype"
