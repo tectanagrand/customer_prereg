@@ -9,6 +9,7 @@ export default function AutocompleteComp({
     rules,
     options,
     label,
+    freeSolo,
     ...props
 }) {
     return (
@@ -24,18 +25,37 @@ export default function AutocompleteComp({
                 }) => (
                     <Autocomplete
                         options={options}
-                        onChange={(e, newValue) => onChange(newValue)}
+                        onChange={(e, newValue) => {
+                            console.log(newValue);
+                            if (freeSolo) {
+                                if (typeof newValue === "object") {
+                                    onChange(newValue);
+                                } else {
+                                    onChange(newValue);
+                                }
+                            } else {
+                                onChange(newValue);
+                            }
+                        }}
                         value={value}
                         error={!!error}
+                        freeSolo={freeSolo}
+                        autoSelect={freeSolo}
                         fullWidth
                         getOptionLabel={option => {
+                            if (typeof option === "string") {
+                                return option;
+                            }
                             if (
                                 option !== null &&
                                 option !== undefined &&
                                 option !== ""
                             )
                                 return option.label;
-                            return "";
+                            if (option.inputValue) {
+                                return option.inputValue;
+                            }
+                            return option.title;
                         }}
                         isOptionEqualToValue={(option, value) => {
                             return true;
