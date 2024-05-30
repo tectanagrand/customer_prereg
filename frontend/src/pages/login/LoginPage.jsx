@@ -75,7 +75,12 @@ export default function LoginPage() {
     }, [navigate]);
 
     if (Cookies.get("access_token")) {
-        return <Navigate to="/dashboard/loco" />;
+        return (
+            <>
+                <Toaster />
+                <Navigate to="/dashboard/loco" />
+            </>
+        );
     }
     return (
         <Box

@@ -388,9 +388,10 @@ export default function LoadingNoteFormFRC() {
     };
 
     const handleCheckSTO = async () => {
+        setLoading(true);
         try {
             const { data, status } = await axiosPrivate.get(
-                `/master/checksto?sto=${getValues("sto_num")}`
+                `/master/checkstolcfrc?sto=${getValues("sto_num")}`
             );
             if (status === 200) {
                 toast.success("STO Number Exist");
@@ -401,6 +402,8 @@ export default function LoadingNoteFormFRC() {
         } catch (error) {
             console.error(error);
             toast.error(error.response.data.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -442,8 +445,8 @@ export default function LoadingNoteFormFRC() {
         <>
             <Toaster />
             <Typography variant="h4">
-                {session.role === "VENDOR" ? "Vendor" : "Customer "} FRANCO
-                Loading Note Registration Form
+                {session.role === "VENDOR" ? "Vendor" : "Customer "}{" "}
+                {"LOCO → FRANCO"} Loading Note Registration Form
             </Typography>
             <br />
             <form

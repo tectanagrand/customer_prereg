@@ -54,6 +54,9 @@ const SendEmail = lazy(() => import("../pages/sendemail/SendEmail"));
 const DashboardCustomer = lazy(
     () => import("../pages/dashboard/DashboardCustomer")
 );
+const LoadingNoteFormLOCOFRC = lazy(
+    () => import("../pages/loadingnote/LoadingNoteFormLOCOFRC")
+);
 
 export const routes = createBrowserRouter([
     {
@@ -116,6 +119,14 @@ export const routes = createBrowserRouter([
             {
                 path: "franco/create",
                 element: <LoadingNoteFormFRC />,
+            },
+            {
+                path: "locofranco/",
+                element: <TableParentCustDashboardFRC />,
+            },
+            {
+                path: "locofranco/create",
+                element: <LoadingNoteFormLOCOFRC />,
             },
             {
                 path: "osreq/",

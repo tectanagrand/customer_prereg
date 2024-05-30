@@ -27,5 +27,6 @@ router.get("/city", MasterController.getDataCities);
 router.get("/plt", MasterController.getCompanyPlant);
 router.get("/mediatp", MasterController.getMediaTP);
 router.get("/checksto", MasterController.getSTOData);
+router.get("/checkstolcfrc", MasterController.getSTOLCFRCData);
 
 module.exports = router;

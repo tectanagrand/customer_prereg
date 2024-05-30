@@ -415,7 +415,7 @@ export default function LoadingNoteForm() {
         <>
             <Toaster />
             <Typography variant="h4">
-                Customer Loading Note Registration Form
+                Customer LOCO Loading Note Registration Form
             </Typography>
             <br />
             <form

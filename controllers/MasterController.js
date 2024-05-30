@@ -134,6 +134,44 @@ MasterController.getSTOData = async (req, res) => {
     }
 };
 
+MasterController.getSTOLCFRCData = async (req, res) => {
+    try {
+        const sto_num = req.query.sto;
+        const { data } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOSTOSet?$filter=(Ebeln eq '${sto_num}')&$format=json`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        const { data: ttype } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOTYPESet?$filter=(Ebeln%20eq%20%27${sto_num}%27)&$format=json`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        if (data.d.results.length > 0) {
+            res.status(200).send({
+                exist: true,
+                ttype: ttype.d.results[0].ZztransType,
+            });
+        } else {
+            res.status(400).send({
+                message: "STO Number not found",
+            });
+        }
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 MasterController.getDataCust = async (req, res) => {
     try {
         const dataRFC = await Master.getCustData();
