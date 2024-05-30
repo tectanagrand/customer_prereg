@@ -446,7 +446,7 @@ export default function LoadingNoteFormFRC() {
             <Toaster />
             <Typography variant="h4">
                 {session.role === "VENDOR" ? "Vendor" : "Customer "}{" "}
-                {"LOCO → FRANCO"} Loading Note Registration Form
+                {"FRANCO → LOCO"} Loading Note Registration Form
             </Typography>
             <br />
             <form
