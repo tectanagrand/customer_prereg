@@ -31,5 +31,6 @@ router.get("/defslocvtp", LoadNote.getDefValtypeSloc);
 router.get("/dash", LoadNote.LoadingNoteDashboard);
 router.get("/chartdash", LoadNote.ChartDashboard);
 router.get("/syncwb", LoadNote.syncDataWB);
+router.get("/cleanln", LoadNote.cleanUpLN);
 
 module.exports = router;

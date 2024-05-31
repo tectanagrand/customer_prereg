@@ -1837,4 +1837,23 @@ LoadingNoteModel.syncDataWB = async () => {
     }
 };
 
+LoadingNoteModel.showHistoricalLoadingNote = async (
+    q,
+    limit,
+    offset,
+    id_user,
+    role
+) => {
+    let user = "";
+    if (role !== "ADMIN" || role !== "LOGISTIC") {
+        user = id_user;
+    }
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(``);
+        } catch (error) {}
+    } catch (error) {}
+};
+
 module.exports = LoadingNoteModel;

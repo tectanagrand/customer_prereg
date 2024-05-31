@@ -1,4 +1,5 @@
 const LoadNote = require("../models/LoadingNoteModel");
+const CleanUp = require("../helper/Cleanup");
 const db = require("../config/connection");
 const fs = require("fs");
 
@@ -465,6 +466,19 @@ LoadingNoteController.syncDataWB = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.cleanUpLN = async (req, res) => {
+    try {
+        await CleanUp.loadingNoteClean();
+        res.status(200).send({
+            message: "Loading Note Cleaned",
+        });
+    } catch (error) {
         res.status(500).send({
             message: error.message,
         });

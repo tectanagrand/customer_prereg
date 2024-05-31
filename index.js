@@ -15,6 +15,7 @@ const whitelist = require("./config/allowedOrigin");
 const router = require("./routes");
 const SAPGetterChores = require("./helper/SAPGetterChores");
 const db = require("./config/connection");
+const CleanUpLN = require("./helper/Cleanup");
 const ignoreMethod = ["GET", "HEAD", "OPTIONS"];
 
 const myCSRFProtection = (req, res, next) => {
@@ -89,6 +90,10 @@ if (process.env.NODE_ENV === "production") {
         console.log(`App running on ${port}`);
     });
 }
+
+(async () => {
+    CleanUpLN.CronLNClean();
+})();
 // app.listen(port, "0.0.0.0", () => {
 //     console.log(`App running on ${port}`);
 // });

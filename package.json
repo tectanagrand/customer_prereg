@@ -24,6 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",
     "ncrypt-js": "^2.1.0",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.11",
     "oracledb": "^6.4.0",
     "otp-generator": "^4.0.1",
