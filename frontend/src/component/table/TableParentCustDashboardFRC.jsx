@@ -259,7 +259,7 @@ export default function TableParentCustDashboardFRC() {
         <>
             <Toaster />
             {(getPermission("FRANCO Req.").fcreate ||
-                getPermission("LOCO => FRANCO").fcreate) && (
+                getPermission("FRANCO → LOCO").fcreate) && (
                 <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                     <Button
                         sx={{ width: 200, heigth: 50, margin: 2 }}

@@ -284,6 +284,9 @@ export default function LoadingNoteForm() {
                 `/master/do?do_num=${value}`
             );
             const slip = data.SLIP;
+            if (slip.INCO1 === "FRC") {
+                throw new Error("Cannot proceed FRANCO type SO");
+            }
             const dataMap = {
                 do_num: value,
                 inv_type: slip.ZZINVOICETYPE,
@@ -369,7 +372,11 @@ export default function LoadingNoteForm() {
             Object.keys(resetData).forEach(item => {
                 setValue(item, resetData[item]);
             });
-            toast.error(error.response.data.message);
+            if (error.response) {
+                toast.error(error.response.data.message);
+            } else {
+                toast.error(error.message);
+            }
         } finally {
             setLoading(false);
         }
