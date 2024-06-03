@@ -239,7 +239,9 @@ export default function TableParentCustDashboardFRC() {
 
     useEffect(() => {
         (async () => {
-            const allow = getPermission("FRANCO Req.").fcreate;
+            const allow =
+                getPermission("FRANCO Req.").fcreate ||
+                getPermission("FRANCO → LOCO").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
                     "/ln/lnuserfrc?isallow=" + allow,

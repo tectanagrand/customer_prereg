@@ -120,104 +120,215 @@ export default function FormCreateLoadingNote() {
     }, [location]);
 
     useEffect(() => {
-        (async () => {
-            try {
-                const { data } = await axiosPrivate.get(
-                    `/master/sloc?plant=${firstRow?.plant}&material=${firstRow?.material}`
-                );
-                setSlocop(data.sloc);
-                setvpOp(data.valtype);
-            } catch (error) {
-                console.error(error);
-            }
-        })();
-    }, [firstRow]);
-
-    useEffect(() => {
-        (async () => {
-            if (!firstRow) {
-                reset({
-                    fac_sloc: "",
-                    fac_valtype: "",
-                    oth_sloc: "",
-                    oth_valtype: "",
-                    fac_batch: "",
-                    oth_batch: "",
-                    selected_req: [],
-                });
-            } else {
-                let fac_sloc,
-                    fac_valtype,
-                    oth_sloc,
-                    oth_valtype,
-                    fac_sloc_desc,
-                    oth_sloc_desc;
+        if (!firstRow) {
+            reset({
+                fac_sloc: "",
+                fac_valtype: "",
+                oth_sloc: "",
+                oth_valtype: "",
+                fac_batch: "",
+                oth_batch: "",
+                selected_req: [],
+            });
+        } else {
+            _setLoading(true);
+            (async () => {
                 try {
-                    _setLoading(true);
-                    if (who === "wb") {
-                        fac_sloc = firstRow.fac_sloc;
-                        fac_sloc_desc = firstRow.fac_sloc_desc;
-                        fac_valtype = firstRow.fac_valtype;
-                        oth_sloc = firstRow.oth_sloc;
-                        oth_sloc_desc = firstRow.oth_sloc_desc;
-                        oth_valtype = firstRow.oth_valtype;
+                    const { data: getSloc } = await axiosPrivate.get(
+                        `/master/slocdb?company=${firstRow.company}`
+                    );
+                    const sloc = getSloc.data.map(item => ({
+                        value: item.code,
+                        label: item.desc,
+                    }));
+                    const { data: getValtype } = await axiosPrivate.get(
+                        `/master/valtypedb?company=${firstRow.company}`
+                    );
+                    const valType = getValtype.data.map(item => ({
+                        value: item.code,
+                        label: item.desc,
+                    }));
+                    const { data: getBatch } = await axiosPrivate.get(
+                        `/master/batchdb?company=${firstRow.company}`
+                    );
+                    const batch = getBatch.batch.map(item => ({
+                        value: item,
+                        label: item,
+                    }));
+                    if (getBatch.group === "UPSTREAM") {
+                        setValue(
+                            "fac_batch",
+                            firstRow.fac_batch
+                                ? {
+                                      value: firstRow.fac_batch,
+                                      label: firstRow.fac_batch,
+                                  }
+                                : batch[0]
+                        );
+                        setFacBatchOp(batch);
+                        setValue("oth_batch", {
+                            value: firstRow.id_do,
+                            label: firstRow.id_do,
+                        });
                     } else {
-                        const { data } = await axiosPrivate.get(
-                            `/ln/defslocvtp?plant=${firstRow.plant}`
+                        setValue("fac_batch", {
+                            value: firstRow.company,
+                            label: firstRow.company,
+                        });
+                        setValue(
+                            "oth_batch",
+                            firstRow.oth_batch
+                                ? {
+                                      value: firstRow.oth_batch,
+                                      label: firstRow.oth_batch,
+                                  }
+                                : null
                         );
-                        const { data: Op } = await axiosPrivate.get(
-                            `/master/sloc?plant=${firstRow?.plant}&material=${firstRow?.material}`
-                        );
-                        if (data !== "") {
-                            fac_sloc = data.fac_sloc;
-                            fac_sloc_desc = data.fac_sloc_desc;
-                            fac_valtype = data.fac_valtype;
-                            oth_sloc = data.oth_sloc;
-                            oth_sloc_desc = data.oth_sloc_desc;
-                            oth_valtype = data.oth_valtype;
-                        } else {
-                            fac_sloc = Op.sloc[0].value;
-                            fac_sloc_desc = Op.sloc[0].label;
-                            fac_valtype = Op.valtype[0].value;
-                            oth_sloc = Op.sloc[0].value;
-                            oth_sloc_desc = Op.sloc[0].label;
-                            oth_valtype = Op.valtype[0].value;
-                        }
                     }
-                    setValue("fac_batch", {
-                        value: firstRow.fac_batch,
-                        label: firstRow.fac_batch,
-                    });
-                    setValue("oth_batch", {
-                        value: firstRow.oth_batch,
-                        label: firstRow.oth_batch,
-                    });
-                    setValue("fac_sloc", {
-                        value: fac_sloc,
-                        label: fac_sloc + " - " + fac_sloc_desc,
-                    });
-
-                    setValue("fac_valtype", {
-                        value: fac_valtype,
-                        label: fac_valtype,
-                    });
-                    setValue("oth_valtype", {
-                        value: oth_valtype,
-                        label: oth_valtype,
-                    });
-                    setValue("oth_sloc", {
-                        value: oth_sloc,
-                        label: oth_sloc + " - " + oth_sloc_desc,
-                    });
+                    if (firstRow.fac_sloc !== "" && firstRow.fac_sloc) {
+                        console.log("ada sloc");
+                        setValue("fac_sloc", {
+                            value: firstRow.fac_sloc,
+                            label:
+                                firstRow.fac_sloc +
+                                " - " +
+                                firstRow.fac_sloc_desc,
+                        });
+                    } else {
+                        setValue("fac_sloc", {
+                            value: getSloc.factory.code,
+                            label:
+                                getSloc.factory.code +
+                                " - " +
+                                getSloc.factory.desc,
+                        });
+                    }
+                    if (firstRow.oth_sloc !== "" && firstRow.oth_sloc) {
+                        setValue("oth_sloc", {
+                            value: firstRow.oth_sloc,
+                            label:
+                                firstRow.oth_sloc +
+                                " - " +
+                                firstRow.oth_sloc_desc,
+                        });
+                    } else {
+                        setValue("oth_sloc", {
+                            value: getSloc.other.code,
+                            label:
+                                getSloc.other.code + " - " + getSloc.other.desc,
+                        });
+                    }
+                    if (firstRow.fac_valtype !== "" && firstRow.fac_valtype) {
+                        setValue("fac_valtype", {
+                            value: firstRow.fac_valtype,
+                            label: firstRow.fac_valtype,
+                        });
+                    } else {
+                        setValue("fac_valtype", {
+                            value: getValtype.factory.code,
+                            label: getValtype.factory.desc,
+                        });
+                    }
+                    if (firstRow.oth_valtype !== "" && firstRow.oth_valtype) {
+                        setValue("oth_valtype", {
+                            value: firstRow.oth_valtype,
+                            label: firstRow.oth_valtype,
+                        });
+                    } else {
+                        setValue("oth_valtype", {
+                            value: getValtype.other.code,
+                            label: getValtype.other.desc,
+                        });
+                    }
+                    setSlocop(sloc);
+                    setvpOp(valType);
                     clearErrors();
                 } catch (error) {
                     console.error(error);
                 } finally {
                     _setLoading(false);
                 }
-            }
-        })();
+            })();
+        }
     }, [firstRow]);
+
+    // useEffect(() => {
+    //     (async () => {
+    //         if (!firstRow) {
+    //             reset({
+    //                 fac_sloc: "",
+    //                 fac_valtype: "",
+    //                 oth_sloc: "",
+    //                 oth_valtype: "",
+    //                 fac_batch: "",
+    //                 oth_batch: "",
+    //                 selected_req: [],
+    //             });
+    //         } else {
+    //             let fac_sloc,
+    //                 fac_valtype,
+    //                 oth_sloc,
+    //                 oth_valtype,
+    //                 fac_sloc_desc,
+    //                 oth_sloc_desc;
+    //             try {
+    //                 _setLoading(true);
+    //                 if (who === "wb") {
+    //                     fac_sloc = firstRow.fac_sloc;
+    //                     fac_sloc_desc = firstRow.fac_sloc_desc;
+    //                     fac_valtype = firstRow.fac_valtype;
+    //                     oth_sloc = firstRow.oth_sloc;
+    //                     oth_sloc_desc = firstRow.oth_sloc_desc;
+    //                     oth_valtype = firstRow.oth_valtype;
+    //                 } else {
+    //                     const { data } = await axiosPrivate.get(
+    //                         `/ln/defslocvtp?plant=${firstRow.plant}`
+    //                     );
+    //                     const { data: Op } = await axiosPrivate.get(
+    //                         `/master/sloc?plant=${firstRow?.plant}&material=${firstRow?.material}`
+    //                     );
+    //                     if (data !== "") {
+    //                         fac_sloc = data.fac_sloc;
+    //                         fac_sloc_desc = data.fac_sloc_desc;
+    //                         fac_valtype = data.fac_valtype;
+    //                         oth_sloc = data.oth_sloc;
+    //                         oth_sloc_desc = data.oth_sloc_desc;
+    //                         oth_valtype = data.oth_valtype;
+    //                     } else {
+    //                         fac_sloc = Op.sloc[0].value;
+    //                         fac_sloc_desc = Op.sloc[0].label;
+    //                         fac_valtype = Op.valtype[0].value;
+    //                         oth_sloc = Op.sloc[0].value;
+    //                         oth_sloc_desc = Op.sloc[0].label;
+    //                         oth_valtype = Op.valtype[0].value;
+    //                     }
+    //                 }
+    //                 setValue("fac_sloc", {
+    //                     value: fac_sloc,
+    //                     label: fac_sloc + " - " + fac_sloc_desc,
+    //                 });
+
+    //                 setValue("fac_valtype", {
+    //                     value: fac_valtype,
+    //                     label: fac_valtype,
+    //                 });
+    //                 setValue("oth_valtype", {
+    //                     value: oth_valtype,
+    //                     label: oth_valtype,
+    //                 });
+    //                 setValue("oth_sloc", {
+    //                     value: oth_sloc,
+    //                     label: oth_sloc + " - " + oth_sloc_desc,
+    //                 });
+    //                 clearErrors();
+    //             } catch (error) {
+    //                 console.error(error);
+    //             } finally {
+    //                 _setLoading(false);
+    //             }
+    //         }
+    //     })();
+    // }, [firstRow]);
 
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
@@ -256,6 +367,8 @@ export default function FormCreateLoadingNote() {
             oth_sloc: payload.oth_sloc.value,
             oth_sloc_desc: payload.oth_sloc.label.split("-")[1].trim(),
             oth_valtype: payload.oth_valtype.value,
+            fac_batch: payload.fac_batch.value,
+            oth_batch: payload.oth_batch.value,
         };
 
         setLoadingPush(true);
@@ -441,32 +554,6 @@ export default function FormCreateLoadingNote() {
                             rules={{ required: "Please Insert" }}
                         />
                         <AutocompleteComp
-                            name="oth_batch"
-                            label="Other Party Batch"
-                            control={control}
-                            options={othBatchOp}
-                            freeSolo
-                            sx={{
-                                maxWidth: "20rem",
-                                input: {
-                                    "&.MuiOutlinedInput-input.Mui-disabled": {
-                                        WebkitTextFillColor:
-                                            theme.palette.grey[500],
-                                        color: theme.palette.grey[500],
-                                    },
-                                },
-                                label: {
-                                    "&.Mui-disabled": {
-                                        WebkitTextFillColor:
-                                            theme.palette.grey[500],
-                                        color: theme.palette.grey[500],
-                                    },
-                                },
-                            }}
-                            // disabled={who === "log"}
-                            rules={{ required: "Please Insert" }}
-                        />
-                        <AutocompleteComp
                             name="fac_batch"
                             label="Factory Batch"
                             control={control}
@@ -491,6 +578,32 @@ export default function FormCreateLoadingNote() {
                                 },
                             }}
                             // disabled={who === "log"}
+                        />
+                        <AutocompleteComp
+                            name="oth_batch"
+                            label="Other Party Batch"
+                            control={control}
+                            options={othBatchOp}
+                            freeSolo
+                            sx={{
+                                maxWidth: "20rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            // disabled={who === "log"}
+                            rules={{ required: "Please Insert" }}
                         />
                         <AutocompleteComp
                             name="fac_valtype"
@@ -614,6 +727,10 @@ export default function FormCreateLoadingNote() {
                                     <p>Factory Val. Type :</p>{" "}
                                     <p>{getValues("fac_valtype")?.value}</p>
                                 </div>
+                                <div style={{ display: "flex", gap: "1rem" }}>
+                                    <p>Factory Batch :</p>{" "}
+                                    <p>{getValues("fac_batch")?.value}</p>
+                                </div>
                             </div>
                             <div>
                                 <div style={{ display: "flex", gap: "1rem" }}>
@@ -623,6 +740,10 @@ export default function FormCreateLoadingNote() {
                                 <div style={{ display: "flex", gap: "1rem" }}>
                                     <p>Other Party Val. Type :</p>{" "}
                                     <p>{getValues("oth_valtype")?.value}</p>
+                                </div>
+                                <div style={{ display: "flex", gap: "1rem" }}>
+                                    <p>Other Party Batch :</p>{" "}
+                                    <p>{getValues("oth_batch")?.value}</p>
                                 </div>
                             </div>
                         </div>

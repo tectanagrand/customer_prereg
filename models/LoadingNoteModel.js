@@ -1070,6 +1070,8 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
         const oth_sloc = params.oth_sloc;
         const oth_sloc_desc = params.oth_sloc_desc;
         const oth_valtype = params.oth_valtype;
+        const fac_batch = params.fac_batch;
+        const oth_batch = params.oth_batch;
         let queIns, valIns;
         try {
             await client.query(TRANS.BEGIN);
@@ -1112,8 +1114,8 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     DOPLINE: "0000",
                     VSLCD: "",
                     VOYNR: "",
-                    DCHARG_1: item.company,
-                    RCHARG_1: item.id_do,
+                    DCHARG_1: fac_batch,
+                    RCHARG_1: oth_batch,
                     RBWTAR_1: oth_valtype,
                     DBWTAR: fac_valtype,
                     CREATE_BY: session.id_user,
@@ -1148,6 +1150,8 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     oth_sloc_desc: oth_sloc_desc,
                     fac_valtype: fac_valtype,
                     oth_valtype: oth_valtype,
+                    fac_batch: fac_batch,
+                    oth_batch: oth_batch,
                     plan_qty: parseInt(item.plan_qty),
                 };
                 if (method === "update") {
@@ -1433,8 +1437,9 @@ LoadingNoteModel.getAllDataLNbyUser_FRC = async (session, isallow) => {
                 leftJoin = `LEFT JOIN (
                     SELECT HD_FK, COUNT(DET_ID) AS CTROS FROM LOADING_NOTE_DET DET
                     LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
-                    WHERE DET.LN_NUM IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS <> 'FINA' 
-                    GROUP BY HD_FK
+                    WHERE DET.LN_NUM IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS <> 'FINA'
+                    and now() < tanggal_surat_jalan + interval '7' day
+                    GROUP BY HD_FK, tanggal_surat_jalan
                 ) DET ON HD.HD_ID = DET.HD_FK
                 LEFT JOIN (
                     SELECT HD_FK, COUNT(DET_ID) AS CTRLN FROM LOADING_NOTE_DET DET
@@ -1442,8 +1447,7 @@ LoadingNoteModel.getAllDataLNbyUser_FRC = async (session, isallow) => {
                             WHERE DET.LN_NUM IS NOT NULL
                             GROUP BY HD_FK
                 ) LNU ON HD.HD_ID = LNU.HD_FK `;
-                whereClause = `WHERE HD.CREATE_BY = $1 AND HD.INCO_1 LIKE '%FRC%' AND ((DET.CTROS IS NOT NULL AND
-                    NOW () < HD.CREATE_AT + INTERVAL '1' DAY) OR (LNU.CTRLN IS NULL AND DET.CTROS IS NULL) OR (LNU.CTRLN IS NOT NULL) )
+                whereClause = `WHERE HD.CREATE_BY = $1 AND HD.INCO_1 LIKE '%FRC%' AND ((DET.CTROS IS NOT NULL) OR (LNU.CTRLN IS NULL AND DET.CTROS IS NULL AND cur_pos = 'FINA') OR (LNU.CTRLN IS NOT NULL) )
                 ORDER BY HD.CREATE_AT DESC`;
             } else {
                 leftJoin = `LEFT JOIN (

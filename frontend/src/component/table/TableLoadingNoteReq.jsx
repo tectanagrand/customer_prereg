@@ -64,6 +64,7 @@ export default function TableLoadingNoteReq({
         if (data_selected.length > 0) {
             let different = !data_selected.some(
                 item =>
+                    item.company === x.company &&
                     item.fac_plant === x.fac_plant &&
                     item.oth_plant === x.oth_plant &&
                     item.fac_sloc === x.fac_sloc &&
