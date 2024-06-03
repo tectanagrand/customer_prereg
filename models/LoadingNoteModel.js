@@ -1198,7 +1198,7 @@ LoadingNoteModel.cancelLoadingNote = async (params, session) => {
             const today = new Date();
             const [queDel, valDel] = crud.updateItem(
                 "loading_note_hd",
-                { cancel_msg: cancel_remark },
+                { cancel_msg: remarks },
                 { hd_id: canceledData[0].hd_id },
                 "hd_id"
             );
@@ -1841,19 +1841,122 @@ LoadingNoteModel.showHistoricalLoadingNote = async (
     q,
     limit,
     offset,
+    date_start,
+    date_end,
     id_user,
     role
 ) => {
-    let user = "";
+    console.log(q, limit, offset, date_start, date_end, id_user, role);
+    let whereVal = [];
+    let whereQ = [];
+    let index = 1;
     if (role !== "ADMIN" || role !== "LOGISTIC") {
-        user = id_user;
+        whereVal.push(id_user);
+        whereQ.push(`lnd.create_by = $${index}`);
+        index++;
+    }
+    if (q !== "" && q) {
+        let que = "";
+        whereVal.push(`${q}:*`);
+        que += `( lnd.search_vector @@ to_tsquery('english', $${index})`;
+        index++;
+        whereVal.push(`${q}:*`);
+        que += ` or lnh.search_vector @@ to_tsquery('english', $${index}) )`;
+        index++;
+        whereQ.push(que);
+    }
+    if (date_start) {
+        whereQ.push(
+            `lnd.create_at >= to_date('${moment(date_start).format("YYYY-MM-DD")}', 'YYYY-MM-DD')`
+        );
+    }
+    if (date_end) {
+        whereQ.push(
+            `lnd.create_at <= to_date('${moment(date_end).format("YYYY-MM-DD")}', 'YYYY-MM-DD')`
+        );
     }
     try {
         const client = await db.connect();
         try {
-            const { rows } = await client.query(``);
-        } catch (error) {}
-    } catch (error) {}
+            const quer = `
+            select
+            lnd.det_id,
+            lnd.cre_date,
+            lnh.inco_1,
+            tanggal_surat_jalan,
+            lnh.id_do,
+            driver_id,
+            driver_name,
+            vhcl_id,
+            mtp.tp_desc as media_tp,
+            plan_qty,
+            lnh.uom,
+            lnh.plant,
+            fac_plant,
+            oth_plant,
+            fac_batch,
+            oth_batch,
+            fac_valtype ,
+            oth_valtype ,
+            ln_num,
+            lnd.is_active,
+            lnd.create_by
+        from
+            loading_note_det lnd
+        left join loading_note_hd lnh on
+            lnh.hd_id = lnd.hd_fk
+        left join (select distinct tp, tp_desc from master_tp) mtp on mtp.tp = lnd.media_tp
+        ${whereQ.length > 0 && "where " + whereQ.join(" and ")}
+        order by lnd.cre_date desc 
+        limit ${limit} offset ${offset} ;
+        `;
+            const { rows } = await client.query(quer, whereVal);
+            const { rowCount } = await client.query(
+                `
+                select
+                lnd.det_id,
+                lnd.cre_date,
+                lnh.inco_1,
+                tanggal_surat_jalan,
+                lnh.id_do,
+                driver_id,
+                driver_name,
+                vhcl_id,
+                mtp.tp_desc as media_tp,
+                plan_qty,
+                lnh.uom,
+                lnh.plant,
+                fac_plant,
+                oth_plant,
+                fac_batch,
+                oth_batch,
+                fac_valtype ,
+                oth_valtype ,
+                ln_num,
+                lnd.is_active,
+                lnd.create_by
+            from
+                loading_note_det lnd
+            left join loading_note_hd lnh on
+                lnh.hd_id = lnd.hd_fk
+            left join (select distinct tp, tp_desc from master_tp) mtp on mtp.tp = lnd.media_tp
+            ${whereQ.length > 0 && "where " + whereQ.join(" and ")}
+            order by lnd.cre_date desc ;
+            `,
+                whereVal
+            );
+            return {
+                data: rows,
+                count: rowCount,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
 };
 
 module.exports = LoadingNoteModel;
