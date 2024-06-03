@@ -154,7 +154,8 @@ export default function TableParentCustDashboardFRC() {
                     let buttons = [];
                     if (
                         props.row.original.ctros > 0 &&
-                        getPermission("FRANCO Req.").fcreate
+                        (getPermission("FRANCO Req.").fcreate ||
+                            getPermission("FRANCO → LOCO").fcreate)
                     ) {
                         buttons.push(
                             <Tooltip
