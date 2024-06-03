@@ -102,21 +102,21 @@ export const routes = createBrowserRouter([
                 element: <MenuAccessPage />,
             },
             {
-                path: "loco/",
+                path: "loadingnote/",
                 element: <TableParentCustDashboard />,
             },
             {
-                path: "loco/create",
+                path: "loadingnote/create",
                 element: <LoadingNoteForm />,
             },
-            {
-                path: "franco/",
-                element: <TableParentCustDashboardFRC />,
-            },
-            {
-                path: "franco/create",
-                element: <LoadingNoteFormFRC />,
-            },
+            // {
+            //     path: "franco/",
+            //     element: <TableParentCustDashboardFRC />,
+            // },
+            // {
+            //     path: "franco/create",
+            //     element: <LoadingNoteFormFRC />,
+            // },
             {
                 path: "osreq/",
                 element: <FormCreateLoadingNote />,
