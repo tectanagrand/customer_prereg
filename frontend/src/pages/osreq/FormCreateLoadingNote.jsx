@@ -619,7 +619,6 @@ export default function FormCreateLoadingNote() {
                                     },
                                 },
                             }}
-                            disabled={who === "log"}
                             rules={{ required: "Please Insert" }}
                         />
                         <AutocompleteComp
@@ -644,7 +643,6 @@ export default function FormCreateLoadingNote() {
                                     },
                                 },
                             }}
-                            disabled={who === "log"}
                             rules={{ required: "Please Insert" }}
                         />
                     </Paper>
