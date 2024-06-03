@@ -607,4 +607,125 @@ MasterController.getMediaTP = async (req, res) => {
     }
 };
 
+MasterController.SlocByComp = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const { company } = req.query;
+        let result = { data: [], factory: {}, other: {} };
+        try {
+            const { rows } = await client.query(
+                `select
+            msc.company,
+            msc.sloc_code,
+            msc.default_val,
+            ms.description
+        from
+            mst_sloc_comp msc
+        left join mst_sloc ms on
+            msc.sloc_code = ms.sloc
+            where msc.company = $1`,
+                [company]
+            );
+            for (const row of rows) {
+                let data = {
+                    code: row.sloc_code,
+                    desc: row.description,
+                };
+                if (row.default_val === "FAC") {
+                    result.factory = data;
+                } else {
+                    result.other = data;
+                }
+                result.data.push(data);
+            }
+            res.status(200).send(result);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.ValtypeByComp = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const { company } = req.query;
+        let result = { data: [], factory: {}, other: {} };
+        try {
+            const { rows } = await client.query(
+                `select valtype, company, default_val from mst_valtype_comp where company = $1`,
+                [company]
+            );
+            for (const row of rows) {
+                let data = {
+                    code: row.valtype,
+                    desc: row.valtype,
+                };
+                if (row.default_val === "FAC") {
+                    result.factory = data;
+                } else {
+                    result.other = data;
+                }
+                result.data.push(data);
+            }
+            res.status(200).send(result);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.BatchByComp = async (req, res) => {
+    try {
+        const company = req.query.company;
+        const client = await db.connect();
+        let batch = [];
+        console.log(company);
+        try {
+            const { rows: batchData } = await client.query(
+                `select
+            comp_group,
+            val_batch,
+            mc.sap_code
+        from
+            mst_batch mb
+        left join mst_company mc on
+            mb.comp_group = mc.group_comp
+        where
+            mc.sap_code = $1`,
+                [company]
+            );
+            console.log(batchData);
+            if (batchData.length > 0) {
+                batch = batchData.map(item => item.val_batch);
+            }
+            res.status(200).send({
+                group: batchData.length > 0 ? "UPSTREAM" : "DOWNSTREAM",
+                batch: batch,
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
 module.exports = MasterController;

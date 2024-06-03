@@ -28,5 +28,8 @@ router.get("/plt", MasterController.getCompanyPlant);
 router.get("/mediatp", MasterController.getMediaTP);
 router.get("/checksto", MasterController.getSTOData);
 router.get("/checkstolcfrc", MasterController.getSTOLCFRCData);
+router.get("/slocdb", MasterController.SlocByComp);
+router.get("/valtypedb", MasterController.ValtypeByComp);
+router.get("/batchdb", MasterController.BatchByComp);
 
 module.exports = router;
