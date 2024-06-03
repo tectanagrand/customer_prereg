@@ -176,8 +176,21 @@ export default function TableLoadingNoteReq({
             {
                 header: "Customer",
                 accessorKey: "cust_code",
-                cell: ({ row }) =>
-                    row.original.cust_code + " - " + row.original.cust_name,
+                cell: ({ row }) => {
+                    if (row.original.cust_code) {
+                        return (
+                            row.original.cust_code +
+                            " - " +
+                            row.original.cust_name
+                        );
+                    } else {
+                        return (
+                            row.original.ven_code +
+                            " - " +
+                            row.original.ven_name
+                        );
+                    }
+                },
             },
             {
                 header: "Driver",
