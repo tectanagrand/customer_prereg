@@ -113,7 +113,7 @@ export default function TableSelectDriver({ refresh, setSelectedRowsUp }) {
                 const { data } = await axiosPrivate.get(
                     "/master/drvr?is_send=true"
                 );
-                setRows(data);
+                setRows(data.data);
             } catch (error) {
                 console.error(error);
             } finally {
