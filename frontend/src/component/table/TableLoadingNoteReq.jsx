@@ -304,6 +304,12 @@ export default function TableLoadingNoteReq({
                 setRemainingUp(prev => prev + (os_data - initialOS.current));
             }, 120 * 1000);
             (async () => {
+                let code_filter = "";
+                if (CustNum.slice(0, 2) === "LN") {
+                    code_filter = "ven_code";
+                } else {
+                    code_filter = "cust_code";
+                }
                 try {
                     const { data: do_data } = await axiosPrivate.get(
                         `/master/do?do_num=${DoNum}`
@@ -311,10 +317,11 @@ export default function TableLoadingNoteReq({
                     const os_data =
                         parseFloat(do_data.SLIP.KWMENG) -
                         parseFloat(do_data.TOTALSPEND);
+
                     const { data } = await axiosPrivate.post("/ln/osreq", {
                         filters: [
                             { id: "id_do", value: DoNum },
-                            { id: "cust_code", value: CustNum },
+                            { id: code_filter, value: CustNum },
                         ],
                         who: who,
                     });

@@ -799,6 +799,8 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
                 DET.ln_num,
                 CUST.KUNNR as cust_code,
                 CUST.name_1 as cust_name,
+                VEN.LIFNR as ven_code,
+                VEN.name_1 as ven_name,
                 CONCAT(DET.DRIVER_ID,
                     ' - ',
                     DET.DRIVER_NAME) AS DRIVER,
@@ -811,6 +813,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
             LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
             LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
             LEFT JOIN MST_CUSTOMER CUST ON CUST.kunnr = USR.USERNAME
+            LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
             LEFT JOIN MST_KEY MKY ON MKY.key_item = DET.media_tp
             ${whoFilter}
             `;
@@ -873,20 +876,22 @@ LoadingNoteModel.getOSLoadingNoteNum2 = async (limit, offset, cust) => {
                 LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
 				LEFT JOIN mst_user u on u.id_user = hd.create_by
 				LEFT JOIN mst_customer c on c.kunnr = u.username
+                LEFT JOIN mst_vendor mv on mv.lifnr = u.username
                 WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
-                AND c.kunnr = $1 AND det.is_active = true
-                LIMIT $2 OFFSET $3
+                AND( c.kunnr = $1 or mv.lifnr = $2) AND det.is_active = true
+                LIMIT $3 OFFSET $4
                 `,
-                [cust, limit, offset]
+                [cust, cust, limit, offset]
             );
             const { rows, rowCount } = await client.query(
                 `SELECT distinct hd.id_do FROM loading_note_hd hd
                 LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
 				LEFT JOIN mst_user u on u.id_user = hd.create_by
 				LEFT JOIN mst_customer c on c.kunnr = u.username
-                WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA' AND det.is_active = true
-                AND c.kunnr = $1`,
-                [cust]
+                LEFT JOIN mst_vendor mv on mv.lifnr = u.username
+                WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
+                AND( c.kunnr = $1 or mv.lifnr = $2) AND det.is_active = true`,
+                [cust, cust]
             );
             return {
                 data: dataComp,
@@ -912,28 +917,31 @@ LoadingNoteModel.getOSLoadingNoteNumWB = async (limit, offset, cust) => {
                 SELECT distinct hd.id_do FROM loading_note_hd hd
                 LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
 				LEFT JOIN mst_user u on u.id_user = hd.create_by
+                LEFT JOIN mst_vendor v on v.lifnr = u.username
 				LEFT JOIN mst_customer c on c.kunnr = u.username
                 WHERE  
                 DET.PUSH_SAP_DATE IS NOT NULL 
+                AND (c.kunnr = $1 or v.lifnr = $2)
                 AND DET.LN_NUM IS NOT NULL
                 AND hd.cur_pos = 'FINA'
-                AND c.kunnr = $1
                 AND det.is_active = true 
-                LIMIT $2 OFFSET $3
+                LIMIT $3 OFFSET $4
                 `,
-                [cust, limit, offset]
+                [cust, cust, limit, offset]
             );
             const { rows, rowCount } = await client.query(
-                `SELECT distinct hd.id_do FROM loading_note_hd hd
+                ` SELECT distinct hd.id_do FROM loading_note_hd hd
                 LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
 				LEFT JOIN mst_user u on u.id_user = hd.create_by
+                LEFT JOIN mst_vendor v on v.lifnr = u.username
 				LEFT JOIN mst_customer c on c.kunnr = u.username
-                WHERE  DET.PUSH_SAP_DATE IS NOT NULL 
+                WHERE  
+                DET.PUSH_SAP_DATE IS NOT NULL 
+                AND (c.kunnr = $1 or v.lifnr = $2)
                 AND DET.LN_NUM IS NOT NULL
                 AND hd.cur_pos = 'FINA'
-                AND det.is_active = true 
-                AND c.kunnr = $1`,
-                [cust]
+                AND det.is_active = true `,
+                [cust, cust]
             );
             return {
                 data: dataComp,
