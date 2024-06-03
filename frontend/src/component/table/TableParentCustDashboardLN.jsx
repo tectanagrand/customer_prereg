@@ -62,8 +62,6 @@ export default function TableParentCustDashboard() {
     const navigate = useNavigate();
     const { getPermission } = useSession();
 
-    console.log(getPermission("LOCO Request"));
-
     const buttonAction = async (action, data) => {
         if (action === "edit") {
             navigate(
@@ -156,7 +154,7 @@ export default function TableParentCustDashboard() {
                     let buttons = [];
                     if (
                         props.row.original.ctros > 0 &&
-                        getPermission("LOCO Request").fcreate
+                        getPermission("O/S Request").fcreate
                     ) {
                         buttons.push(
                             <Tooltip
@@ -241,7 +239,7 @@ export default function TableParentCustDashboard() {
 
     useEffect(() => {
         (async () => {
-            const allow = getPermission("LOCO Request").fcreate;
+            const allow = getPermission("O/S Request").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
                     "/ln/lnuser?isallow=" + allow,
@@ -260,7 +258,7 @@ export default function TableParentCustDashboard() {
     return (
         <>
             <Toaster />
-            {getPermission("LOCO Request").fcreate && (
+            {getPermission("O/S Request").fcreate && (
                 <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                     <Button
                         sx={{ width: 200, heigth: 50, margin: 2 }}

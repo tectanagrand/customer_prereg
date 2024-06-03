@@ -37,11 +37,11 @@ export default function LoginPage() {
                 if (userData.role === "LOGISTIC") {
                     navigate("/dashboard/osreq");
                 } else if (userData.role === "CUSTOMER") {
-                    navigate("/dashboard/loco");
+                    navigate("/dashboard/loadingnote");
                 } else if (userData.role === "VENDOR") {
                     navigate("/dashboard/franco");
                 } else {
-                    navigate("/dashboard/loco");
+                    navigate("/dashboard/loadingnote");
                 }
             }, 1000);
         } catch (error) {
