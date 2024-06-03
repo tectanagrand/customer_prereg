@@ -272,7 +272,7 @@ export default function LoadingNoteFormFRC() {
             }
             if (!is_draft) {
                 setTimeout(() => {
-                    navigate("/dashboard/franco");
+                    navigate("/dashboard/locofranco");
                 }, 2000);
             }
         } catch (error) {

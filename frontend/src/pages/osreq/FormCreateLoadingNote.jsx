@@ -61,7 +61,8 @@ export default function FormCreateLoadingNote() {
     const axiosPrivate = useAxiosPrivate();
     const [DoNum, setDoNum] = useState("");
     const [CustNum, setCustNum] = useState("");
-    const [slocop, setSlocop] = useState([]);
+    const [slocopfac, setSlocopfac] = useState([]);
+    const [slocopoth, setSlocopoth] = useState([]);
     const [facBatchOp, setFacBatchOp] = useState([]);
     const [othBatchOp, setOthBatchOp] = useState([]);
     const [valtypeOp, setvpOp] = useState([]);
@@ -135,19 +136,14 @@ export default function FormCreateLoadingNote() {
             (async () => {
                 try {
                     const { data: getSloc } = await axiosPrivate.get(
-                        `/master/slocdb?company=${firstRow.company}`
+                        `/master/sloc?plant=${firstRow.plant}&itemrule=${firstRow.rules}`
                     );
-                    const sloc = getSloc.data.map(item => ({
-                        value: item.code,
-                        label: item.desc,
-                    }));
+                    const slocfac = getSloc.factory;
+                    const slocoth = getSloc.other;
                     const { data: getValtype } = await axiosPrivate.get(
-                        `/master/valtypedb?company=${firstRow.company}`
+                        `/master/valtype?plant=${firstRow.plant}&material=${firstRow.material}`
                     );
-                    const valType = getValtype.data.map(item => ({
-                        value: item.code,
-                        label: item.desc,
-                    }));
+                    const valType = getValtype;
                     const { data: getBatch } = await axiosPrivate.get(
                         `/master/batchdb?company=${firstRow.company}`
                     );
@@ -186,7 +182,6 @@ export default function FormCreateLoadingNote() {
                         );
                     }
                     if (firstRow.fac_sloc !== "" && firstRow.fac_sloc) {
-                        console.log("ada sloc");
                         setValue("fac_sloc", {
                             value: firstRow.fac_sloc,
                             label:
@@ -196,11 +191,8 @@ export default function FormCreateLoadingNote() {
                         });
                     } else {
                         setValue("fac_sloc", {
-                            value: getSloc.factory.code,
-                            label:
-                                getSloc.factory.code +
-                                " - " +
-                                getSloc.factory.desc,
+                            value: slocfac[0].value,
+                            label: slocfac[0].value + " - " + slocfac[0].label,
                         });
                     }
                     if (firstRow.oth_sloc !== "" && firstRow.oth_sloc) {
@@ -213,9 +205,8 @@ export default function FormCreateLoadingNote() {
                         });
                     } else {
                         setValue("oth_sloc", {
-                            value: getSloc.other.code,
-                            label:
-                                getSloc.other.code + " - " + getSloc.other.desc,
+                            value: slocoth[0].value,
+                            label: slocoth[0].value + " - " + slocoth[0].label,
                         });
                     }
                     if (firstRow.fac_valtype !== "" && firstRow.fac_valtype) {
@@ -225,8 +216,8 @@ export default function FormCreateLoadingNote() {
                         });
                     } else {
                         setValue("fac_valtype", {
-                            value: getValtype.factory.code,
-                            label: getValtype.factory.desc,
+                            value: getValtype[0].value,
+                            label: getValtype[0].label,
                         });
                     }
                     if (firstRow.oth_valtype !== "" && firstRow.oth_valtype) {
@@ -236,11 +227,12 @@ export default function FormCreateLoadingNote() {
                         });
                     } else {
                         setValue("oth_valtype", {
-                            value: getValtype.other.code,
-                            label: getValtype.other.desc,
+                            value: getValtype[0].value,
+                            label: getValtype[0].label,
                         });
                     }
-                    setSlocop(sloc);
+                    setSlocopfac(slocfac);
+                    setSlocopoth(slocoth);
                     setvpOp(valType);
                     clearErrors();
                 } catch (error) {
@@ -507,7 +499,7 @@ export default function FormCreateLoadingNote() {
                             name="fac_sloc"
                             label="Factory Store Loc."
                             control={control}
-                            options={slocop}
+                            options={slocopfac}
                             sx={{
                                 maxWidth: "20rem",
                                 input: {
@@ -532,7 +524,7 @@ export default function FormCreateLoadingNote() {
                             name="oth_sloc"
                             label="Other Party Store Loc."
                             control={control}
-                            options={slocop}
+                            options={slocopoth}
                             sx={{
                                 maxWidth: "20rem",
                                 input: {

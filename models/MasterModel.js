@@ -387,9 +387,11 @@ MasterModel.getSOData2 = async do_num => {
 //     }
 // };
 
-MasterModel.getStoreLoc2 = async (plant, material) => {
+MasterModel.getStoreLoc2 = async (plant, itemrule) => {
     try {
         try {
+            let factory = [];
+            let other = [];
             // const { I_SLOC, I_VALTYPE } = await rfcclient.call(
             //     "ZRFC_PRE_REGISTRA_STORELOC",
             //     {
@@ -399,7 +401,7 @@ MasterModel.getStoreLoc2 = async (plant, material) => {
             // );
 
             const { data: dataIsloc } = await axios.get(
-                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SLOCSet?$filter=(Plant eq '${plant}')&$format=json
+                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SLOCSet?$filter=(Plant eq '${plant}')and(Itemrule eq '${itemrule}')&$format=json
             `,
                 {
                     auth: {
@@ -408,33 +410,29 @@ MasterModel.getStoreLoc2 = async (plant, material) => {
                     },
                 }
             );
-            const { data: dataValtype } = await axios.get(
-                `
-            http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/VALTYPESet?$filter=(Matnr eq '${material}')and(Plant eq '${plant}')&$format=json
-            `,
-                {
-                    auth: {
-                        username: process.env.UNAMESAP,
-                        password: process.env.PWDSAP,
-                    },
-                }
-            );
+            console.log(dataIsloc);
             const I_SLOC = dataIsloc.d.results.map(item =>
                 MappingKeys.ToUpperKeys(item)
             );
-            const I_VALTYPE = dataValtype.d.results.map(item =>
-                MappingKeys.ToUpperKeys(item)
-            );
-            const dataSloc = I_SLOC.map(item => ({
-                value: item.LGORT,
-                label: item.LGORT + " - " + item.LGOBE,
-            }));
-            const dataVtype = I_VALTYPE.map(item => ({
-                value: item.BWTAR,
-                label: item.BWTAR,
-            }));
+            const dataSloc = I_SLOC.map(item => {
+                console.log(item);
+                if (item.FACTORYIND === "X") {
+                    factory.push({
+                        value: item.LGORT,
+                        label: item.LGORT + " - " + item.LGOBE,
+                    });
+                } else {
+                    other.push({
+                        value: item.LGORT,
+                        label: item.LGORT + " - " + item.LGOBE,
+                    });
+                }
+            });
 
-            return { sloc: dataSloc, valtype: dataVtype };
+            return {
+                factory: factory,
+                other: other,
+            };
         } catch (error) {
             throw error;
         }
@@ -444,48 +442,31 @@ MasterModel.getStoreLoc2 = async (plant, material) => {
     }
 };
 
-// MasterModel.seedMstCust = async () => {
-//     try {
-//         const rfcclient = new noderfc.Client({ dest: "Q13" });
-//         await rfcclient.open();
-//         const client = await db.connect();
-//         let promises = [];
-//         try {
-//             await client.query(TRANS.BEGIN);
-//             await client.query("DELETE FROM mst_customer");
-//             const { T_KUNNR } = await rfcclient.call(
-//                 "ZRFC_PRE_REGISTRA_KUNNR",
-//                 {
-//                     I_ERDAT: "19900101", // YYYYMMDD
-//                 }
-//             );
-//             T_KUNNR.forEach(item => {
-//                 const payload = {
-//                     kunnr: item.KUNNR,
-//                     name_1: item.NAME1,
-//                     ort_1: item.ORT01,
-//                     erdat: item.ERDAT,
-//                 };
-//                 const [que, val] = crud.insertItem(
-//                     "mst_customer",
-//                     payload,
-//                     "kunnr"
-//                 );
-//                 promises.push(client.query(que, val));
-//             });
-//             const dataInsert = Promise.all(promises);
-//             await client.query(TRANS.COMMIT);
-//         } catch (error) {
-//             await client.query(TRANS.ROLLBACK);
-//             throw error;
-//         } finally {
-//             client.release();
-//         }
-//     } catch (error) {
-//         console.error(error);
-//         throw error;
-//     }
-// };
+MasterModel.getValType = async (plant, material) => {
+    try {
+        const { data: dataValtype } = await axios.get(
+            `
+        http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/VALTYPESet?$filter=(Matnr eq '${material}')and(Plant eq '${plant}')&$format=json
+        `,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        const I_VALTYPE = dataValtype.d.results.map(item =>
+            MappingKeys.ToUpperKeys(item)
+        );
+        const dataVtype = I_VALTYPE.map(item => ({
+            value: item.BWTAR,
+            label: item.BWTAR,
+        }));
+        return dataVtype;
+    } catch (error) {
+        throw error;
+    }
+};
 
 MasterModel.seedMstCust2 = async () => {
     try {

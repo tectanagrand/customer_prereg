@@ -187,9 +187,9 @@ MasterController.getDataCust = async (req, res) => {
 };
 MasterController.getDataSLoc = async (req, res) => {
     const plant = req.query.plant;
-    const material = req.query.material;
+    const itemrule = req.query.itemrule;
     try {
-        const data = await Master.getStoreLoc2(plant, material);
+        const data = await Master.getStoreLoc2(plant, itemrule);
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
@@ -721,6 +721,19 @@ MasterController.BatchByComp = async (req, res) => {
         } finally {
             client.release();
         }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getDataValtype = async (req, res) => {
+    try {
+        const { plant, material } = req.query;
+        const valType = await Master.getValType(plant, material);
+        res.status(200).send(valType);
     } catch (error) {
         console.error(error);
         res.status(500).send({
