@@ -32,5 +32,6 @@ router.get("/dash", LoadNote.LoadingNoteDashboard);
 router.get("/chartdash", LoadNote.ChartDashboard);
 router.get("/syncwb", LoadNote.syncDataWB);
 router.get("/cleanln", LoadNote.cleanUpLN);
+router.get("/history", LoadNote.showHistoricalLN);
 
 module.exports = router;

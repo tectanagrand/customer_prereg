@@ -485,4 +485,26 @@ LoadingNoteController.cleanUpLN = async (req, res) => {
     }
 };
 
+LoadingNoteController.showHistoricalLN = async (req, res) => {
+    try {
+        const { role, id_user } = req.cookies;
+        const { limit, offset, start, end, q } = req.query;
+        const result = await LoadNote.showHistoricalLoadingNote(
+            q,
+            limit,
+            offset,
+            start,
+            end,
+            id_user,
+            role
+        );
+        res.status(200).send(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = LoadingNoteController;

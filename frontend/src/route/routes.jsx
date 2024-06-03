@@ -57,6 +57,9 @@ const DashboardCustomer = lazy(
 const LoadingNoteFormLOCOFRC = lazy(
     () => import("../pages/loadingnote/LoadingNoteFormLOCOFRC")
 );
+const HistoricalLoadingNote = lazy(
+    () => import("../pages/loadingnote/HistoricalLoadingNote")
+);
 
 export const routes = createBrowserRouter([
     {
@@ -155,6 +158,10 @@ export const routes = createBrowserRouter([
             {
                 path: "sendemail",
                 element: <SendEmail />,
+            },
+            {
+                path: "historical",
+                element: <HistoricalLoadingNote />,
             },
         ],
     },
