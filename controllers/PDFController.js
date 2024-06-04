@@ -29,8 +29,18 @@ PDFController.exportSuratJalan = async (req, res) => {
                 HD.material,
                 CO.name as comp_name,
                 HD.company,
-                CUST.NAME_1,
-                CUST.KUNNR,
+                CASE 
+                    WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
+                    WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+                    ELSE ''
+                    END
+                AS NAME_1,
+                CASE 
+                    WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
+                    WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+                    ELSE ''
+                    END
+                AS KUNNR,
                 PLT.ALAMAT,
                 DET.print_count,
                 DET.is_multi
@@ -38,6 +48,7 @@ PDFController.exportSuratJalan = async (req, res) => {
                 LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
                 LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
                 LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR OR USR.SAP_CODE = CUST.KUNNR
+                LEFT JOIN MST_VENDOR VEN ON USR.USERNAME = VEN.LIFNR OR USR.SAP_CODE = VEN.LIFNR
                 LEFT JOIN MST_COMPANY CO ON CO.SAP_CODE = HD.COMPANY
                 LEFT JOIN MST_COMPANY_PLANT PLT ON PLT.PLANT_CODE = HD.PLANT         
                  WHERE DET.DET_ID = $1

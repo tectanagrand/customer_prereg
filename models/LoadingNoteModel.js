@@ -1670,8 +1670,16 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             HD.PLANT,
             HD.DESC_CON,
             HD.CON_QTY,
-            CUST.KUNNR,
-            CUST.NAME_1,
+            CASE 
+                WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
+                WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+                ELSE ''
+                END AS KUNNR,
+            CASE
+                WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
+                WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+                ELSE ''
+                END AS NAME_1,
            ${!skipid ? "DET.DET_ID AS ID," : ""}
             DET.DRIVER_ID,
             DET.DRIVER_NAME,
@@ -1692,6 +1700,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
         LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
         LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+        LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
         WHERE DET.LN_NUM IS NOT NULL`;
     let where = [];
     let whereVal = [];
@@ -1706,7 +1715,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             id = "inco_1";
         } else if (item.id === "Customer") {
             value = item.value.split("-")[0].trim();
-            id = "kunnr";
+            id = ["cust.kunnr", "ven.lifnr"];
         } else if (item.id === "Contract Quantity") {
             value = item.value.split(" ")[0].trim();
             id = "con_qty";
@@ -1723,24 +1732,33 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             date = true;
         }
         if (!date) {
-            where.push(`${id} = $${index + 1}`);
-            whereVal.push(value);
-            ltindex++;
+            if (item.id === "Customer") {
+                where.push(
+                    `(${id[0]} = $${ltindex + 1} OR ${id[1]} = $${ltindex + 2})`
+                );
+                whereVal.push(...[value, value]);
+                ltindex += 2;
+            } else {
+                where.push(`${id} = $${ltindex + 1}`);
+                whereVal.push(value);
+                ltindex++;
+            }
         } else {
             where.push(`${id} = ${value}`);
         }
     });
     if (customer_id !== "") {
-        where.push(`kunnr = $${ltindex + 1}`);
-        whereVal.push(customer_id);
+        // where.push(`kunnr = $${ltindex + 1}`);
+        where.push(
+            `(cust.kunnr = $${ltindex + 1} OR ven.lifnr = $${ltindex + 2})`
+        );
+        whereVal.push(...[customer_id, customer_id]);
     }
     if (where.length != 0) {
         whereQue = `AND ${where.join(" AND ")}`;
     }
     let que = `${getRecapData} ${whereQue} ORDER BY DET.LN_NUM DESC`;
     let val = whereVal;
-    console.log(que);
-    console.log(val);
     try {
         const client = await db.connect();
         try {
