@@ -36,7 +36,7 @@ export default function MenuAccessPage() {
         };
         const getAuthorization = async () => {
             const getAuth = await axiosPrivate.post(`/user/getauth`, {
-                role_id: session.role,
+                role_id: session.role_id,
             });
             setSession({ ...session, ["auth"]: getAuth.data });
         };
@@ -46,7 +46,7 @@ export default function MenuAccessPage() {
                 insertedDt
             );
             roleId.current = submission.role_id;
-            getAuthorization();
+            await getAuthorization();
             alert(submission.message);
             navigate("/dashboard/rolegroup");
             setBtnclick(false);
