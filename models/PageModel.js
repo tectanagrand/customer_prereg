@@ -6,6 +6,7 @@ PageModel.showAll = async role_id => {
     const client = await db.connect();
     const promises = [];
     const menuAccess = new Map();
+    const menuName = new Map();
     try {
         const { rows: dataHeadMenu } = await client.query(
             `SELECT MP.*, MPA.fcreate, MPA.fread, MPA.fupdate, MPA.fdelete
@@ -36,12 +37,20 @@ PageModel.showAll = async role_id => {
         });
         const dataChildMenu = await Promise.all(promises);
         dataHeadMenu.forEach((item, index) => {
-            const childMenu = dataChildMenu[index].rows.map(item => ({
-                key: item.menu_id,
-                text: item.menu_page,
-                url: item.menu_link,
-                access: [item.fcreate, item.fread, item.fupdate, item.fdelete],
-            }));
+            const childMenu = dataChildMenu[index].rows.map(item => {
+                menuName.set(item.menu_link, item.menu_page);
+                return {
+                    key: item.menu_id,
+                    text: item.menu_page,
+                    url: item.menu_link,
+                    access: [
+                        item.fcreate,
+                        item.fread,
+                        item.fupdate,
+                        item.fdelete,
+                    ],
+                };
+            });
             menuAccess.set(item.menu_id, {
                 key: item.menu_id,
                 text: item.menu_page,
@@ -51,7 +60,11 @@ PageModel.showAll = async role_id => {
             });
         });
         const jsonMenu = Object.fromEntries(menuAccess);
-        return jsonMenu;
+        const nameMenu = Object.fromEntries(menuName);
+        return {
+            jsonMenu: jsonMenu,
+            nameMenu: nameMenu,
+        };
     } catch (error) {
         console.error(error);
         throw error;
