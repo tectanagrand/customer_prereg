@@ -16,6 +16,14 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 // import SendEmail from "../pages/sendemail/SendEmail";
 import { lazy } from "react";
 import { ErrorRouter } from "../ErrorRouter";
+import AuthSessionModal from "../pages/approvalreq/AuthSessionModal";
+import AuthDashboard from "../pages/dashboard/AuthDashboard";
+import ApprovalPage from "../pages/approvalreq/ApprovalPage";
+import ErrorPage from "../pages/error/ErrorPage";
+import { Axios } from "../api/axios";
+const OSRequestDrvVeh = lazy(
+    () => import("../pages/sendemail/OSRequestDrvVeh")
+);
 // import DashboardCustomer from "../pages/dashboard/DashboardCustomer";
 
 const Dashboard = lazy(() => import("../pages/dashboard/Dashboard"));
@@ -60,7 +68,9 @@ const LoadingNoteFormLOCOFRC = lazy(
 const HistoricalLoadingNote = lazy(
     () => import("../pages/loadingnote/HistoricalLoadingNote")
 );
-
+const ApprovalRoutes = lazy(
+    () => import("../pages/approvalreq/ApprovalRoutes")
+);
 export const routes = createBrowserRouter([
     {
         path: "/",
@@ -69,8 +79,14 @@ export const routes = createBrowserRouter([
     },
     {
         path: "login",
-        element: <LoginPage />,
+        element: <AuthDashboard />,
         errorElement: <ErrorRouter />,
+        children: [
+            {
+                path: "",
+                element: <LoginPage />,
+            },
+        ],
     },
     {
         path: "verif",
@@ -84,84 +100,128 @@ export const routes = createBrowserRouter([
     },
     {
         path: "dashboard",
-        element: <Dashboard />,
+        element: <AuthDashboard />,
         errorElement: <ErrorRouter />,
         children: [
             {
                 path: "",
-                element: <DashboardCustomer />,
+                element: <Dashboard />,
+                errorElement: <ErrorRouter />,
+                children: [
+                    {
+                        path: "",
+                        element: <DashboardCustomer />,
+                    },
+                    {
+                        path: "users",
+                        element: <User />,
+                    },
+                    {
+                        path: "users/create",
+                        element: <NewUserRegFormPage />,
+                    },
+                    {
+                        path: "rolegroup",
+                        element: <ListUserGroup />,
+                    },
+                    {
+                        path: "rolegroup/create",
+                        element: <MenuAccessPage />,
+                    },
+                    {
+                        path: "loco/",
+                        element: <TableParentCustDashboard />,
+                    },
+                    {
+                        path: "loco/create",
+                        element: <LoadingNoteForm />,
+                    },
+                    {
+                        path: "franco/",
+                        element: <TableParentCustDashboardFRC />,
+                    },
+                    {
+                        path: "franco/create",
+                        element: <LoadingNoteFormFRC />,
+                    },
+                    {
+                        path: "locofranco/",
+                        element: <TableParentCustDashboardFRC />,
+                    },
+                    {
+                        path: "locofranco/create",
+                        element: <LoadingNoteFormLOCOFRC />,
+                    },
+                    {
+                        path: "osreq",
+                        element: <FormCreateLoadingNote />,
+                    },
+                    {
+                        path: "editln",
+                        element: <FormCreateLoadingNote />,
+                    },
+                    {
+                        path: "account/edit",
+                        element: <NewUserRegFormPage />,
+                    },
+                    {
+                        path: "lnview",
+                        element: <RecapLoadingNote />,
+                    },
+                    {
+                        path: "vehicle",
+                        element: <VehicleDashboard />,
+                    },
+                    {
+                        path: "driver",
+                        element: <DriverDashboard />,
+                    },
+                    {
+                        path: "sendemail",
+                        element: <SendEmail />,
+                    },
+                    {
+                        path: "reqdrvveh",
+                        element: <OSRequestDrvVeh />,
+                    },
+                    {
+                        path: "historical",
+                        element: <HistoricalLoadingNote />,
+                    },
+                ],
             },
+        ],
+    },
+    {
+        path: "/approval",
+        element: <ApprovalRoutes />,
+        errorElement: <ErrorPage />,
+        children: [
             {
-                path: "users",
-                element: <User />,
-            },
-            {
-                path: "users/create",
-                element: <NewUserRegFormPage />,
-            },
-            {
-                path: "rolegroup",
-                element: <ListUserGroup />,
-            },
-            {
-                path: "rolegroup/create",
-                element: <MenuAccessPage />,
-            },
-            {
-                path: "loco/",
-                element: <TableParentCustDashboard />,
-            },
-            {
-                path: "loco/create",
-                element: <LoadingNoteForm />,
-            },
-            {
-                path: "franco/",
-                element: <TableParentCustDashboardFRC />,
-            },
-            {
-                path: "franco/create",
-                element: <LoadingNoteFormFRC />,
-            },
-            {
-                path: "locofranco/",
-                element: <TableParentCustDashboardFRC />,
-            },
-            {
-                path: "locofranco/create",
-                element: <LoadingNoteFormLOCOFRC />,
-            },
-            {
-                path: "osreq/",
-                element: <FormCreateLoadingNote />,
-            },
-            {
-                path: "editln/",
-                element: <FormCreateLoadingNote />,
-            },
-            {
-                path: "account/edit",
-                element: <NewUserRegFormPage />,
-            },
-            {
-                path: "lnview",
-                element: <RecapLoadingNote />,
-            },
-            {
-                path: "vehicle",
-                element: <VehicleDashboard />,
-            },
-            {
-                path: "driver",
-                element: <DriverDashboard />,
-            },
-            {
-                path: "sendemail",
-                element: <SendEmail />,
-            },
-            {
-                path: "historical",
-                element: <HistoricalLoadingNote />,
+                path: "",
+                element: <AuthSessionModal />,
+                children: [
+                    {
+                        path: "reqdrvveh",
+                        element: <ApprovalPage />,
+                        loader: async ({ request }) => {
+                            const url = new URL(request.url);
+                            try {
+                                const { data } = await Axios(
+                                    `/file/reqdrvveh?ticket_id=${url.searchParams.get("ticket_id")}`
+                                );
+                                if (!data.is_active) {
+                                    throw new Error(
+                                        `Request ${data.request_id} not active`
+                                    );
+                                }
+                                return "";
+                            } catch (error) {
+                                throw error;
+                            }
+                        },
+                    },
+                ],
             },
         ],
     },
