@@ -185,7 +185,7 @@ UserController.login = async (req, res) => {
             password: password,
         });
         const authorize = await Page.showAll(data.role_id);
-        const auth = await User.getAllAuth(data.role_id);
+        const { data: auth } = await User.getAllAuth(data.role_id);
         res.status(200).send({
             ...data,
             access_token: accessToken,
