@@ -32,7 +32,8 @@ export default function LoginPage() {
                 password: values.password,
             });
             setSession(userData);
-            setMenu(userData.permission);
+            console.log(userData);
+            setMenu(userData.permission.jsonMenu);
             toast.success("Login Success");
             setTimeout(() => {
                 if (userData.role === "LOGISTIC") {
