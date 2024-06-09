@@ -22,7 +22,7 @@ import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
-import SelectDOFRCComp from "./SelectDOFRCComp";
+import SelectDOComp from "./SelectDOComp";
 import SelectMultiDOComp from "./SelectMultiDoComp";
 import { useTheme } from "@mui/material/styles";
 import CheckBoxComp from "../../component/input/CheckBoxComp";
@@ -390,8 +390,13 @@ export default function LoadingNoteFormFRC() {
     const handleCheckSTO = async () => {
         setLoading(true);
         try {
+            console.log(getValues("do_num"));
+            const { data: stodata, status: statussto } = await axiosPrivate.get(
+                `/master/checkstobydo?do=${getValues("do_num")}`
+            );
+            setValue("sto_num", stodata.ebeln);
             const { data, status } = await axiosPrivate.get(
-                `/master/checkstolcfrc?sto=${getValues("sto_num")}`
+                `/master/checkstolcfrc?sto=${stodata.ebeln})}`
             );
             if (status === 200) {
                 toast.success("STO Number Exist");
@@ -400,6 +405,33 @@ export default function LoadingNoteFormFRC() {
                 throw new Error("STO Not Found");
             }
         } catch (error) {
+            reset({
+                do_num: "",
+                sto_num: "",
+                trans_type: "",
+                inv_type: "",
+                inv_type_tol_from: "0 %",
+                inv_type_tol_to: "0 %",
+                incoterms: "",
+                rules: "",
+                con_num: "",
+                material: "",
+                con_qty: 0,
+                os_qty: 0,
+                plant: "",
+                description: "",
+                uom: "",
+                load_detail: [],
+                fac_plant: "",
+                fac_store_loc: "",
+                fac_batch: "",
+                fac_val_type: "",
+                oth_plant: "",
+                oth_store_loc: "",
+                oth_batch: "",
+                oth_val_type: "",
+                company: "",
+            });
             console.error(error);
             toast.error(error.response.data.message);
         } finally {
@@ -477,30 +509,6 @@ export default function LoadingNoteFormFRC() {
                         <Typography variant="h5">Detail Order</Typography>
                         <Divider sx={{ my: 3 }} />
                         <div>
-                            <div style={{ display: "flex", gap: "1rem" }}>
-                                <TextFieldComp
-                                    control={control}
-                                    label={"STO Number"}
-                                    name="sto_num"
-                                    sx={{ maxWidth: "17rem" }}
-                                    toUpperCase={true}
-                                />
-                                <TextFieldComp
-                                    control={control}
-                                    label={"Trans. Type"}
-                                    name="trans_type"
-                                    sx={{ maxWidth: "10rem" }}
-                                    toUpperCase={true}
-                                    disabled
-                                />
-                                <LoadingButton
-                                    onClick={() => handleCheckSTO()}
-                                    loading={isLoading}
-                                    sx={{ height: "2rem" }}
-                                >
-                                    Check STO
-                                </LoadingButton>
-                            </div>
                             <div style={{ display: "flex" }}>
                                 {/* <SelectComp
                                     name="do_num"
@@ -517,24 +525,42 @@ export default function LoadingNoteFormFRC() {
                                     }}
                                     lazy={true}
                                 /> */}
-                                <SelectDOFRCComp
+                                <SelectDOComp
                                     control={control}
                                     name="do_num"
                                     label="DO Number"
                                     preop={preOp}
-                                    onChangeOvr={setDONum}
-                                    getValue={getValues}
+                                    type="FRC"
+                                    onChangeOvr={() => handleCheckSTO()}
                                 />
-                                <LoadingButton
-                                    onClick={() =>
-                                        handleCheckSO(getValues("do_num"))
-                                    }
-                                    loading={isLoading}
-                                    sx={{ height: "2rem" }}
-                                >
-                                    Check Payment
-                                </LoadingButton>
                             </div>
+                            <div style={{ display: "flex", gap: "1rem" }}>
+                                <TextFieldComp
+                                    control={control}
+                                    label={"STO Number"}
+                                    name="sto_num"
+                                    sx={{ maxWidth: "17rem" }}
+                                    toUpperCase={true}
+                                    disabled
+                                />
+                                <TextFieldComp
+                                    control={control}
+                                    label={"Trans. Type"}
+                                    name="trans_type"
+                                    sx={{ maxWidth: "10rem" }}
+                                    toUpperCase={true}
+                                    disabled
+                                />
+                            </div>
+                            <LoadingButton
+                                onClick={() =>
+                                    handleCheckSO(getValues("do_num"))
+                                }
+                                loading={isLoading}
+                                sx={{ height: "2rem" }}
+                            >
+                                Check Payment
+                            </LoadingButton>
                         </div>
                         <div
                             style={{
