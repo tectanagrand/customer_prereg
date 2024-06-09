@@ -784,9 +784,10 @@ MasterModel.updateMstVen = async () => {
 //     }
 // };
 
-MasterModel.getDOList = async cust_id => {
+MasterModel.getDOList = async (cust_id, type) => {
     try {
         try {
+            let dolist = [];
             const { data } = await axios.get(
                 `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOKUNNRSet?$filter=(Kunnr%20eq%20%27${cust_id}%27)&$format=json`,
                 {
@@ -796,11 +797,25 @@ MasterModel.getDOList = async cust_id => {
                     },
                 }
             );
-            const resultData = data.d.results.map(item => ({
-                value: item.Vbeln,
-                label: item.Vbeln,
-            }));
-            return resultData;
+
+            for (const d of data.d.results) {
+                const { data } = await axios.get(
+                    `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${d.Vbeln}')&$format=json`,
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                if (data.d.results[0].Inco1 === type) {
+                    dolist.push({
+                        value: d.Vbeln,
+                        label: d.Vbeln,
+                    });
+                }
+            }
+            return dolist;
         } catch (error) {
             throw error;
         }
