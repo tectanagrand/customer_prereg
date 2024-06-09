@@ -152,15 +152,7 @@ export default function FormCreateLoadingNote() {
                         label: item,
                     }));
                     if (getBatch.group === "UPSTREAM") {
-                        setValue(
-                            "fac_batch",
-                            firstRow.fac_batch
-                                ? {
-                                      value: firstRow.fac_batch,
-                                      label: firstRow.fac_batch,
-                                  }
-                                : batch[0]
-                        );
+                        setValue("fac_batch", batch[0]);
                         setFacBatchOp(batch);
                         setValue("oth_batch", {
                             value: firstRow.id_do,
@@ -351,6 +343,7 @@ export default function FormCreateLoadingNote() {
 
     const pushSAP = async () => {
         const payload = getValues();
+        console.log(getValues());
         const newPayload = {
             ...payload,
             fac_sloc: payload.fac_sloc.value,
@@ -359,8 +352,8 @@ export default function FormCreateLoadingNote() {
             oth_sloc: payload.oth_sloc.value,
             oth_sloc_desc: payload.oth_sloc.label.split("-")[1].trim(),
             oth_valtype: payload.oth_valtype.value,
-            fac_batch: payload.fac_batch.value,
-            oth_batch: payload.oth_batch.value,
+            fac_batch: payload.fac_batch.value ?? payload.fac_batch,
+            oth_batch: payload.oth_batch.value ?? payload.oth_batch,
         };
 
         setLoadingPush(true);
@@ -719,7 +712,10 @@ export default function FormCreateLoadingNote() {
                                 </div>
                                 <div style={{ display: "flex", gap: "1rem" }}>
                                     <p>Factory Batch :</p>{" "}
-                                    <p>{getValues("fac_batch")?.value}</p>
+                                    <p>
+                                        {getValues("fac_batch")?.value ??
+                                            getValues("fac_batch")}
+                                    </p>
                                 </div>
                             </div>
                             <div>
@@ -733,7 +729,10 @@ export default function FormCreateLoadingNote() {
                                 </div>
                                 <div style={{ display: "flex", gap: "1rem" }}>
                                     <p>Other Party Batch :</p>{" "}
-                                    <p>{getValues("oth_batch")?.value}</p>
+                                    <p>
+                                        {getValues("oth_batch")?.value ??
+                                            getValues("oth_batch")}
+                                    </p>
                                 </div>
                             </div>
                         </div>
