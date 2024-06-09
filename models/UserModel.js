@@ -456,10 +456,11 @@ UserModel.getAllAuth = async role_id => {
             WHERE role_id = $1`,
             [role_id]
         );
+
         getDataAuth.map(item => {
             authData.set(item.menu_page, item);
         });
-        return Object.fromEntries(authData);
+        return { data: Object.fromEntries(authData) };
     } catch (error) {
         console.error(error);
         throw error;
@@ -564,7 +565,7 @@ UserModel.showRoleGroup = async role_id => {
     ORDER BY PG.PARENT_ID ASC`,
             [role_id]
         );
-        for (data of dataParent) {
+        for (const data of dataParent) {
             const { rows: dataChild } = await client.query(
                 `
             SELECT PG.MENU_ID AS "id",
@@ -595,6 +596,7 @@ UserModel.showRoleGroup = async role_id => {
             );
             dataAccRole.push({ ...data, subRows: dataChild });
         }
+        console.log(dataAccRole);
         return {
             role_name: rowCount === 0 ? "" : roleName[0].role_name,
             data: dataAccRole,
