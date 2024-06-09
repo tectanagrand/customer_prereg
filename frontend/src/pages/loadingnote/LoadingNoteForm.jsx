@@ -473,6 +473,7 @@ export default function LoadingNoteForm() {
                                 name="do_num"
                                 label="DO Number"
                                 preop={preOp}
+                                type="LCO"
                             />
                             <LoadingButton
                                 onClick={() =>

@@ -9,6 +9,7 @@ export default function SelectDOComp({
     label,
     preop,
     onChangeOvr,
+    type,
 }) {
     const axiosPrivate = useAxiosPrivate();
     const [isLoading, setLoading] = useState(false);
@@ -21,9 +22,12 @@ export default function SelectDOComp({
     const getDataDO = async () => {
         try {
             setLoading(true);
-            const { data } = await axiosPrivate.get("/master/dolist", {
-                withCredentials: true,
-            });
+            const { data } = await axiosPrivate.get(
+                `/master/dolist?type=${type}`,
+                {
+                    withCredentials: true,
+                }
+            );
             setDOOp(data);
             // toast.success("Success Load DO");
         } catch (error) {
