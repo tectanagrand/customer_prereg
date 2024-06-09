@@ -18,13 +18,22 @@ import { useTheme } from "@mui/material/styles";
 import { checkboxClasses } from "@mui/material";
 // import PaginationActionButton from "./PaginationActionButton";
 
-export default function TableSelectDriver({ refresh, setSelectedRowsUp }) {
+export default function TableSelectDriver({
+    refresh,
+    setSelectedRowsUp,
+    setRefr,
+    req_id,
+    notselect,
+    sx,
+    ...props
+}) {
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
     const [rows, setRows] = useState([]);
-    const rowData = useMemo(() => rows, [rows]);
     const [rowSelected, setSelectedRows] = useState([]);
-    const selectedRows = useMemo(() => rowSelected, [rowSelected]);
+    const setRefresh = () => {
+        setRefr(false);
+    };
     // const { onPaginationChange, pagination, limit, skip } = usePagination();
     // const { sorting, onSortingChange, order, field } = useSorting();
     // const { filters, onColumnFilterChange } = useFilter();
@@ -32,32 +41,44 @@ export default function TableSelectDriver({ refresh, setSelectedRowsUp }) {
         () => [
             {
                 id: "select",
-                header: ({ table }) => (
-                    <CheckBoxTable
-                        {...{
-                            checked: table.getIsAllRowsSelected(),
-                            indeterminate: table.getIsSomeRowsSelected(),
-                            onChange: table.getToggleAllRowsSelectedHandler(),
-                            sx: {
-                                [`&, &.${checkboxClasses.checked}`]: {
-                                    color: theme.palette.grey[100],
-                                },
-                                color: theme.palette.grey[100],
-                            },
-                        }}
-                    />
-                ),
+                header: ({ table }) => {
+                    if (!notselect) {
+                        return (
+                            <CheckBoxTable
+                                {...{
+                                    checked: table.getIsAllRowsSelected(),
+                                    indeterminate:
+                                        table.getIsSomeRowsSelected(),
+                                    onChange:
+                                        table.getToggleAllRowsSelectedHandler(),
+                                    sx: {
+                                        [`&, &.${checkboxClasses.checked}`]: {
+                                            color: theme.palette.grey[100],
+                                        },
+                                        color: theme.palette.grey[100],
+                                    },
+                                }}
+                            />
+                        );
+                    } else {
+                        return <></>;
+                    }
+                },
                 cell: ({ row }) => {
-                    return (
-                        <CheckBoxTable
-                            {...{
-                                checked: row.getIsSelected(),
-                                disabled: !row.getCanSelect(),
-                                indeterminate: row.getIsSomeSelected(),
-                                onChange: row.getToggleSelectedHandler(),
-                            }}
-                        />
-                    );
+                    if (!notselect) {
+                        return (
+                            <CheckBoxTable
+                                {...{
+                                    checked: row.getIsSelected(),
+                                    disabled: !row.getCanSelect(),
+                                    indeterminate: row.getIsSomeSelected(),
+                                    onChange: row.getToggleSelectedHandler(),
+                                }}
+                            />
+                        );
+                    } else {
+                        return <></>;
+                    }
                 },
             },
             {
@@ -95,7 +116,7 @@ export default function TableSelectDriver({ refresh, setSelectedRowsUp }) {
     );
 
     const table = useReactTable({
-        data: rowData,
+        data: rows,
         columns,
         getRowId: row => row.id,
         getCoreRowModel: getCoreRowModel(),
@@ -108,19 +129,23 @@ export default function TableSelectDriver({ refresh, setSelectedRowsUp }) {
 
     useEffect(() => {
         // setLoading(true);
+        let id_req = req_id ? `&req_id=${req_id}` : "";
         (async () => {
             try {
                 const { data } = await axiosPrivate.get(
-                    "/master/drvr?is_send=true"
+                    "/master/drvr?is_send=true" + id_req
                 );
                 setRows(data.data);
             } catch (error) {
                 console.error(error);
             } finally {
+                if (refresh) {
+                    setRefresh();
+                }
                 // setLoading(false);
             }
         })();
-    }, [refresh]);
+    }, [refresh, req_id]);
 
     // useEffect(() => {
     //     console.log(rows);
@@ -132,13 +157,20 @@ export default function TableSelectDriver({ refresh, setSelectedRowsUp }) {
             .getSelectedRowModel()
             .rows.map(item => item.original);
         setSelectedRowsUp(dataSelected);
+        if (props.setSomeDrv) {
+            if (!table.getIsAllRowsSelected() && rows.length > 0) {
+                props.setSomeDrv(true);
+            } else {
+                props.setSomeDrv(false);
+            }
+        }
     }, [rows, rowSelected]);
 
     return (
         <>
             <TableContainer
                 sx={{
-                    height: "30rem",
+                    ...sx,
                 }}
             >
                 <Table stickyHeader>
