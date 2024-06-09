@@ -94,8 +94,6 @@ export default function Dashboard() {
     const location = useLocation();
     const { session, setSession } = useSession();
     const { permission } = useMenu();
-    // const axiosPrivate = useAxiosPrivate();
-
     const [open, setOpen] = useState(false);
     const [navCol, setNavcol] = useState({
         head: "",
@@ -220,6 +218,9 @@ export default function Dashboard() {
                 sx={{ flexGrow: 1, p: 3, height: "100%", width: "100%" }}
             >
                 <DrawerHeader />
+                {session.menuname && (
+                    <h4>{session.menuname[location.pathname]}</h4>
+                )}
                 <Suspense fallback={<LoadingSuspense />}>
                     <Outlet />
                 </Suspense>
