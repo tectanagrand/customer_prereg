@@ -13,6 +13,14 @@ const MenuProvider = ({ children }) => {
             : {}
     );
 
+    const [menuName, setMenuName] = useState(
+        localStorage.getItem("menuname")
+            ? new Map(
+                  Object.entries(JSON.parse(localStorage.getItem("menuname")))
+              )
+            : {}
+    );
+
     const axiosPrivate = useAxiosPrivate();
 
     const setMenu = permission => {
@@ -29,10 +37,15 @@ const MenuProvider = ({ children }) => {
                 const getData = await axiosPrivate.post("/page/showall", {
                     role_id: Cookies.get("role_id"),
                 });
-                _setMenu(new Map(Object.entries(getData.data)));
+                _setMenu(new Map(Object.entries(getData.data.jsonMenu)));
                 localStorage.setItem(
                     "permission",
-                    JSON.stringify(getData.data)
+                    JSON.stringify(getData.data.jsonMenu)
+                );
+                setMenuName(new Map(Object.entries(getData.data.nameMenu)));
+                localStorage.setItem(
+                    "menuname",
+                    JSON.stringify(getData.data.nameMenu)
                 );
             } catch (error) {
                 console.error(error);
@@ -44,7 +57,10 @@ const MenuProvider = ({ children }) => {
         //fetch data menu
     }, []);
 
-    const contextValue = useMemo(() => ({ permission, setMenu }), [permission]);
+    const contextValue = useMemo(
+        () => ({ permission, setMenu, menuName }),
+        [permission]
+    );
     return (
         <MenuContext.Provider value={contextValue}>
             {children}

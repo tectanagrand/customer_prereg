@@ -14,6 +14,7 @@ const SessionProvider = ({ children }) => {
         role_id: Cookies.get("role_id") || "",
         plant_code: Cookies.get("plant_code") || "",
         permission: JSON.parse(localStorage.getItem("permission")) || {},
+        menuname: JSON.parse(localStorage.getItem("menuname")) || {},
         auth: JSON.parse(localStorage.getItem("auth")) || {},
     });
 
@@ -25,7 +26,14 @@ const SessionProvider = ({ children }) => {
         Cookies.set("role", data.role);
         Cookies.set("role_id", data.role_id);
         Cookies.set("plant_code", data.plant_code);
-        localStorage.setItem("permission", JSON.stringify(data.permission));
+        localStorage.setItem(
+            "permission",
+            JSON.stringify(data.permission.jsonMenu ?? data.permission)
+        );
+        localStorage.setItem(
+            "menuname",
+            JSON.stringify(data.permission.nameMenu ?? data.menuname)
+        );
         localStorage.setItem("auth", JSON.stringify(data.auth));
         if (Cookies.get("newpass")) {
             Cookies.remove("newpass");
@@ -38,7 +46,8 @@ const SessionProvider = ({ children }) => {
             role: data.role,
             role_id: data.role_id,
             plant_code: data.plant_code,
-            permission: data.permission,
+            permission: data.permission.jsonMenu ?? data.permission,
+            menuname: data.permission.nameMenu ?? data.menuname,
             auth: data.auth,
         });
     };
@@ -57,9 +66,9 @@ const SessionProvider = ({ children }) => {
         Cookies.remove("role");
         Cookies.remove("access_token");
         Cookies.remove("auth");
-        Cookies.remove("permission");
         Cookies.remove("role_id");
         Cookies.remove("plant_code");
+        setSession_();
     };
 
     const getPermission = page => {
@@ -79,7 +88,7 @@ const SessionProvider = ({ children }) => {
 
     useEffect(() => {
         // console.log(Cookies.get('accessToken'));
-        if (session.access_token) {
+        if (session?.access_token) {
             axios.defaults.headers.common["Authorization"] =
                 "Bearer " + session.access_token;
             Cookies.set("access_token", session.access_token);
@@ -93,6 +102,7 @@ const SessionProvider = ({ children }) => {
                 "permission",
                 JSON.stringify(session.permission)
             );
+            localStorage.setItem("menuname", JSON.stringify(session.menuname));
             localStorage.setItem("auth", JSON.stringify(session.auth));
         }
     }, [session]);

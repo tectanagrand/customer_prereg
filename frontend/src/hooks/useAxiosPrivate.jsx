@@ -1,12 +1,14 @@
 import { axiosPrivate } from "../api/axios";
 import { useEffect } from "react";
 import useRefreshToken from "./useRefreshToken";
+import useRefreshTokenApproval from "./useRefreshTokenApproval";
 import { useSession } from "../provider/sessionProvider";
 import axios from "axios";
 
 const notNeeded = ["GET", "HEAD", "OPTIONS"];
 const useAxiosPrivate = () => {
     const refresh = useRefreshToken();
+    const refreshApproval = useRefreshTokenApproval();
     const { session } = useSession();
 
     useEffect(() => {
@@ -14,7 +16,7 @@ const useAxiosPrivate = () => {
             async config => {
                 if (!config.headers["Authorization"]) {
                     config.headers["Authorization"] =
-                        `Bearer ${session.access_token}`;
+                        `Bearer ${session?.access_token}`;
                 }
                 if (!notNeeded.includes(config.method.toUpperCase())) {
                     // console.log(config.method);
@@ -40,7 +42,12 @@ const useAxiosPrivate = () => {
                 const prevRequest = error?.config;
                 if (error?.response?.status === 403 && !prevRequest?.sent) {
                     prevRequest.sent = true;
-                    const newAccessToken = await refresh();
+                    let newAccessToken;
+                    if (window.location.pathname.split("/")[1] !== "approval") {
+                        newAccessToken = await refresh();
+                    } else {
+                        newAccessToken = await refreshApproval();
+                    }
                     prevRequest.headers["Authorization"] =
                         `Bearer ${newAccessToken}`;
                     return axiosPrivate(prevRequest);
