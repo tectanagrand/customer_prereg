@@ -112,10 +112,10 @@ export default function VehicleDashboard() {
             const { data } = await axiosPrivate.post("/file/deletesim", {
                 id: id,
             });
+            setIdRow("");
             toast.success(data.message);
             setRefresh(!refresh);
             setDelDg(false);
-            setIdRow("");
         } catch (error) {
             console.error("Error:", error);
             toast.error(error.response.data.message);

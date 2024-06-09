@@ -1,30 +1,23 @@
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
-import {
-    flexRender,
-    getCoreRowModel,
-    useReactTable,
-} from "@tanstack/react-table";
-import {
-    TableContainer,
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableRow,
-    IconButton,
-    Tooltip,
-    Typography,
-} from "@mui/material";
-import { useState, useEffect, useMemo } from "react";
+import fileDownload from "js-file-download";
+import { IconButton, Tooltip, Typography } from "@mui/material";
+import TablePaginate from "./TablePaginate";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Edit, Delete } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
+import toast from "react-hot-toast";
 // import PaginationActionButton from "./PaginationActionButton";
 
 export default function TableVehicle({ refresh, editData, deleteData }) {
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
-    const [rows, setRows] = useState([]);
-    const rowData = useMemo(() => rows, [rows]);
+    const [rows, setRows] = useState({ data: [], count: 0 });
+    const source = useRef("");
+    const [paginate, setPaginate] = useState({
+        pageIndex: 0,
+        pageSize: 5,
+    });
+
     // const { onPaginationChange, pagination, limit, skip } = usePagination();
     // const { sorting, onSortingChange, order, field } = useSorting();
     // const { filters, onColumnFilterChange } = useFilter();
@@ -38,7 +31,30 @@ export default function TableVehicle({ refresh, editData, deleteData }) {
             {
                 header: "File STNK",
                 accessorKey: "foto_stnk",
-                cell: props => props.getValue(),
+                cell: props => {
+                    return (
+                        <a
+                            onClick={async () => {
+                                try {
+                                    const { data } = await axiosPrivate.post(
+                                        `/file/download`,
+                                        {
+                                            filename: props.getValue(),
+                                            type: "stnk",
+                                        }
+                                    );
+                                    fileDownload(data, props.getValue());
+                                } catch (error) {
+                                    toast.error(error.response.data.message);
+                                    console.error(response.error.data.message);
+                                }
+                            }}
+                            style={{ cursor: "pointer" }}
+                        >
+                            {props.getValue()}
+                        </a>
+                    );
+                },
             },
             {
                 header: "Status",
@@ -105,97 +121,36 @@ export default function TableVehicle({ refresh, editData, deleteData }) {
         []
     );
 
-    const table = useReactTable({
-        data: rowData,
-        columns,
-        getRowId: row => row.id,
-        getCoreRowModel: getCoreRowModel(),
-        // onColumnFiltersChange: onColumnFilterChange,
-    });
-
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await axiosPrivate.get("/master/vhcl");
+                const { data } = await axiosPrivate.get(
+                    `/master/vhcl?limit=${paginate.pageSize}&offset=${paginate.pageIndex * paginate.pageSize}`
+                );
+                source.current = data.source;
                 setRows(data);
             } catch (error) {
                 console.error(error);
             }
         })();
-    }, [refresh]);
+    }, [refresh, paginate.pageIndex]);
 
     // useEffect(() => {
     //     console.log(rows);
     // }, [rows]);
 
     return (
-        <>
-            <TableContainer
-                sx={{
-                    height: "38rem",
-                    maxWidth: "90rem",
-                }}
-            >
-                <Table stickyHeader>
-                    <TableHead>
-                        {table.getHeaderGroups().map(headerGroup => {
-                            return (
-                                <TableRow key={headerGroup.id}>
-                                    {headerGroup.headers.map(header => {
-                                        return (
-                                            <TableCell
-                                                key={header.id}
-                                                colSpan={header.colSpan}
-                                            >
-                                                {header.isPlaceholder ? null : (
-                                                    <div>
-                                                        <div>
-                                                            {flexRender(
-                                                                header.column
-                                                                    .columnDef
-                                                                    .header,
-                                                                header.getContext()
-                                                            )}
-                                                        </div>
-                                                        {/* {header.id !==
-                                                            "select" && (
-                                                            <div>
-                                                                <FilterTextFieldComp
-                                                                    column={
-                                                                        header.column
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        )} */}
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                        );
-                                    })}
-                                </TableRow>
-                            );
-                        })}
-                    </TableHead>
-                    <TableBody>
-                        {table.getRowModel().rows.map(row => {
-                            return (
-                                <TableRow key={row.id}>
-                                    {row.getVisibleCells().map(cell => {
-                                        return (
-                                            <TableCell key={cell.id}>
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
-                                            </TableCell>
-                                        );
-                                    })}
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </>
+        <TablePaginate
+            data={rows}
+            columns={columns}
+            paginate={paginate}
+            setPaginate={setPaginate}
+            sx={{
+                flexGrow: 1,
+                width: "100%",
+                height: "60vh",
+                boxSizing: "border-box",
+            }}
+        />
     );
 }

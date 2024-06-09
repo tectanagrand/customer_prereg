@@ -180,7 +180,15 @@ export default function VehicleDashboard() {
         <>
             <Toaster />
             <Typography variant="h4">Request Vehicle Registration</Typography>
-            <div style={{ display: "flex", margin: "1rem", gap: "1rem" }}>
+            <Box
+                sx={{
+                    display: "flex",
+                    margin: "1rem",
+                    gap: "1rem",
+                    maxWidth: "100%",
+                    flexGrow: "1",
+                }}
+            >
                 <TableVehicle
                     refresh={refresh}
                     editData={EditData}
@@ -199,7 +207,7 @@ export default function VehicleDashboard() {
                 >
                     New Vehicle
                 </Button>
-            </div>
+            </Box>
 
             <Dialog open={dialogOpen} fullWidth maxWidth="xl">
                 <DialogTitle>

@@ -19,11 +19,16 @@ import {
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Edit, Delete } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
+import TablePaginate from "./TablePaginate";
 // import PaginationActionButton from "./PaginationActionButton";
 
 export default function TableDriver({ refresh, editData, deleteData }) {
     const theme = useTheme();
-    const [rows, setRows] = useState([]);
+    const [rows, setRows] = useState({ data: [], count: 0 });
+    const [paginate, setPaginate] = useState({
+        pageIndex: 0,
+        pageSize: 3,
+    });
     const rowData = useMemo(() => rows, [rows]);
     const axiosPrivate = useAxiosPrivate();
     const source = useRef("");
@@ -167,14 +172,16 @@ export default function TableDriver({ refresh, editData, deleteData }) {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await axiosPrivate.get("/master/drvr");
+                const { data } = await axiosPrivate.get(
+                    `/master/drvr?limit=${paginate.pageSize}&offset=${paginate.pageIndex * paginate.pageSize}`
+                );
                 source.current = data.source;
-                setRows(data.data);
+                setRows(data);
             } catch (error) {
                 console.error(error);
             }
         })();
-    }, [refresh]);
+    }, [refresh, paginate.pageIndex]);
 
     // useEffect(() => {
     //     console.log(rows);
@@ -182,72 +189,13 @@ export default function TableDriver({ refresh, editData, deleteData }) {
 
     return (
         <>
-            <TableContainer
-                sx={{
-                    height: "38rem",
-                    maxWidth: "90rem",
-                }}
-            >
-                <Table stickyHeader>
-                    <TableHead>
-                        {table.getHeaderGroups().map(headerGroup => {
-                            return (
-                                <TableRow key={headerGroup.id}>
-                                    {headerGroup.headers.map(header => {
-                                        return (
-                                            <TableCell
-                                                key={header.id}
-                                                colSpan={header.colSpan}
-                                            >
-                                                {header.isPlaceholder ? null : (
-                                                    <div>
-                                                        <div>
-                                                            {flexRender(
-                                                                header.column
-                                                                    .columnDef
-                                                                    .header,
-                                                                header.getContext()
-                                                            )}
-                                                        </div>
-                                                        {/* {header.id !==
-                                                            "select" && (
-                                                            <div>
-                                                                <FilterTextFieldComp
-                                                                    column={
-                                                                        header.column
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        )} */}
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                        );
-                                    })}
-                                </TableRow>
-                            );
-                        })}
-                    </TableHead>
-                    <TableBody>
-                        {table.getRowModel().rows.map(row => {
-                            return (
-                                <TableRow key={row.id}>
-                                    {row.getVisibleCells().map(cell => {
-                                        return (
-                                            <TableCell key={cell.id}>
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
-                                            </TableCell>
-                                        );
-                                    })}
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+            <TablePaginate
+                data={rows}
+                columns={columns}
+                paginate={paginate}
+                setPaginate={setPaginate}
+                sx={{ height: "60vh" }}
+            />
         </>
     );
 }

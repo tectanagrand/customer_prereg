@@ -34,7 +34,7 @@ const TablePaginate = ({ data, columns, paginate, setPaginate, sx }) => {
     });
 
     return (
-        <Box>
+        <Box sx={{ ...sx }}>
             <TableContainer sx={{ ...sx }}>
                 <Table stickyHeader>
                     <TableHead>
