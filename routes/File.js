@@ -12,5 +12,11 @@ router.get("/filesim", FileUploadController.getFileSIM);
 router.get("/driverfoto", FileUploadController.getFotoDriver);
 router.post("/deletesim", FileUploadController.deleteDataSIM);
 router.post("/sendemail", FileUploadController.sendEmailCreateDrvnVeh);
+router.post("/sendtolog", FileUploadController.sendToLog);
+router.post("/approvereq", FileUploadController.ApproveReqDrvVeh);
+router.post("/rejectreq", FileUploadController.RejectReqDrvVeh);
+router.post("/download", FileUploadController.downloadFile);
+router.get("/reqdrvveh", FileUploadController.getDataReqDrvVeh);
+router.post("/prcskrani", FileUploadController.CreatedKrani);
 
 module.exports = router;

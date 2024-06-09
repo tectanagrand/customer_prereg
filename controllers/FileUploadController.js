@@ -8,6 +8,7 @@ const FileUploadController = {};
 const TRANS = require("../config/transaction");
 const crud = require("../helper/crudquery");
 const EmailModel = require("../models/EmailModel");
+const TicketGen = require("../helper/TicketGen");
 
 FileUploadController.uploadSTNK = async (req, res) => {
     try {
@@ -443,4 +444,297 @@ FileUploadController.sendEmailCreateDrvnVeh = async (req, res) => {
     }
 };
 
+FileUploadController.sendToLog = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const driverData = req.body.driver;
+            const vehData = req.body.vehicle;
+            const idUser = req.cookies.id_user;
+            let envvar;
+            if (process.env.NODE_ENV === "local") {
+                envvar = "local_fe";
+            } else if (process.env.node_env === "development") {
+                envvar = "server_dev";
+            } else {
+                envvar = "production";
+            }
+            const { rows: getHost } = await client.query(
+                `select hostname from hostname where phase = $1`,
+                [envvar]
+            );
+            const hostname = getHost[0].hostname;
+            const {
+                ticketNum,
+                ticket_id,
+                driverAtth,
+                driverHTML,
+                vehHTML,
+                vehAtth,
+            } = await FileUploadModel.newReqDrvVeh(driverData, vehData, idUser);
+            const linkapprove =
+                hostname +
+                `/approval/reqdrvveh?action=approve&ticket_id=${ticket_id}`;
+            const linkreject =
+                hostname +
+                `/approval/reqdrvveh?action=reject&ticket_id=${ticket_id}`;
+            const { rows } = await client.query(
+                `
+            SELECT STRING_AGG(E.EMAIL, ', ') as EMAIL, R.ROLE_NAME FROM MST_EMAIL E
+            LEFT JOIN MST_USER U ON E.ID_USER = U.ID_USER
+            LEFT JOIN MST_ROLE R ON R.ROLE_ID = U.ROLE
+            WHERE R.ROLE_NAME = 'LOGISTIC'
+            GROUP BY R.ROLE_NAME
+            `
+            );
+            const emailTarget = rows.map(item => item.email).join(", ");
+            await EmailModel.ApprovalRequest(
+                driverHTML.join(""),
+                vehHTML.join(""),
+                emailTarget,
+                driverAtth,
+                vehAtth,
+                ticketNum,
+                linkapprove,
+                linkreject
+            );
+            res.status(200).send({
+                message: `${ticketNum} Approval Request has been created`,
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+FileUploadController.downloadFile = async (req, res) => {
+    const filename = req.body.filename;
+    const type = req.body.type;
+    let pathDwn = "";
+    if (os.platform() === "linux") {
+        pathDwn = `${path.resolve()}/public/${type}/${filename}`;
+    } else {
+        pathDwn = `${path.resolve()}\\public\\${type}\\${filename}`;
+    }
+    res.download(pathDwn, err => {
+        if (err) {
+            // Handle errors here
+            console.error("Error during download:", err);
+            res.status(500).send({
+                message: "error during download",
+            });
+        } else {
+            // Download was successful
+            console.log("File downloaded successfully");
+        }
+    });
+};
+
+FileUploadController.getDataReqDrvVeh = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const req_id = req.query.ticket_id;
+        try {
+            const { rows } = await client.query(
+                `
+            select
+            uuid,
+            request_id,
+            case 
+                when expired_at > now() then false
+                else true
+            end as is_expired,
+            expired_at,
+            mu.fullname,
+            position,
+            rdv.is_active,
+            me.email
+        from
+            req_drvr_vhcl rdv
+        left join mst_user mu on
+            mu.id_user = rdv.create_by
+        left join (
+            select
+                string_agg(email,
+                ',') as email,
+                id_user
+            from
+                mst_email
+            group by
+                id_user) me on
+            me.id_user = rdv.create_by
+            where rdv.uuid = $1 `,
+                [req_id]
+            );
+            res.status(200).send(rows[0]);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+FileUploadController.ApproveReqDrvVeh = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const action = req.body.action;
+            const driver = req.body.driver;
+            const vehicle = req.body.vehicle;
+            const id_user = req.cookies.id_user;
+            const reasonReject = req.body.reject_remark;
+            const plant = req.body.plant;
+            const id = req.body.id;
+            const result = await FileUploadModel.processDrvVeh({
+                id: id,
+                plant: plant,
+                driverData: driver,
+                vehData: vehicle,
+                id_user: id_user,
+                action: action,
+                reject_remark: reasonReject,
+            });
+            const { rows: getEmailCC } = await client.query(
+                `select string_agg(email, ',') as email from mst_email
+            where id_user in ($1, $2)`,
+                [result.create_by, id_user]
+            );
+            const { rows: getEmailTarget } = await client.query(
+                `select string_agg(me.email, ',') as email from mst_email me 
+            left join mst_user mu on mu.id_user = me.id_user 
+            where mu.plant_code = $1`,
+                [plant]
+            );
+            await EmailModel.RequestCreateDrvVeh(
+                result.driverHTML,
+                result.vehHTML,
+                getEmailCC[0].email,
+                getEmailTarget[0].email,
+                result.driverAtth,
+                result.vehAtth,
+                result.notDriver,
+                result.notVeh,
+                result.ticketNum,
+                reasonReject
+            );
+            res.status(200).send({
+                message: `Request ${result.ticketNum} Approved`,
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+FileUploadController.RejectReqDrvVeh = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const action = req.body.action;
+            const reject_remark = req.body.reject_remark;
+            const id = req.body.id;
+            const id_user = req.cookies.id_user;
+            const result = await FileUploadModel.processDrvVeh({
+                id: id,
+                id_user: id_user,
+                action: action,
+                reject_remark: reject_remark,
+            });
+            const { rows: getEmailCC } = await client.query(
+                `select string_agg(email, ',') as email from mst_email
+            where id_user = $1`,
+                [id_user]
+            );
+            const { rows: getEmailTarget } = await client.query(
+                `select string_agg(email, ',') as email from mst_email
+            where id_user = $1`,
+                [result.create_by]
+            );
+            await EmailModel.RejectRequestDrvVeh(
+                getEmailCC[0].email,
+                getEmailTarget[0].email,
+                reject_remark,
+                result.nodriver,
+                result.noveh,
+                result.ticket_num
+            );
+            res.status(200).send({
+                message: `Request ${result.ticket_num} rejected`,
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+FileUploadController.CreatedKrani = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const req_uuid = req.body.req_uuid;
+            const { create_by, ticket_num, driver, vehicle } =
+                await FileUploadModel.CreatedKrani({ req_uuid: req_uuid });
+            const { rows: getEmailTarget } = await client.query(
+                `select string_agg(email, ',') as email from mst_email
+            where id_user = $1`,
+                [create_by]
+            );
+            const { rows: getEmailCC } = await client.query(
+                `select
+                    string_agg(me.email, ',') as email 
+                from
+                    mst_email me
+                left join mst_user mu on
+                    me.id_user = mu.id_user
+                left join mst_role mr on
+                    mu."role" = mr.role_id
+                where
+                    mr.role_name = 'LOGISTIC'`
+            );
+            EmailModel.ProcessedKrani(
+                getEmailTarget[0].email,
+                getEmailCC[0].email,
+                driver,
+                vehicle,
+                ticket_num
+            );
+            res.status(200).send({
+                message: "Success created driver and vehicle",
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
 module.exports = FileUploadController;

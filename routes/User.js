@@ -1,5 +1,6 @@
 const express = require("express");
 const UserController = require("../controllers/UserController");
+const AuthMiddleware = require("../middleware/AuthManager");
 const router = express.Router();
 
 // router.post("/register", UserController.registerUser);
@@ -10,6 +11,9 @@ router.post("/setpwdnew", UserController.setNewPassword);
 router.post("/verifotp", UserController.verifNewUser);
 router.post("/resendotp", UserController.resendOTP);
 router.post("/login", UserController.login);
+router.get("/validatetoken", AuthMiddleware.authSession, (req, res) => {
+    res.status(200).send({ message: "User validated" });
+});
 router.get("/refresh", UserController.refreshToken);
 router.get("/show", UserController.showAllUser);
 router.get("/preform", UserController.preFormData);

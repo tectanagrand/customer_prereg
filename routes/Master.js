@@ -32,5 +32,7 @@ router.get("/checkstolcfrc", MasterController.getSTOLCFRCData);
 router.get("/slocdb", MasterController.SlocByComp);
 router.get("/valtypedb", MasterController.ValtypeByComp);
 router.get("/batchdb", MasterController.BatchByComp);
+router.get("/reqdrvveh", MasterController.getReqDrvVehLog);
+router.get("/checkstobydo", MasterController.getStobyDo);
 
 module.exports = router;

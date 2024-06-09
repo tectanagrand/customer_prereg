@@ -137,6 +137,109 @@ EmailModel.NotifyCreateDriverNVehi = async (
     }
 };
 
+EmailModel.ApprovalRequest = async (
+    driver,
+    vehicle,
+    target,
+    driver_atth,
+    veh_atth,
+    ticket_num,
+    linkapprove,
+    linkreject
+) => {
+    try {
+        const tp = EmailTP.Transporter();
+        const EmailHTML = EmailGen.ApprovalReqDrvVeh(
+            vehicle,
+            driver,
+            ticket_num,
+            linkapprove,
+            linkreject
+        );
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: target,
+            subject: `Approval Request Create New Driver / Vehicle (${ticket_num})`,
+            html: EmailHTML,
+            attachments: [...driver_atth, ...veh_atth],
+        };
+        await tp.sendMail(setup);
+    } catch (error) {
+        throw error;
+    }
+};
+
+EmailModel.RequestCreateDrvVeh = async (
+    driver,
+    vehicle,
+    cc,
+    target,
+    driver_atth,
+    veh_atth,
+    nodriver,
+    novehicle,
+    ticket_num,
+    reason
+) => {
+    try {
+        const tp = EmailTP.Transporter();
+        const EmailHTML = EmailGen.SendToKrani(
+            driver.join(""),
+            vehicle.join(""),
+            nodriver.join(""),
+            novehicle.join(""),
+            reason
+        );
+        const EmailReqHTML = EmailGen.RequestDrivernVehic(driver, vehicle);
+        const setup2 = {
+            from: process.env.SMTP_USERNAME,
+            to: target,
+            subject: `Request Create New Driver / Vehicle`,
+            html: EmailReqHTML,
+            attachments: [...driver_atth, ...veh_atth],
+        };
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: cc,
+            subject: `Approved Create New Driver / Vehicle (${ticket_num})`,
+            html: EmailHTML,
+            attachments: [...driver_atth, ...veh_atth],
+        };
+        await tp.sendMail(setup);
+        await tp.sendMail(setup2);
+    } catch (error) {
+        throw error;
+    }
+};
+
+EmailModel.RejectRequestDrvVeh = async (
+    target,
+    cc,
+    remark_reject,
+    nodriver,
+    noveh,
+    ticket_num
+) => {
+    try {
+        const tp = EmailTP.Transporter();
+        const EmailHTML = EmailGen.RejectRequestDriver(
+            remark_reject,
+            nodriver,
+            noveh
+        );
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: target,
+            cc: cc,
+            subject: `Reject Request New Driver / Vehicle (${ticket_num})`,
+            html: EmailHTML,
+        };
+        await tp.sendMail(setup);
+    } catch (error) {
+        throw error;
+    }
+};
+
 EmailModel.CancelLoadingNote = async (remark, loadingnotereq, target) => {
     try {
         const tp = EmailTP.Transporter();
@@ -145,6 +248,23 @@ EmailModel.CancelLoadingNote = async (remark, loadingnotereq, target) => {
             from: process.env.SMTP_USERNAME,
             to: target,
             subject: `Loading Note Request Canceled`,
+            html: EmailHTML,
+        };
+        await tp.sendMail(setup);
+    } catch (error) {
+        throw error;
+    }
+};
+
+EmailModel.ProcessedKrani = async (target, cc, driver, vehicle, ticket_num) => {
+    try {
+        const tp = EmailTP.Transporter();
+        const EmailHTML = EmailGen.ProcessedKrani(driver, vehicle);
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: target,
+            cc: cc,
+            subject: `Processed New Driver / Vehicle ${ticket_num}`,
             html: EmailHTML,
         };
         await tp.sendMail(setup);

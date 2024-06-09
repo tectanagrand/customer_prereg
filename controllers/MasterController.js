@@ -95,8 +95,6 @@ MasterController.getSTOData = async (req, res) => {
     try {
         const userLog = req.cookies.username;
         const sto_num = req.query.sto;
-        console.log(userLog);
-        console.log(sto_num);
         const { data } = await axios.get(
             `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFSTOSet?$filter=
         (Lifnr%20eq%20%27${userLog}%27)and(Ebeln%20eq%20%27${sto_num}%27)
@@ -200,7 +198,8 @@ MasterController.getDataSLoc = async (req, res) => {
 MasterController.getDataDOList = async (req, res) => {
     try {
         const cust_id = req.cookies.username;
-        const dataRFC = await Master.getDOList(cust_id);
+        const type = req.query.type;
+        const dataRFC = await Master.getDOList(cust_id, type);
         if (dataRFC.length === 0) {
             throw new Error("NO DO");
         }
@@ -473,16 +472,65 @@ MasterController.getDataValTypeDB = async (req, res) => {
 MasterController.getVehicleDataDB = async (req, res) => {
     try {
         const is_send = req.query?.is_send;
+        const req_id = req.query?.req_id;
+        let index = 1;
+        let where = [];
+        let val = [];
+        const id_user = req.cookies.id_user;
+        const role = req.cookies.role;
+        const limit = req.query.limit;
+        const offset = req.query.offset;
+        const id = req.query.id;
         const client = await db.connect();
-        let where = "";
+        let envvar = "";
+        if (process.env.NODE_ENV === "local") {
+            envvar = "local";
+        } else if (process.env.NODE_ENV === "development") {
+            envvar = "server_dev";
+        }
         if (is_send) {
-            where = " WHERE IS_SEND = false";
+            if (!req_id) {
+                where.push("IS_SEND = false");
+            } else {
+                where.push("IS_SEND = true");
+            }
+        }
+
+        if (role !== "ADMIN" && role !== "KRANIWB" && role !== "LOGISTIC") {
+            if (!req_id) {
+                where.push(`create_by = $` + index);
+                val.push(id_user);
+                index++;
+            }
+        }
+        if (req_id) {
+            where.push(`req_uuid = $` + index);
+            val.push(req_id);
+            index++;
+        }
+        if (id) {
+            where.push(`uuid = $` + index);
+            val.push(id);
+            index++;
         }
         try {
             const { rows } = await client.query(
-                `SELECT VHCL_ID, FOTO_STNK, UUID AS ID, IS_SEND  FROM MST_VEHICLE ${where} ORDER BY ID DESC`
+                `SELECT VHCL_ID, FOTO_STNK, UUID AS ID, ID as UUID, IS_SEND FROM MST_VEHICLE ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY UUID DESC ${limit ? `limit ${limit} offset ${offset}` : ""}`,
+                val
             );
-            res.status(200).send(rows);
+            const { rowCount } = await client.query(
+                `SELECT vhcl_id FROM MST_VEHICLE ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY ID DESC`,
+                val
+            );
+            const { rows: hostname } = await client.query(
+                `SELECT hostname FROM hostname WHERE phase = $1`,
+                [envvar]
+            );
+            res.status(200).send({
+                data: rows,
+                count: rowCount,
+                source: hostname[0].hostname + "/static/stnk",
+            });
         } catch (error) {
             throw error;
         } finally {
@@ -497,32 +545,84 @@ MasterController.getVehicleDataDB = async (req, res) => {
 
 MasterController.getDriverDataDB = async (req, res) => {
     const is_send = req.query?.is_send;
-    let where = "";
+    const req_id = req.query?.req_id;
+    const limit = req.query.limit;
+    const offset = req.query.offset;
+    const id_user = req.cookies.id_user;
+    const id = req.query.id;
+    const role = req.cookies.role;
+    let index = 1;
+    let where = [];
+    let val = [];
+    let envvar = "";
+    if (process.env.NODE_ENV === "local") {
+        envvar = "local";
+    } else if (process.env.NODE_ENV === "development") {
+        envvar = "server_dev";
+    }
     try {
         const client = await db.connect();
         if (is_send) {
-            where = " WHERE IS_SEND = false";
+            if (!req_id) {
+                where.push("IS_SEND = false");
+            } else {
+                where.push("IS_SEND = true");
+            }
+        }
+        if (role !== "ADMIN" && role !== "KRANIWB") {
+            if (!req_id) {
+                where.push(`create_by = $` + index);
+                val.push(id_user);
+                index++;
+            }
+        }
+        if (req_id) {
+            where.push(`req_uuid = $` + index);
+            val.push(req_id);
+            index++;
+        }
+        if (id) {
+            where.push(`uuid = $` + index);
+            val.push(id);
+            index++;
         }
         try {
             const { rows } = await client.query(
                 `SELECT DRIVER_ID, DRIVER_NAME, UUID AS ID,
-                 IS_SEND,
-                 ALAMAT, 
-                 CT.city AS TEMPAT_LAHIR,
-                 TO_CHAR(TANGGAL_LAHIR, 'DD-MM-YYYY') AS TANGGAL_LAHIR,
-                 NO_TELP,
-                 FOTO_SIM,
-                 FOTO_DRIVER
-                 FROM MST_DRIVER DRV
-                 LEFT JOIN MST_CITIES CT ON CT.CODE = DRV.TEMPAT_LAHIR
-                 ${where}
-                 ORDER BY ID DESC`
+                IS_SEND,
+                ALAMAT, 
+                CT.city AS TEMPAT_LAHIR,
+                TO_CHAR(TANGGAL_LAHIR, 'DD-MM-YYYY') AS TANGGAL_LAHIR,
+                NO_TELP,
+                FOTO_SIM,
+                FOTO_DRIVER
+                FROM MST_DRIVER DRV
+                LEFT JOIN MST_CITIES CT ON CT.CODE = DRV.TEMPAT_LAHIR ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""}
+                ORDER BY DRV.ID DESC
+                ${limit ? `limit ${limit} offset ${offset}` : ""}`,
+                val
+            );
+            const { rowCount } = await client.query(
+                `SELECT DRIVER_ID, DRIVER_NAME, UUID AS ID,
+                IS_SEND,
+                ALAMAT, 
+                CT.city AS TEMPAT_LAHIR,
+                TO_CHAR(TANGGAL_LAHIR, 'DD-MM-YYYY') AS TANGGAL_LAHIR,
+                NO_TELP,
+                FOTO_SIM,
+                FOTO_DRIVER
+                FROM MST_DRIVER DRV
+                LEFT JOIN MST_CITIES CT ON CT.CODE = DRV.TEMPAT_LAHIR ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""}
+                ORDER BY DRV.ID DESC`,
+                val
             );
             const { rows: client_host } = await client.query(
-                `SELECT hostname FROM hostname WHERE phase = 'server_dev'`
+                `SELECT hostname FROM hostname WHERE phase = $1`,
+                [envvar]
             );
             res.status(200).send({
                 data: rows,
+                count: rowCount,
                 source: `${client_host[0].hostname}/static/license/`,
             });
         } catch (error) {
@@ -567,10 +667,19 @@ MasterController.getCompanyPlant = async (req, res) => {
     try {
         const client = await db.connect();
         try {
-            const { rows } =
-                await client.query(`SELECT plant_code as value, CONCAT(company_name, ' - ', plant_code) as label 
-            FROM mst_company_plant 
-            WHERE category = 'CHILD'`);
+            const { rows } = await client.query(`select
+                distinct mu.plant_code as value,
+                concat (mcp.plant_code , ' - ',
+                mcp.company_name , ' ',
+                mcp.lokasi) as label
+            from
+                mst_user mu
+            left join mst_role mr on
+                mu.role = mr.role_id
+            left join mst_company_plant mcp on
+                mcp.plant_code = mu.plant_code
+            where
+                role_name = 'KRANIWB'`);
             res.status(200).send(rows);
         } catch (error) {
             throw error;
@@ -736,6 +845,122 @@ MasterController.getDataValtype = async (req, res) => {
         res.status(200).send(valType);
     } catch (error) {
         console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getReqDrvVehLog = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const role = req.cookies.role;
+        try {
+            let newTable = [];
+            const { rows } = await client.query(`select
+                    rdv.uuid,
+                    request_id,
+                    
+                    case
+                        when rdv.position = 'SUC' then 'Completed'
+                        when rdv.position = 'LOG' then 'On Logistic'
+                        when rdv.position = 'ADM' then 'On Krani'
+                        else 'Outstanding'
+                    End as status,
+                    string_agg(mv.vhcl_id, ',') as vehicle_id,
+                    string_agg(mv.uuid, ',') as vehuuid,
+                    case 
+	                    when md.driver_id is not null then string_agg(concat(md.driver_id || ' - ' || md.driver_name), ',')
+	                    else ''
+	                end
+	                as driver,
+                    case when md.uuid is not null then string_agg(coalesce(md.uuid, ''),',') 
+                    else ''
+                    end
+                    as drvuuid
+                from
+                    req_drvr_vhcl rdv
+                left join mst_vehicle mv on
+                    mv.req_uuid = rdv.uuid and mv.is_active = true
+                left join mst_driver md on
+                    md.req_uuid = rdv.uuid and md.is_active = true
+                where rdv.position <> 'REJ' ${role === "LOGISTIC" ? `and rdv.position = 'LOG'` : role === "KRANIWB" ? `and rdv.position = 'ADM'` : ""} ${role === "CUSTOMER" ? `and rdv.create_by = '${req.cookies.id_user}'` : ""}
+                group by rdv.uuid, request_id, position, driver_id, md.uuid
+                order by
+                    request_id desc ;`);
+            for (const data of rows) {
+                let span = 0;
+                let vehArr = Array.from(new Set(data.vehicle_id?.split(",")));
+                let vehUUID = Array.from(new Set(data.vehuuid?.split(",")));
+                let drvArr = Array.from(new Set(data.driver?.split(",")));
+                let drvUUID = Array.from(new Set(data.drvuuid?.split(",")));
+                //set span max
+                if (vehArr.length > drvArr.length) {
+                    span = vehArr.length;
+                } else {
+                    span = drvArr.length;
+                }
+                if (span > 0) {
+                    for (let i = 0; i < span; i++) {
+                        newTable.push({
+                            uuid: i == 0 ? data.uuid : "",
+                            request_id: i == 0 ? data.request_id : "",
+                            status: i == 0 ? data.status : "",
+                            vehicle: vehArr[i] ?? "",
+                            vehuuid: vehUUID[i] ?? "",
+                            driver: drvArr[i] ?? "",
+                            drvuuid: drvUUID[i] ?? "",
+                            span: span,
+                        });
+                    }
+                } else {
+                    newTable.push({
+                        uuid: data.uuid,
+                        request_id: data.request_id,
+                        vehicle: data.vehicle_id,
+                        driver: data.driver,
+                    });
+                }
+            }
+            res.status(200).send(newTable);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getStobyDo = async (req, res) => {
+    try {
+        const do_num = req.query.do;
+
+        const { data } = await axios.get(
+            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SOSTOSet?$filter=(Bednr eq '${do_num}')&$format=json`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        const stolist = data.d.results.map(item => ({
+            value: item.Ebeln,
+            label: item.Ebeln,
+        }));
+        if (data.d.results.length > 0) {
+            res.status(200).send({
+                ebeln: stolist[0].value,
+            });
+        } else {
+            throw new Error("STO not found");
+        }
+    } catch (error) {
         res.status(500).send({
             message: error.message,
         });
