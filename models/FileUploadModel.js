@@ -704,7 +704,7 @@ FileUploadModel.CreatedKrani = async ({ req_uuid }) => {
                                 <td>${d.driver_id}</td>
                                 <td>${d.driver_name}</td>
                                 <td>${d.tempat_lahir}</td>
-                                <td>${d.tanggal_lahir}</td>
+                                <td>${moment(d.tanggal_lahir).format("DD-MM-YYYY")}</td>
                                 <td>${d.no_telp}</td>
                                 <td>${d.alamat}</td>
                             </tr>

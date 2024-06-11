@@ -1000,47 +1000,64 @@ MasterModel.getOSDataCust2 = async (limit, offset, q) => {
                 case
                     when CUST.kunnr is not NUll then cust.kunnr
                     when mv.lifnr is not null then mv.lifnr
+                    when mi.kunnr is not null then mi.kunnr
                     else ''
                     end as kunnr, 
                 case
                     when CUST.name_1 is not null then cust.name_1
                     when mv.name_1 is not null then mv.name_1
+                    when mi.name_1 is not null then mi.name_1
                     else ''
                     end as name_1 FROM loading_note_det DET
                                 LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
                                 LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
                                 LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username
                                 left join mst_vendor mv on mv.lifnr = usr.username 
-                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4)
+                                left join mst_interco mi on mi.kunnr = usr.username
+                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4
+                                 or mi.kunnr like $5 or mi.name_1 like $6)
                                 AND DET.ln_num is null
                                 AND DET.push_sap_date is null
                                 AND hed.cur_pos = 'FINA'
                                 AND det.is_active = true 
-                LIMIT $5 OFFSET $6`,
-                [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, limit, offset]
+                LIMIT $7 OFFSET $8`,
+                [
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    limit,
+                    offset,
+                ]
             );
             const { rows, rowCount } = await client.query(
                 `SELECT distinct 
                 case
                     when CUST.kunnr is not NUll then cust.kunnr
                     when mv.lifnr is not null then mv.lifnr
+                     when mi.kunnr is not null then mi.kunnr
                     else ''
                     end as kunnr, 
                 case
                     when CUST.name_1 is not null then cust.name_1
                     when mv.name_1 is not null then mv.name_1
+                     when mi.name_1 is not null then mi.name_1
                     else ''
                     end as name_1 FROM loading_note_det DET
                                 LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
                                 LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
                                 LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username
                                 left join mst_vendor mv on mv.lifnr = usr.username 
-                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4)
+                                left join mst_interco mi on mi.kunnr = usr.username
+                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4
+                                 or mi.kunnr like $5 or mi.name_1 like $6)
                                 AND DET.ln_num is null
                                 AND DET.push_sap_date is null
                                 AND hed.cur_pos = 'FINA'
                                 AND det.is_active = true `,
-                [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]
+                [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]
             );
             return {
                 data: dataComp,
@@ -1076,13 +1093,24 @@ MasterModel.getOSDataCustWB = async (limit, offset, q) => {
                                 LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
                                 LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username
                                 left join mst_vendor mv on mv.lifnr = usr.username 
-                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4)
+                                left join mst_interco mi on mi.kunnr = usr.username
+                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4
+                                 or mi.kunnr like $5 or mi.name_1 like $6)
                 AND DET.PUSH_SAP_DATE IS NOT NULL 
                 AND DET.LN_NUM IS NOT NULL
                 AND hed.cur_pos = 'FINA'
                 AND det.is_active = true 
-                LIMIT $5 OFFSET $6`,
-                [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, limit, offset]
+                LIMIT $7 OFFSET $8`,
+                [
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    limit,
+                    offset,
+                ]
             );
             const { rows, rowCount } = await client.query(
                 `SELECT distinct 
@@ -1100,12 +1128,13 @@ MasterModel.getOSDataCustWB = async (limit, offset, q) => {
                                 LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
                                 LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username
                                 left join mst_vendor mv on mv.lifnr = usr.username 
-                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4)
+                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4
+                                or mi.kunnr like $5 or mi.name_1 like $6)
                 AND DET.PUSH_SAP_DATE IS NOT NULL 
                 AND DET.LN_NUM IS NOT NULL
                 AND hed.cur_pos = 'FINA'
                 AND det.is_active = true `,
-                [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]
+                [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]
             );
             return {
                 data: dataComp,

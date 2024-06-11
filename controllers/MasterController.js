@@ -860,7 +860,6 @@ MasterController.getReqDrvVehLog = async (req, res) => {
             const { rows } = await client.query(`select
                     rdv.uuid,
                     request_id,
-                    
                     case
                         when rdv.position = 'SUC' then 'Completed'
                         when rdv.position = 'LOG' then 'On Logistic'
@@ -885,6 +884,7 @@ MasterController.getReqDrvVehLog = async (req, res) => {
                 left join mst_driver md on
                     md.req_uuid = rdv.uuid and md.is_active = true
                 where rdv.position <> 'REJ' ${role === "LOGISTIC" ? `and rdv.position = 'LOG'` : role === "KRANIWB" ? `and rdv.position = 'ADM'` : ""} ${role === "CUSTOMER" ? `and rdv.create_by = '${req.cookies.id_user}'` : ""}
+                and ((rdv.position = 'SUC' and (rdv.create_at <= now() and rdv.create_at >= now() - interval '3' day)) or rdv.position = 'LOG' or rdv.position = 'ADM')
                 group by rdv.uuid, request_id, position, driver_id, md.uuid
                 order by
                     request_id desc ;`);
