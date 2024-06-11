@@ -183,6 +183,12 @@ export default function TableLoadingNoteReq({
                             " - " +
                             row.original.cust_name
                         );
+                    } else if (row.original.intr_code) {
+                        return (
+                            row.original.intr_code +
+                            " - " +
+                            row.original.intr_name
+                        );
                     } else {
                         return (
                             row.original.ven_code +
@@ -320,6 +326,8 @@ export default function TableLoadingNoteReq({
                 let code_filter = "";
                 if (CustNum.slice(0, 2) === "LN") {
                     code_filter = "ven_code";
+                } else if (CustNum.slice(0, 2) === "CI") {
+                    code_filter = "intr_code";
                 } else {
                     code_filter = "cust_code";
                 }
