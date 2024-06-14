@@ -247,7 +247,8 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
                     `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
                     {
                         auth: {
-                            username: "GBPA-IP",
+                            username: req.cookies,
+                            username,
                             password: password,
                         },
                     }
@@ -257,24 +258,6 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
                 throw new Error(error.response?.data.message);
             }
         });
-        q.pushJob(
-            new Promise(async (reject, resolve) => {
-                try {
-                    const { data } = await axios.get(
-                        `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
-                        {
-                            auth: {
-                                username: "GBPA-IP",
-                                password: password,
-                            },
-                        }
-                    );
-                    resolve("Success Push");
-                } catch (error) {
-                    reject(error.response?.data.message);
-                }
-            })
-        );
         res.status(200).send({
             message: "Data Pushed to SAP",
         });
