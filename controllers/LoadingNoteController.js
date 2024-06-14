@@ -241,22 +241,24 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
             payload,
             session
         );
-        q.pushJob(async () => {
-            try {
-                const { data } = await axios.get(
-                    `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
-                    {
-                        auth: {
-                            username: req.cookies.username,
-                            password: password,
-                        },
-                    }
-                );
-                return data.d.results[0].message;
-            } catch (error) {
-                throw new Error(error.response?.data.message);
-            }
-        });
+        q.pushJob(
+            new Promise(async (reject, resolve) => {
+                try {
+                    const { data } = await axios.get(
+                        `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
+                        {
+                            auth: {
+                                username: session.username,
+                                password: password,
+                            },
+                        }
+                    );
+                    resolve("Success Push");
+                } catch (error) {
+                    reject(error.response?.data.message);
+                }
+            })
+        );
         res.status(200).send({
             message: "Data Pushed to SAP",
         });
