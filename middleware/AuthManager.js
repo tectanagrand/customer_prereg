@@ -53,7 +53,10 @@ const AuthManager = {
         try {
             const client = await db.connect();
             const id_user = req.cookies.id_user;
-            if (req.cookies.role !== "LOGISTIC") {
+            if (
+                req.cookies.role !== "LOGISTIC" &&
+                req.cookies.role !== "KRANIWB"
+            ) {
                 throw new Error("Role Not Authorized");
             }
             const ncryption = new ncrypt(process.env.TOKEN_KEY);
