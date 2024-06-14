@@ -215,11 +215,12 @@ SAPGetterChores.LoadingNoteSync = async () => {
     }
 };
 
-setInterval(async () => {
-    try {
-        const result = await SAPGetterChores.LoadingNoteSync();
-        console.log(result);
-    } catch (error) {
-        console.log(error);
-    }
-}, 60 * 1000);
+module.exports = SAPGetterChores;
+
+// setInterval(async () => {
+//     try {
+//         const result = await SAPGetterChores.LoadingNoteSync();
+//     } catch (error) {
+//         console.log(error);
+//     }
+// }, 60 * 1000);
