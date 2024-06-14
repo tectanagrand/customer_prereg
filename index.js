@@ -94,6 +94,15 @@ if (process.env.NODE_ENV === "production") {
 (async () => {
     CleanUpLN.CronLNClean();
 })();
+
+setInterval(async () => {
+    try {
+        const result = await SAPGetterChores.LoadingNoteSync();
+        console.log(result);
+    } catch (error) {
+        console.log(error);
+    }
+}, 60 * 1000);
 // app.listen(port, "0.0.0.0", () => {
 //     console.log(`App running on ${port}`);
 // });

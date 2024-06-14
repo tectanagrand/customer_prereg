@@ -30,6 +30,7 @@
     "otp-generator": "^4.0.1",
     "pdfkit": "^0.15.0",
     "pg": "^8.11.3",
+    "queue": "^6.0.2",
     "uuidv4": "^6.2.13"
   },
   "devDependencies": {
