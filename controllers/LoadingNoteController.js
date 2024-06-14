@@ -1,7 +1,13 @@
 const LoadNote = require("../models/LoadingNoteModel");
 const CleanUp = require("../helper/Cleanup");
 const db = require("../config/connection");
+const axios = require("axios");
+const q = require("../helper/Q");
 const fs = require("fs");
+const Crud = require("../helper/crudquery");
+const TRANS = require("../config/transaction");
+const EmailGen = require("../helper/EmailGen");
+const EmailModel = require("../models/EmailModel");
 
 const LoadingNoteController = {};
 
@@ -230,13 +236,50 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
     try {
         const payload = req.body;
         const session = req.cookies;
+        const password = req.body.password;
         const insertSAP = await LoadNote.finalizeLoadingNote_3(
             payload,
             session
         );
-        res.status(200).send(insertSAP);
+        q.pushJob(async () => {
+            try {
+                const { data } = await axios.get(
+                    `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
+                    {
+                        auth: {
+                            username: "GBPA-IP",
+                            password: password,
+                        },
+                    }
+                );
+                return data.d.results[0].message;
+            } catch (error) {
+                throw new Error(error.response?.data.message);
+            }
+        });
+        q.pushJob(
+            new Promise(async (reject, resolve) => {
+                try {
+                    const { data } = await axios.get(
+                        `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
+                        {
+                            auth: {
+                                username: "GBPA-IP",
+                                password: password,
+                            },
+                        }
+                    );
+                    resolve("Success Push");
+                } catch (error) {
+                    reject(error.response?.data.message);
+                }
+            })
+        );
+        res.status(200).send({
+            message: "Data Pushed to SAP",
+        });
     } catch (error) {
-        console.error(error.stack);
+        console.error(error);
         res.status(500).send({
             message: error.message,
         });
@@ -247,7 +290,11 @@ LoadingNoteController.getAllDataLNbyUser = async (req, res) => {
     try {
         const session = req.cookies;
         const isallow = req.query.isallow === "true" ? true : false;
-        const data = await LoadNote.getAllDataLNbyUser_2(session, isallow);
+        const data = await LoadNote.getAllDataLNbyUser_2(
+            session,
+            isallow,
+            "LCO"
+        );
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
@@ -259,7 +306,11 @@ LoadingNoteController.getAllDataLNbyUserFRC = async (req, res) => {
     try {
         const session = req.cookies;
         const isallow = req.query.isallow === "true" ? true : false;
-        const data = await LoadNote.getAllDataLNbyUser_FRC(session, isallow);
+        const data = await LoadNote.getAllDataLNbyUser_2(
+            session,
+            isallow,
+            "FRC"
+        );
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
@@ -499,6 +550,155 @@ LoadingNoteController.showHistoricalLN = async (req, res) => {
             role
         );
         res.status(200).send(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.showCreatedLN = async (req, res) => {
+    try {
+        const q = req.query.q;
+        const limit = req.query.limit;
+        const offset = req.query.offset;
+
+        const result = await LoadNote.showCreatedLN(
+            q,
+            limit,
+            offset,
+            req.cookies.id_user,
+            req.cookies.role
+        );
+        res.status(200).send(result);
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.deleteRequest = async (req, res) => {
+    try {
+        const { selected, remark_delete } = req.body;
+        const requestDel = LoadNote.requestDelete(selected, remark_delete);
+        res.status(200).send({
+            message: "Delete Request Successfully Sent",
+        });
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.processDelete = async (req, res) => {
+    try {
+        const { selected, remark_reject, action, password } = req.body;
+        const { id_user } = req.cookies;
+        let target, cc;
+        const create_by = selected[0].create_by;
+        const plant = selected[0].plant;
+        let payload;
+        let loadNote = [];
+        const client = await db.connect();
+        try {
+            await client.query(TRANS.BEGIN);
+            if (action === "APPROVE") {
+                const { rows: emailCust } = await client.query(
+                    `select string_agg(me.email, ',') as email from mst_email me where id_user = $1 `,
+                    [create_by]
+                );
+                const { rows: emailKrani } = await client.query(
+                    `select 
+                case 
+                    when string_agg(me.email, ',') is not null then string_agg(me.email, ',')
+                    else (select string_agg(me.email, ',') from mst_email me
+                left join mst_user mu on me.id_user = mu.id_user 
+                left join mst_role mr on mr.role_id = mu."role" 
+                where mr.role_name = 'KRANIWB')
+                end as email from mst_email me
+                left join mst_user mu on me.id_user = mu.id_user 
+                where mu.plant_code = $1; `,
+                    [plant]
+                );
+                const { rows: emailLog } = await client.query(
+                    `select string_agg(me.email, ',') as email from mst_email me where id_user = $1 `,
+                    [id_user]
+                );
+                target = [emailCust[0].email, emailKrani[0].email];
+                cc = emailLog[0].email;
+                payload = {
+                    key: "is_active",
+                    value: false,
+                };
+            } else if (action === "REJECT") {
+                const { rows: emailCust } = await client.query(
+                    `select string_agg(me.email, ',') as email from mst_email me where id_user = $1 `,
+                    [create_by]
+                );
+                const { rows: emailLog } = await client.query(
+                    `select string_agg(me.email, ',') as email from mst_email me where id_user = $1 `,
+                    [id_user]
+                );
+                target = emailCust[0].email;
+                cc = emailLog[0].email;
+                payload = {
+                    key: "respon_del",
+                    value: remark_reject,
+                };
+            }
+            for (const d of selected) {
+                if (action === "APPROVE") {
+                    const { data } = await axios.get(
+                        `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELDOCSet?$filter=(Bukrs eq '${d.company}')and(Zdconr eq '${d.ln_num}')&$format=json`,
+                        {
+                            auth: {
+                                username: req.cookies.username,
+                                password: password,
+                            },
+                        }
+                    );
+                }
+                const { rows } = await client.query(
+                    `update loading_note_det set ${payload.key} = $1 where det_id = $2`,
+                    [payload.value, d.id]
+                );
+                loadNote.push(
+                    `
+                        <tr>
+                         <td>${d.ln_num}</td>
+                         <td>${d.tanggal_surat_jalan}</td>
+                         <td>${d.plant}</td>
+                         <td>${d.driver_id} - ${d.driver_name}</td>
+                         <td>${d.vhcl_id}</td>
+                         <td>${d.plan_qty.replace(/\B(?=(\d{3})+(?!\d))/g, ",")} ${d.uom}</td>
+                        </tr>
+                        `
+                );
+            }
+            if (action === "APPROVE") {
+                await EmailModel.ApproveDeleteReq(target, cc, loadNote);
+            } else if (action === "REJECT") {
+                await EmailModel.RejectDeleteReq(
+                    target,
+                    cc,
+                    loadNote,
+                    remark_reject
+                );
+            }
+            await client.query(TRANS.COMMIT);
+            res.status(200).send({
+                message: "Request have been processed",
+            });
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+        //process delete
     } catch (error) {
         console.error(error);
         res.status(500).send({

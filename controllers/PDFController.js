@@ -32,12 +32,14 @@ PDFController.exportSuratJalan = async (req, res) => {
                 CASE 
                     WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
                     WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+                    WHEN INT.NAME_1 IS NOT NULL THEN INT.NAME_1
                     ELSE ''
                     END
                 AS NAME_1,
                 CASE 
                     WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
                     WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+                    WHEN INT.KUNNR IS NOT NULL THEN INT.KUNNR
                     ELSE ''
                     END
                 AS KUNNR,
@@ -50,6 +52,7 @@ PDFController.exportSuratJalan = async (req, res) => {
                 LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR OR USR.SAP_CODE = CUST.KUNNR
                 LEFT JOIN MST_VENDOR VEN ON USR.USERNAME = VEN.LIFNR OR USR.SAP_CODE = VEN.LIFNR
                 LEFT JOIN MST_COMPANY CO ON CO.SAP_CODE = HD.COMPANY
+                LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME       
                 LEFT JOIN MST_COMPANY_PLANT PLT ON PLT.PLANT_CODE = HD.PLANT         
                  WHERE DET.DET_ID = $1
                 ORDER BY DET.ID DESC
