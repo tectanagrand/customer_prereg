@@ -247,8 +247,7 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
                     `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
                     {
                         auth: {
-                            username: req.cookies,
-                            username,
+                            username: req.cookies.username,
                             password: password,
                         },
                     }
