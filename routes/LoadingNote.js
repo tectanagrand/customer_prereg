@@ -3,6 +3,7 @@ const router = express.Router();
 const LoadNote = require("../controllers/LoadingNoteController");
 const PDF = require("../controllers/PDFController");
 const SubmissionLN = require("../middleware/SubmissionLN");
+const AuthManager = require("../middleware/AuthManager");
 
 router.post(
     "/save",
@@ -10,7 +11,7 @@ router.post(
     LoadNote.SaveLoadingNoteDB
 );
 router.post("/pushsap", SubmissionLN.checkSubmitValidity, LoadNote.SubmitSAP);
-router.post("/pushmultisap", LoadNote.SubmitSAP_3);
+router.post("/pushmultisap", AuthManager.authSAP, LoadNote.SubmitSAP_3);
 router.post("/cancel", LoadNote.cancelReqLN);
 router.get("/", LoadNote.showAll);
 router.get("/id", LoadNote.getById);
@@ -33,5 +34,8 @@ router.get("/chartdash", LoadNote.ChartDashboard);
 router.get("/syncwb", LoadNote.syncDataWB);
 router.get("/cleanln", LoadNote.cleanUpLN);
 router.get("/history", LoadNote.showHistoricalLN);
+router.get("/createdln", LoadNote.showCreatedLN);
+router.post("/requestdel", LoadNote.deleteRequest);
+router.post("/processdel", AuthManager.authSAP, LoadNote.processDelete);
 
 module.exports = router;

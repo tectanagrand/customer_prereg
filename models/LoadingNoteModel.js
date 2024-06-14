@@ -1324,7 +1324,7 @@ LoadingNoteModel.getAllDataLNbyUser = async session => {
     }
 };
 
-LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow) => {
+LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow, type) => {
     try {
         const client = await db.connect();
         let finaData = [];
@@ -1347,18 +1347,23 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow) => {
                 leftJoin = `LEFT JOIN (
                     SELECT HD_FK, COUNT(DET_ID) AS CTROS FROM LOADING_NOTE_DET DET
                     LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
-                    WHERE DET.LN_NUM IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS <> 'FINA' 
+                    WHERE DET.LN_NUM IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS <> 'FINA' AND DET.IS_ACTIVE = true
                     GROUP BY HD_FK
                 ) DET ON HD.HD_ID = DET.HD_FK
                 LEFT JOIN (
                     SELECT HD_FK, COUNT(DET_ID) AS CTRLN FROM LOADING_NOTE_DET DET
                             LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
-                            WHERE DET.LN_NUM IS NOT NULL
+                            WHERE DET.LN_NUM IS NOT NULL and DET.TANGGAL_SURAT_JALAN + interval '7' day > now () AND DET.IS_ACTIVE = true
                             GROUP BY HD_FK
-                ) LNU ON HD.HD_ID = LNU.HD_FK `;
-                whereClause = `WHERE HD.CREATE_BY = $1 AND HD.INCO_1 LIKE '%LCO%' AND ((DET.CTROS IS NOT NULL AND
-                    NOW () < HD.CREATE_AT + INTERVAL '1' DAY) OR (LNU.CTRLN IS NULL AND DET.CTROS IS NULL) OR (LNU.CTRLN IS NOT NULL) )
-                ORDER BY HD.CREATE_AT DESC`;
+                ) LNU ON HD.HD_ID = LNU.HD_FK 
+                 LEFT JOIN (
+                    SELECT HD_FK, COUNT(DET_ID) AS CTRLOG FROM LOADING_NOTE_DET DET
+                    LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
+                    WHERE DET.LN_NUM IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true
+                    GROUP BY HD_FK
+                ) LOG ON HD.HD_ID = LOG.HD_FK`;
+                whereClause = `WHERE HD.CREATE_BY = $1 AND HD.INCO_1 LIKE '%${type}%' AND ( DET.CTROS IS NOT NULL OR LNU.CTRLN IS NOT NULL OR LOG.CTRLOG IS NOT NULL )
+                ORDER BY DET.CTROS asc, HD.CREATE_AT desc ;`;
             } else {
                 leftJoin = `LEFT JOIN (
                     SELECT HD_FK, COUNT(DET_ID) AS CTROS FROM LOADING_NOTE_DET DET
@@ -1372,10 +1377,11 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow) => {
                             WHERE DET.LN_NUM IS NOT NULL
                             GROUP BY HD_FK
                 ) LNU ON HD.HD_ID = LNU.HD_FK`;
-                whereClause = `WHERE HD.CUR_POS = 'FINA' AND HD.INCO_1 LIKE '%LCO%' AND DET.CTROS IS NOT NULL AND LNU.CTRLN IS NULL`;
+                whereClause = `WHERE HD.CUR_POS = 'FINA' AND HD.INCO_1 LIKE '%${type}%' AND DET.CTROS IS NOT NULL AND LNU.CTRLN IS NULL`;
             }
 
             const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
+            console.log(getDataSess);
             if (isallow) {
                 const { rows } = await client.query(getDataSess, [
                     session.id_user,
@@ -1680,11 +1686,13 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             CASE 
                 WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
                 WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+                WHEN INT.KUNNR IS NOT NULL THEN INT.KUNNR
                 ELSE ''
                 END AS KUNNR,
             CASE
                 WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
                 WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+                WHEN INT.NAME_1 IS NOT NULL THEN INT.NAME_1
                 ELSE ''
                 END AS NAME_1,
            ${!skipid ? "DET.DET_ID AS ID," : ""}
@@ -1708,6 +1716,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
         LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
         LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+        LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
         WHERE DET.LN_NUM IS NOT NULL`;
     let where = [];
     let whereVal = [];
@@ -1722,7 +1731,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             id = "inco_1";
         } else if (item.id === "Customer") {
             value = item.value.split("-")[0].trim();
-            id = ["cust.kunnr", "ven.lifnr"];
+            id = ["cust.kunnr", "ven.lifnr", "int.kunnr"];
         } else if (item.id === "Contract Quantity") {
             value = item.value.split(" ")[0].trim();
             id = "con_qty";
@@ -1741,10 +1750,10 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         if (!date) {
             if (item.id === "Customer") {
                 where.push(
-                    `(${id[0]} = $${ltindex + 1} OR ${id[1]} = $${ltindex + 2})`
+                    `(${id[0]} = $${ltindex + 1} OR ${id[1]} = $${ltindex + 2} OR ${id[2]} = $${ltindex + 3})`
                 );
-                whereVal.push(...[value, value]);
-                ltindex += 2;
+                whereVal.push(...[value, value, value]);
+                ltindex += 3;
             } else {
                 where.push(`${id} = $${ltindex + 1}`);
                 whereVal.push(value);
@@ -1757,9 +1766,9 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
     if (customer_id !== "") {
         // where.push(`kunnr = $${ltindex + 1}`);
         where.push(
-            `(cust.kunnr = $${ltindex + 1} OR ven.lifnr = $${ltindex + 2})`
+            `(cust.kunnr = $${ltindex + 1} OR ven.lifnr = $${ltindex + 2} OR int.kunnr =  $${ltindex + 3} )`
         );
-        whereVal.push(...[customer_id, customer_id]);
+        whereVal.push(...[customer_id, customer_id, customer_id]);
     }
     if (where.length != 0) {
         whereQue = `AND ${where.join(" AND ")}`;
@@ -1884,7 +1893,6 @@ LoadingNoteModel.showHistoricalLoadingNote = async (
     id_user,
     role
 ) => {
-    console.log(q, limit, offset, date_start, date_end, id_user, role);
     let whereVal = [];
     let whereQ = [];
     let index = 1;
@@ -1918,10 +1926,10 @@ LoadingNoteModel.showHistoricalLoadingNote = async (
         try {
             const quer = `
             select
-            lnd.det_id,
-            lnd.cre_date,
+            lnd.det_id ,
+            TO_CHAR(lnd.cre_date, 'DD-MM-YYYY') AS cre_date,
             lnh.inco_1,
-            tanggal_surat_jalan,
+            TO_CHAR(tanggal_surat_jalan, 'DD-MM-YYYY') as tanggal_surat_jalan,
             lnh.id_do,
             driver_id,
             driver_name,
@@ -1988,6 +1996,168 @@ LoadingNoteModel.showHistoricalLoadingNote = async (
                 count: rowCount,
             };
         } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.showCreatedLN = async (q, limit, offset, id_user, role) => {
+    let whereVal = [];
+    let whereQ = [];
+    let index = 1;
+    console.log(role);
+    if (role !== "ADMIN" && role !== "LOGISTIC") {
+        whereVal.push(id_user);
+        whereQ.push(`lnd.create_by = $${index}`);
+        index++;
+    } else {
+        whereVal.push(true);
+        whereQ.push(
+            `lnd.delete_req = $${index} and lnd.respon_del is null and lnd.is_active = true `
+        );
+        index++;
+    }
+    if (q !== "" && q) {
+        let que = "";
+        whereVal.push(`${q}:*`);
+        que += `( lnd.search_vector @@ to_tsquery('english', $${index})`;
+        index++;
+        whereVal.push(`${q}:*`);
+        que += ` or lnh.search_vector @@ to_tsquery('english', $${index}) )`;
+        index++;
+        whereQ.push(que);
+    }
+    try {
+        const client = await db.connect();
+        try {
+            const quer = `
+            select
+            lnd.det_id as id,
+            TO_CHAR(lnd.cre_date, 'DD-MM-YYYY') AS cre_date,
+            lnh.inco_1,
+            TO_CHAR(tanggal_surat_jalan, 'DD-MM-YYYY') as tanggal_surat_jalan,
+            driver_id,
+            driver_name,
+            vhcl_id,
+            mtp.tp_desc as media_tp,
+            plan_qty,
+            lnh.uom,
+            lnh.plant,
+            lnh.company,
+            fac_plant,
+            oth_plant,
+            fac_batch,
+            oth_batch,
+            fac_valtype ,
+            oth_valtype ,
+            ln_num,
+            lnd.is_active,
+            lnd.create_by,
+            lnd.delete_req,
+            lnd.remark_delete
+                from
+                    loading_note_det lnd
+                left join loading_note_hd lnh on
+                    lnh.hd_id = lnd.hd_fk
+                left join (select distinct tp, tp_desc from master_tp) mtp on mtp.tp = lnd.media_tp
+                where lnd.tanggal_surat_jalan + interval '7' day > now() and lnd.ln_num is not null ${whereQ.length > 0 && " and " + whereQ.join(" and ")}
+                order by lnh.plant asc, lnd.cre_date desc 
+            `;
+            console.log(quer);
+            const { rows } = await client.query(
+                quer + (limit ? ` limit ${limit} offset ${offset} ;` : ";"),
+                whereVal
+            );
+            const { rowCount } = await client.query(quer, whereVal);
+            return {
+                data: rows,
+                count: rowCount,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+LoadingNoteModel.requestDelete = async (selected, remark, id_user) => {
+    try {
+        const client = await db.connect();
+        const loadNote = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows: hostname } = await client.query(
+                `select hostname from hostname where phase = $1`,
+                [process.env.NODE_ENV]
+            );
+            const { rows: userLog } = await client.query(`select
+                string_agg(me.email,
+                ',') as email
+            from
+                mst_email me
+            left join mst_user mu on
+                me.id_user = mu.id_user
+            left join mst_role mr on mr.role_id = mu."role" 
+            where mr.role_name = 'LOGISTIC'`);
+            const { rows: emailuser } = await client.query(
+                `
+                select
+                    string_agg(me.email,
+                    ',') as email
+                from
+                    mst_email me
+                left join mst_user mu on
+                    me.id_user = mu.id_user
+                where mu.id_user = $1
+                `,
+                [id_user]
+            );
+            let link = hostname[0].hostname + `/dashboard/approvedel`;
+            for (const d of selected) {
+                payload = {
+                    delete_req: true,
+                    remark_delete: remark,
+                };
+                loadNote.push(
+                    `
+                    <tr>
+                     <td>${d.ln_num}</td>
+                     <td>${d.tanggal_surat_jalan}</td>
+                     <td>${d.plant}</td>
+                     <td>${d.driver_id} - ${d.driver_name}</td>
+                     <td>${d.vhcl_id}</td>
+                     <td>${d.plan_qty.replace(/\B(?=(\d{3})+(?!\d))/g, ",")} ${d.uom}</td>
+                    </tr>
+                    `
+                );
+                const [upQue, upVal] = crud.updateItem(
+                    "loading_note_det",
+                    payload,
+                    {
+                        ln_num: d.ln_num,
+                    },
+                    "ln_num"
+                );
+                await client.query(upQue, upVal);
+            }
+            await EmailModel.RequestDeleteLN(
+                userLog[0].email,
+                emailuser[0].email,
+                loadNote,
+                remark,
+                link
+            );
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
             throw error;
         } finally {
             client.release();

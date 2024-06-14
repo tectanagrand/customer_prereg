@@ -1,63 +1,77 @@
-import useAxiosPrivate from "../../hooks/useAxiosPrivate";
+import {
+    Table,
+    TableRow,
+    TableCell,
+    TableBody,
+    TableHead,
+    TableContainer,
+} from "@mui/material";
 import {
     flexRender,
     getCoreRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import {
-    TableContainer,
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableRow,
-} from "@mui/material";
-import { useState, useEffect, useMemo } from "react";
+import { useSession } from "../../provider/sessionProvider";
 import { CheckBoxTable } from "../input/CheckBoxTable";
 import { useTheme } from "@mui/material/styles";
 import { checkboxClasses } from "@mui/material";
-// import PaginationActionButton from "./PaginationActionButton";
 
-export default function TableSelectVehicle({
-    refresh,
-    setSelectedRowsUp,
-    setRefr,
-    req_id,
-    notselect,
+import { useEffect, useMemo, useState } from "react";
+
+const TableSelect = ({
+    data,
+    columns,
+    setSelected,
     sx,
+    notselect,
+    uniform,
+    refresh,
     ...props
-}) {
-    const theme = useTheme();
-    const axiosPrivate = useAxiosPrivate();
-    const [rows, setRows] = useState([]);
-    const rowData = useMemo(() => rows, [rows]);
+}) => {
     const [rowSelected, setSelectedRows] = useState([]);
-    const selectedRows = useMemo(() => rowSelected, [rowSelected]);
-    const setRefresh = () => {
-        setRefr(false);
+    const { session } = useSession();
+    const theme = useTheme();
+
+    const uniformSelection = (table, row) => {
+        const data_selected = table
+            .getSelectedRowModel()
+            .rows.map(item => item.original);
+        let x = row.original;
+        //check is different
+        if (uniform) {
+            if (data_selected.length > 0) {
+                let different = !data_selected.some(item => uniform(item, x));
+                if (different) {
+                    table.resetRowSelection();
+                }
+            }
+        }
     };
-    // const { onPaginationChange, pagination, limit, skip } = usePagination();
-    // const { sorting, onSortingChange, order, field } = useSorting();
-    // const { filters, onColumnFilterChange } = useFilter();
-    const columns = useMemo(
+
+    const setSelectedRowsUp = value => {
+        setSelected(value);
+    };
+    const tableColumns = useMemo(
         () => [
             {
                 id: "select",
                 header: ({ table }) => {
-                    if (!notselect) {
+                    return <></>;
+                },
+                cell: ({ row }) => {
+                    if (notselect(row.original)) {
                         return (
                             <CheckBoxTable
                                 {...{
-                                    checked: table.getIsAllRowsSelected(),
-                                    indeterminate:
-                                        table.getIsSomeRowsSelected(),
-                                    onChange:
-                                        table.getToggleAllRowsSelectedHandler(),
-                                    sx: {
-                                        [`&, &.${checkboxClasses.checked}`]: {
-                                            color: theme.palette.grey[100],
-                                        },
-                                        color: theme.palette.grey[100],
+                                    checked: row.getIsSelected(),
+                                    disabled: !row.getCanSelect(),
+                                    indeterminate: row.getIsSomeSelected(),
+                                    onChange: e => {
+                                        // console.log(e);
+                                        uniformSelection(table, row);
+                                        const selectHandler =
+                                            row.getToggleSelectedHandler(e);
+                                        selectHandler(e);
                                     },
                                 }}
                             />
@@ -66,35 +80,15 @@ export default function TableSelectVehicle({
                         return <></>;
                     }
                 },
-                cell: ({ row }) => {
-                    if (!notselect) {
-                        return (
-                            <CheckBoxTable
-                                {...{
-                                    checked: row.getIsSelected(),
-                                    disabled: !row.getCanSelect(),
-                                    indeterminate: row.getIsSomeSelected(),
-                                    onChange: row.getToggleSelectedHandler(),
-                                }}
-                            />
-                        );
-                    } else {
-                        return <></>;
-                    }
-                },
             },
-            {
-                header: "Nomor Plat",
-                accessorKey: "vhcl_id",
-                cell: props => props.getValue(),
-            },
+            ...columns,
         ],
-        []
+        [columns]
     );
 
     const table = useReactTable({
-        data: rows,
-        columns,
+        data: data,
+        columns: tableColumns,
         getRowId: row => row.id,
         getCoreRowModel: getCoreRowModel(),
         // onColumnFiltersChange: onColumnFilterChange,
@@ -105,41 +99,19 @@ export default function TableSelectVehicle({
     });
 
     useEffect(() => {
-        // setLoading(true);
-        let id_req = req_id ? `&req_id=${req_id}` : "";
-        (async () => {
-            try {
-                const { data } = await axiosPrivate.get(
-                    "/master/vhcl?is_send=true" + id_req
-                );
-                setRows(data.data);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                if (refresh) {
-                    setRefresh();
-                }
-            }
-        })();
-    }, [refresh, req_id]);
-
-    // useEffect(() => {
-    //     console.log(rows);
-    // }, [rows]);
-
-    useEffect(() => {
-        const dataSelected = table
-            .getSelectedRowModel()
-            .rows.map(item => item.original);
-        setSelectedRowsUp(dataSelected);
-        if (props.setSomeVeh) {
-            if (!table.getIsAllRowsSelected() && rows.length > 0) {
-                props.setSomeVeh(true);
-            } else {
-                props.setSomeVeh(false);
+        console.log(refresh);
+        if (refresh) {
+            table.resetRowSelection();
+            setSelectedRowsUp([]);
+        } else {
+            if (table.getSelectedRowModel()) {
+                const dataSelected = table
+                    .getSelectedRowModel()
+                    .rows.map(item => item.original);
+                setSelectedRowsUp(dataSelected);
             }
         }
-    }, [rows, rowSelected]);
+    }, [data, rowSelected, refresh]);
 
     return (
         <>
@@ -169,16 +141,6 @@ export default function TableSelectVehicle({
                                                                 header.getContext()
                                                             )}
                                                         </div>
-                                                        {/* {header.id !==
-                                                            "select" && (
-                                                            <div>
-                                                                <FilterTextFieldComp
-                                                                    column={
-                                                                        header.column
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        )} */}
                                                     </div>
                                                 )}
                                             </TableCell>
@@ -210,4 +172,6 @@ export default function TableSelectVehicle({
             </TableContainer>
         </>
     );
-}
+};
+
+export default TableSelect;

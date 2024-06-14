@@ -272,4 +272,55 @@ EmailModel.ProcessedKrani = async (target, cc, driver, vehicle, ticket_num) => {
         throw error;
     }
 };
+
+EmailModel.RequestDeleteLN = async (target, cc, reqrow, remark, link) => {
+    try {
+        const tp = EmailTP.Transporter();
+        const EmailHTML = EmailGen.DeleteRequest(remark, reqrow.join(""), link);
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: target,
+            cc: cc,
+            subject: `Request Delete Loading Note`,
+            html: EmailHTML,
+        };
+        await tp.sendMail(setup);
+    } catch (error) {
+        throw error;
+    }
+};
+
+EmailModel.RejectDeleteReq = async (target, cc, reqrow, remark) => {
+    try {
+        const tp = EmailTP.Transporter();
+        const EmailHTML = EmailGen.RejectDeleteReq(reqrow.join(""), remark);
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: target,
+            cc: cc,
+            subject: `Rejected Delete Request Loading Note`,
+            html: EmailHTML,
+        };
+        await tp.sendMail(setup);
+    } catch (error) {
+        throw error;
+    }
+};
+
+EmailModel.ApproveDeleteReq = async (target, cc, reqrow) => {
+    try {
+        const tp = EmailTP.Transporter();
+        const EmailHTML = EmailGen.ApprovedDeleteReq(reqrow.join(""));
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: target,
+            cc: cc,
+            subject: `Approved Delete Loading Note`,
+            html: EmailHTML,
+        };
+        await tp.sendMail(setup);
+    } catch (error) {
+        throw error;
+    }
+};
 module.exports = EmailModel;

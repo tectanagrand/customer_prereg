@@ -24,6 +24,12 @@ import { Axios } from "../api/axios";
 const OSRequestDrvVeh = lazy(
     () => import("../pages/sendemail/OSRequestDrvVeh")
 );
+const CreatedLoadingNote = lazy(
+    () => import("../pages/loadingnote/CreatedLoadingNote")
+);
+const ApprovalReqDelete = lazy(
+    () => import("../pages/loadingnote/ApprovalReqDelete")
+);
 // import DashboardCustomer from "../pages/dashboard/DashboardCustomer";
 
 const Dashboard = lazy(() => import("../pages/dashboard/Dashboard"));
@@ -187,6 +193,14 @@ export const routes = createBrowserRouter([
                     {
                         path: "historical",
                         element: <HistoricalLoadingNote />,
+                    },
+                    {
+                        path: "created",
+                        element: <CreatedLoadingNote />,
+                    },
+                    {
+                        path: "approvedel",
+                        element: <ApprovalReqDelete />,
                     },
                 ],
             },

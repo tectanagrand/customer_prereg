@@ -22,7 +22,7 @@ const HistoricalLoadingNote = () => {
 
     const [pagination, setPagination] = useState({
         pageIndex: 0,
-        pageSize: 7,
+        pageSize: 5,
     });
     const column = useMemo(
         () => [
@@ -150,9 +150,6 @@ const HistoricalLoadingNote = () => {
                 gap: 1,
             }}
         >
-            <h2 style={{ margin: "0 0 0 0" }}>
-                Historical Loading Note Request
-            </h2>
             <TextField
                 variant="filled"
                 value={value}
@@ -171,7 +168,6 @@ const HistoricalLoadingNote = () => {
                 sx={{
                     height: "34rem",
                     maxWidth: "98%",
-                    overflowX: "scroll",
                 }}
             />
         </Box>

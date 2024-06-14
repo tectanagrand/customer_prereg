@@ -12,6 +12,7 @@ import {
     Box,
     Button,
     TextField,
+    Alert,
 } from "@mui/material";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
@@ -25,6 +26,7 @@ import { useTheme } from "@mui/material/styles";
 import { useSession } from "../../provider/sessionProvider";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
 import { NumericFormat } from "react-number-format";
+import { PasswordWithEyes } from "../../component/input/PasswordWithEyes";
 
 export default function FormCreateLoadingNote() {
     const {
@@ -58,6 +60,16 @@ export default function FormCreateLoadingNote() {
             selected_cancel: [],
         },
     });
+    const {
+        control: controlAuth,
+        handleSubmit: handleAuth,
+        getValues: authValue,
+        reset: resetAuth,
+    } = useForm({
+        defaultValues: {
+            password: "",
+        },
+    });
     const axiosPrivate = useAxiosPrivate();
     const [DoNum, setDoNum] = useState("");
     const [CustNum, setCustNum] = useState("");
@@ -75,9 +87,10 @@ export default function FormCreateLoadingNote() {
     const [resetRow, setResetRow] = useState(false);
     const [modalSuccess, setModalscs] = useState(false);
     const [firstRow, setFirstRow] = useState(null);
+    const [modalAuth, setModalAuth] = useState(false);
     const [remainingQty, _setRemaining] = useState(0);
     const location = useLocation();
-    const { getPermission } = useSession();
+    const { getPermission, session } = useSession();
     const [who, setWho] = useState("");
     const isWb = getPermission("Edit Loading Note").fread;
     const isLog = getPermission("Push SAP Req.").fread;
@@ -236,84 +249,6 @@ export default function FormCreateLoadingNote() {
         }
     }, [firstRow]);
 
-    // useEffect(() => {
-    //     (async () => {
-    //         if (!firstRow) {
-    //             reset({
-    //                 fac_sloc: "",
-    //                 fac_valtype: "",
-    //                 oth_sloc: "",
-    //                 oth_valtype: "",
-    //                 fac_batch: "",
-    //                 oth_batch: "",
-    //                 selected_req: [],
-    //             });
-    //         } else {
-    //             let fac_sloc,
-    //                 fac_valtype,
-    //                 oth_sloc,
-    //                 oth_valtype,
-    //                 fac_sloc_desc,
-    //                 oth_sloc_desc;
-    //             try {
-    //                 _setLoading(true);
-    //                 if (who === "wb") {
-    //                     fac_sloc = firstRow.fac_sloc;
-    //                     fac_sloc_desc = firstRow.fac_sloc_desc;
-    //                     fac_valtype = firstRow.fac_valtype;
-    //                     oth_sloc = firstRow.oth_sloc;
-    //                     oth_sloc_desc = firstRow.oth_sloc_desc;
-    //                     oth_valtype = firstRow.oth_valtype;
-    //                 } else {
-    //                     const { data } = await axiosPrivate.get(
-    //                         `/ln/defslocvtp?plant=${firstRow.plant}`
-    //                     );
-    //                     const { data: Op } = await axiosPrivate.get(
-    //                         `/master/sloc?plant=${firstRow?.plant}&material=${firstRow?.material}`
-    //                     );
-    //                     if (data !== "") {
-    //                         fac_sloc = data.fac_sloc;
-    //                         fac_sloc_desc = data.fac_sloc_desc;
-    //                         fac_valtype = data.fac_valtype;
-    //                         oth_sloc = data.oth_sloc;
-    //                         oth_sloc_desc = data.oth_sloc_desc;
-    //                         oth_valtype = data.oth_valtype;
-    //                     } else {
-    //                         fac_sloc = Op.sloc[0].value;
-    //                         fac_sloc_desc = Op.sloc[0].label;
-    //                         fac_valtype = Op.valtype[0].value;
-    //                         oth_sloc = Op.sloc[0].value;
-    //                         oth_sloc_desc = Op.sloc[0].label;
-    //                         oth_valtype = Op.valtype[0].value;
-    //                     }
-    //                 }
-    //                 setValue("fac_sloc", {
-    //                     value: fac_sloc,
-    //                     label: fac_sloc + " - " + fac_sloc_desc,
-    //                 });
-
-    //                 setValue("fac_valtype", {
-    //                     value: fac_valtype,
-    //                     label: fac_valtype,
-    //                 });
-    //                 setValue("oth_valtype", {
-    //                     value: oth_valtype,
-    //                     label: oth_valtype,
-    //                 });
-    //                 setValue("oth_sloc", {
-    //                     value: oth_sloc,
-    //                     label: oth_sloc + " - " + oth_sloc_desc,
-    //                 });
-    //                 clearErrors();
-    //             } catch (error) {
-    //                 console.error(error);
-    //             } finally {
-    //                 _setLoading(false);
-    //             }
-    //         }
-    //     })();
-    // }, [firstRow]);
-
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
@@ -343,9 +278,12 @@ export default function FormCreateLoadingNote() {
 
     const pushSAP = async () => {
         const payload = getValues();
-        console.log(getValues());
+        const authPayload = authValue();
+        console.log(authPayload);
+        console.log(payload);
         const newPayload = {
             ...payload,
+            ...authPayload,
             fac_sloc: payload.fac_sloc.value,
             fac_sloc_desc: payload.fac_sloc.label.split("-")[1].trim(),
             fac_valtype: payload.fac_valtype.value,
@@ -366,6 +304,7 @@ export default function FormCreateLoadingNote() {
                 newPayload
             );
             setModalOpen(false);
+            setModalAuth(false);
             setModalscs(true);
             reset({
                 fac_sloc: "",
@@ -382,6 +321,16 @@ export default function FormCreateLoadingNote() {
             }, 3000);
         } catch (error) {
             console.error(error);
+            if (
+                [
+                    "Role Not Authorized",
+                    "Provide password",
+                    "SAP Credential Not Valid",
+                    "Session Expired",
+                ].includes(error.response?.data.message)
+            ) {
+                setModalAuth(true);
+            }
             toast.error(error.response.data.message);
         } finally {
             setLoadingPush(false);
@@ -841,6 +790,83 @@ export default function FormCreateLoadingNote() {
                             </DialogActions>
                         </form>
                     </Box>
+                </Dialog>
+                <Dialog open={modalAuth} maxWidth="m">
+                    <DialogTitle>Authorize SAP Credentials</DialogTitle>
+
+                    <form onSubmit={handleAuth(pushSAP)}>
+                        <Box
+                            sx={{
+                                width: "40rem",
+                                height: "15rem",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 5,
+                                p: 2,
+                                mb: 3,
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: "3rem",
+                                    paddingLeft: "1rem",
+                                }}
+                            >
+                                <div>
+                                    <div>
+                                        <Alert
+                                            variant="filled"
+                                            severity="warning"
+                                            sx={{ width: "96%" }}
+                                        >
+                                            <strong>
+                                                Currently you're not authorized
+                                                to push data to SAP, please
+                                                insert registered SAP Password
+                                                according to username displayed
+                                            </strong>{" "}
+                                        </Alert>
+                                    </div>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            gap: "1rem",
+                                            margin: "1rem 0 0 0",
+                                        }}
+                                    >
+                                        <strong>Username :</strong>{" "}
+                                        <em>
+                                            <strong>{session.username}</strong>
+                                        </em>
+                                    </div>
+                                </div>
+                            </div>
+                            <PasswordWithEyes
+                                control={controlAuth}
+                                label="SAP Password"
+                                name="password"
+                                rules={{ required: "Please insert this field" }}
+                            />
+                        </Box>
+                        <DialogActions>
+                            <LoadingButton
+                                type="submit"
+                                color="primary"
+                                variant="contained"
+                                loading={loadingPush}
+                            >
+                                Continue
+                            </LoadingButton>
+                            <Button
+                                variant="contained"
+                                color="error"
+                                onClick={() => setModalAuth(false)}
+                            >
+                                Cancel
+                            </Button>
+                        </DialogActions>
+                    </form>
                 </Dialog>
             </>
         );
