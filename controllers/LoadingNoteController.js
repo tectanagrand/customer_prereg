@@ -245,7 +245,7 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
             new Promise(async (reject, resolve) => {
                 try {
                     const { data } = await axios.get(
-                        `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
+                        `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
                         {
                             auth: {
                                 username: session.username,
@@ -636,7 +636,7 @@ LoadingNoteController.processDelete = async (req, res) => {
             for (const d of selected) {
                 if (action === "APPROVE") {
                     const { data } = await axios.get(
-                        `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELDOCSet?$filter=(Bukrs eq '${d.company}')and(Zdconr eq '${d.ln_num}')&$format=json`,
+                        `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELDOCSet?$filter=(Bukrs eq '${d.company}')and(Zdconr eq '${d.ln_num}')&$format=json`,
                         {
                             auth: {
                                 username: req.cookies.username,

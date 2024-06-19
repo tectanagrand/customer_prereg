@@ -613,7 +613,7 @@ LoadingNoteModel.getById2 = async id_header => {
             });
             const hd_dt = rows[0];
             const { data: I_OUTDELIVERY } = await axios.get(
-                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${hd_dt.id_do}%27)&$format=json`,
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${hd_dt.id_do}%27)&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,
@@ -1830,10 +1830,10 @@ LoadingNoteModel.syncDataWB = async () => {
             for (const row of rows) {
                 // console.log(row.ln_num);
                 // console.log(
-                //     `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QQWBSet?$filter=(Zdconr%20eq%20%27${row.ln_num}%27)&$format=json`
+                //     `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QQWBSet?$filter=(Zdconr%20eq%20%27${row.ln_num}%27)&$format=json`
                 // );
                 const { data: WBData } = await axios.get(
-                    `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QQWBSet?$filter=(Zdconr%20eq%20%27${row.ln_num}%27)&$format=json`,
+                    `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QQWBSet?$filter=(Zdconr%20eq%20%27${row.ln_num}%27)&$format=json`,
                     {
                         auth: {
                             username: process.env.UNAMESAP,

@@ -62,7 +62,7 @@ MasterModel.getDriverData2 = async q => {
         }
         // console.log(filter);
         const { data: driverData } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SIMSet?$filter=(${filter})&$format=json`,
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SIMSet?$filter=(${filter})&$format=json`,
             {
                 auth: {
                     username: process.env.UNAMESAP,
@@ -105,7 +105,7 @@ MasterModel.getVehicleData = async (q, limit, offset) => {
 MasterModel.getVehicleData2 = async q => {
     try {
         const { data: dataVehicle } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/TRUCKSet?$filter=(Nnopolisi eq '${q}')&$format=json
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/TRUCKSet?$filter=(Nnopolisi eq '${q}')&$format=json
         `,
             {
                 auth: {
@@ -135,7 +135,7 @@ MasterModel.getSOData = async do_num => {
             I_VBELN: do_num,
         };
         const { data: ZSLIP_get } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${do_num}')&$format=json
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${do_num}')&$format=json
         `,
             {
                 auth: {
@@ -151,7 +151,7 @@ MasterModel.getSOData = async do_num => {
             }
         });
         const { data: ZPINO_get } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZPINOSet?$filter=(Vbeln eq '${do_num}')&$format=json
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZPINOSet?$filter=(Vbeln eq '${do_num}')&$format=json
         `,
             {
                 auth: {
@@ -182,7 +182,7 @@ MasterModel.getSOData = async do_num => {
             ? parseFloat(tempLoadingNote[0].plan_qty)
             : 0;
         const { data: I_OUTDELIVERY } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${do_num}%27)&$format=json`,
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${do_num}%27)&$format=json`,
             {
                 auth: {
                     username: process.env.UNAMESAP,
@@ -200,7 +200,7 @@ MasterModel.getSOData = async do_num => {
         });
 
         const { data: DOTRXDELETE } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${do_num}%27)&$format=json`,
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${do_num}%27)&$format=json`,
             {
                 auth: {
                     username: process.env.UNAMESAP,
@@ -401,7 +401,7 @@ MasterModel.getStoreLoc2 = async (plant, itemrule) => {
             // );
 
             const { data: dataIsloc } = await axios.get(
-                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SLOCSet?$filter=(Plant eq '${plant}')and(Itemrule eq '${itemrule}')&$format=json
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SLOCSet?$filter=(Plant eq '${plant}')and(Itemrule eq '${itemrule}')&$format=json
             `,
                 {
                     auth: {
@@ -446,7 +446,7 @@ MasterModel.getValType = async (plant, material) => {
     try {
         const { data: dataValtype } = await axios.get(
             `
-        https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/VALTYPESet?$filter=(Matnr eq '${material}')and(Plant eq '${plant}')&$format=json
+        ${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/VALTYPESet?$filter=(Matnr eq '${material}')and(Plant eq '${plant}')&$format=json
         `,
             {
                 auth: {
@@ -476,7 +476,7 @@ MasterModel.seedMstCust2 = async () => {
             await client.query(TRANS.BEGIN);
             await client.query("DELETE FROM mst_customer");
             const { data: custData } = await axios.get(
-                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRSet?$filter=(Erdat eq datetime'1990-01-01T00:00:00')&$format=json`,
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRSet?$filter=(Erdat eq datetime'1990-01-01T00:00:00')&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,
@@ -521,7 +521,7 @@ MasterModel.seedMstInterco = async () => {
             await client.query(TRANS.BEGIN);
             await client.query("DELETE FROM mst_customer");
             const { data: custData } = await axios.get(
-                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRCISet?$filter=(Erdat eq datetime'1990-01-01T00:00:00')&$format=json`,
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRCISet?$filter=(Erdat eq datetime'1990-01-01T00:00:00')&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,
@@ -569,7 +569,7 @@ MasterModel.updateMstInterco = async () => {
             );
             let dateLast = lastDate[0]?.erdat;
             const { data: custData } = await axios.get(
-                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRCISet?$filter=(Erdat eq datetime'${dateLast ?? "1990-01-01"}T00:00:00')&$format=json`,
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRCISet?$filter=(Erdat eq datetime'${dateLast ?? "1990-01-01"}T00:00:00')&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,
@@ -615,7 +615,7 @@ MasterModel.updateMstCust = async () => {
             );
             let dateLast = lastDate[0].erdat;
             const { data: custData } = await axios.get(
-                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRSet?$filter=(Erdat eq datetime'${dateLast}T00:00:00')&$format=json`,
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRSet?$filter=(Erdat eq datetime'${dateLast}T00:00:00')&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,
@@ -658,7 +658,7 @@ MasterModel.seedMstVen = async () => {
             await client.query(TRANS.BEGIN);
             await client.query("DELETE FROM mst_vendor");
             const { data: venData } = await axios.get(
-                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFNRSet?$filter=(Erdat eq datetime'1990-01-01T00:00:00')&$format=json`,
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFNRSet?$filter=(Erdat eq datetime'1990-01-01T00:00:00')&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,
@@ -705,7 +705,7 @@ MasterModel.updateMstVen = async () => {
             );
             let dateLast = lastDate[0].erdat;
             const { data: custData } = await axios.get(
-                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFNRSet?$filter=(Erdat eq datetime'${dateLast}T00:00:00')&$format=json`,
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFNRSet?$filter=(Erdat eq datetime'${dateLast}T00:00:00')&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,
@@ -749,7 +749,7 @@ MasterModel.updateMstVen = async () => {
 //             await client.query(TRANS.BEGIN);
 //             await client.query("DELETE FROM mst_customer");
 //             const { data: custData } = await axios.get(
-//                 `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRSet?$filter=(Erdat eq datetime'${lastDate}T00:00:00')&$format=json`,
+//                 `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRSet?$filter=(Erdat eq datetime'${lastDate}T00:00:00')&$format=json`,
 //                 {
 //                     auth: {
 //                         username: process.env.UNAMESAP,
@@ -789,7 +789,7 @@ MasterModel.getDOList = async (cust_id, type) => {
         try {
             let dolist = [];
             const { data } = await axios.get(
-                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOKUNNRSet?$filter=(Kunnr%20eq%20%27${cust_id}%27)&$format=json`,
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOKUNNRSet?$filter=(Kunnr%20eq%20%27${cust_id}%27)&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,
@@ -800,7 +800,7 @@ MasterModel.getDOList = async (cust_id, type) => {
 
             for (const d of data.d.results) {
                 const { data } = await axios.get(
-                    `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${d.Vbeln}')&$format=json`,
+                    `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${d.Vbeln}')&$format=json`,
                     {
                         auth: {
                             username: process.env.UNAMESAP,
@@ -829,7 +829,7 @@ MasterModel.getSTOList = async (cust_id, do_num) => {
     try {
         try {
             const { data } = await axios.get(
-                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOKUNNRSTOSet?$filter=(Vbeln%20eq%20%27${do_num}%27)and(Kunnr%20eq%20%27${cust_id}%27)&$format=json`,
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOKUNNRSTOSet?$filter=(Vbeln%20eq%20%27${do_num}%27)and(Kunnr%20eq%20%27${cust_id}%27)&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,

@@ -96,7 +96,7 @@ MasterController.getSTOData = async (req, res) => {
         const userLog = req.cookies.username;
         const sto_num = req.query.sto;
         const { data } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFSTOSet?$filter=
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFSTOSet?$filter=
         (Lifnr%20eq%20%27${userLog}%27)and(Ebeln%20eq%20%27${sto_num}%27)
         &$format=json&$format=json`,
             {
@@ -107,7 +107,7 @@ MasterController.getSTOData = async (req, res) => {
             }
         );
         const { data: ttype } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOTYPESet?$filter=(Ebeln%20eq%20%27${sto_num}%27)&$format=json`,
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOTYPESet?$filter=(Ebeln%20eq%20%27${sto_num}%27)&$format=json`,
             {
                 auth: {
                     username: process.env.UNAMESAP,
@@ -136,7 +136,7 @@ MasterController.getSTOLCFRCData = async (req, res) => {
     try {
         const sto_num = req.query.sto;
         const { data } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOSTOSet?$filter=(Ebeln eq '${sto_num}')&$format=json`,
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOSTOSet?$filter=(Ebeln eq '${sto_num}')&$format=json`,
             {
                 auth: {
                     username: process.env.UNAMESAP,
@@ -145,7 +145,7 @@ MasterController.getSTOLCFRCData = async (req, res) => {
             }
         );
         const { data: ttype } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOTYPESet?$filter=(Ebeln%20eq%20%27${sto_num}%27)&$format=json`,
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOTYPESet?$filter=(Ebeln%20eq%20%27${sto_num}%27)&$format=json`,
             {
                 auth: {
                     username: process.env.UNAMESAP,
@@ -220,7 +220,7 @@ MasterController.getDataDOFrc = async (req, res) => {
     try {
         const cust_id = req.cookies.username;
         const { data } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOSTOSet?$filter=(Ebeln eq '${req.query.sto}')&$format=json`,
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOSTOSet?$filter=(Ebeln eq '${req.query.sto}')&$format=json`,
             {
                 auth: {
                     username: process.env.UNAMESAP,
@@ -941,7 +941,7 @@ MasterController.getStobyDo = async (req, res) => {
         const do_num = req.query.do;
 
         const { data } = await axios.get(
-            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SOSTOSet?$filter=(Bednr eq '${do_num}')&$format=json`,
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SOSTOSet?$filter=(Bednr eq '${do_num}')&$format=json`,
             {
                 auth: {
                     username: process.env.UNAMESAP,
