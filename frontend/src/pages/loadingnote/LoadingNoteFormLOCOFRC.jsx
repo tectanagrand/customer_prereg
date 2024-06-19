@@ -390,7 +390,7 @@ export default function LoadingNoteFormFRC() {
     const handleCheckSTO = async () => {
         setLoading(true);
         try {
-            console.log(getValues("do_num"));
+            // console.log(getValues("do_num"));
             const { data: stodata, status: statussto } = await axiosPrivate.get(
                 `/master/checkstobydo?do=${getValues("do_num")}`
             );

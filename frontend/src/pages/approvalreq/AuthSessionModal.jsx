@@ -9,8 +9,8 @@ const AuthSessionModal = () => {
     const { session } = useSession();
     const [openModal, setOpenModal] = useState(false);
     useEffect(() => {
-        console.log(session.id_user);
-        console.log(session.role);
+        // console.log(session.id_user);
+        // console.log(session.role);
         if (!session?.id_user || session?.role !== "LOGISTIC") {
             setOpenModal(true);
         } else {

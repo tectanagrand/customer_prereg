@@ -99,7 +99,7 @@ const TableSelect = ({
     });
 
     useEffect(() => {
-        console.log(refresh);
+        // console.log(refresh);
         if (refresh) {
             table.resetRowSelection();
             setSelectedRowsUp([]);

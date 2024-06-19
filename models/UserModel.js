@@ -596,7 +596,7 @@ UserModel.showRoleGroup = async role_id => {
             );
             dataAccRole.push({ ...data, subRows: dataChild });
         }
-        console.log(dataAccRole);
+        // console.log(dataAccRole);
         return {
             role_name: rowCount === 0 ? "" : roleName[0].role_name,
             data: dataAccRole,

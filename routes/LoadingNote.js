@@ -37,5 +37,6 @@ router.get("/history", LoadNote.showHistoricalLN);
 router.get("/createdln", LoadNote.showCreatedLN);
 router.post("/requestdel", LoadNote.deleteRequest);
 router.post("/processdel", AuthManager.authSAP, LoadNote.processDelete);
+router.get("/emailreminder", LoadNote.reminderDeadlines);
 
 module.exports = router;

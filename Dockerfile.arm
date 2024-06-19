@@ -23,6 +23,7 @@ COPY . .
 EXPOSE 443
 EXPOSE 80
 EXPOSE 5000
+EXPOSE 44300
 
 # # Start the application using pm2-runtime
 CMD ["pm2-runtime", "start", "ecosystem.config.js", "--env", "production"]

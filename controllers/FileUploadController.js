@@ -245,7 +245,7 @@ FileUploadController.getDataSIM = async (req, res) => {
 
 FileUploadController.deleteDataSTNK = async (req, res) => {
     try {
-        console.log(req.body);
+        // console.log(req.body);
         const id_row = req.body.id;
         const client = await db.connect();
         try {

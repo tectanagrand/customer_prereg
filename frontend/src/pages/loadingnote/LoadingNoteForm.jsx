@@ -386,8 +386,8 @@ export default function LoadingNoteForm() {
         const plansData = getValues("load_detail");
         let con_os = parseFloat(getValues("con_qty")) - usedQty.current;
         // console.log(getValues("con_qty"));
-        console.log(usedQty.current);
-        console.log(con_os);
+        // console.log(usedQty.current);
+        // console.log(con_os);
         let currentTotal = 0;
         plansData.forEach(item => {
             currentTotal += parseFloat(

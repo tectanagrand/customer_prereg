@@ -54,7 +54,7 @@ EmailModel.newUserNotify = async (email, username, pass, url_web) => {
 
 EmailModel.resetPasswordNotify = async (email, username, pass, url_web) => {
     try {
-        console.log(email);
+        // console.log(email);
         const tp = EmailTP.Transporter();
         const setup = {
             from: process.env.SMTP_USERNAME,
@@ -316,6 +316,22 @@ EmailModel.ApproveDeleteReq = async (target, cc, reqrow) => {
             to: target,
             cc: cc,
             subject: `Approved Delete Loading Note`,
+            html: EmailHTML,
+        };
+        await tp.sendMail(setup);
+    } catch (error) {
+        throw error;
+    }
+};
+
+EmailModel.ReminderDeadlinesLN = async (target, loadingnotes) => {
+    try {
+        const tp = EmailTP.Transporter();
+        const EmailHTML = EmailGen.ReminderLN(loadingnotes);
+        const setup = {
+            from: process.env.SMTP_USERNAME,
+            to: target,
+            subject: `Reminder Loading Note`,
             html: EmailHTML,
         };
         await tp.sendMail(setup);

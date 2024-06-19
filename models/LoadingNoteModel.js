@@ -613,7 +613,7 @@ LoadingNoteModel.getById2 = async id_header => {
             });
             const hd_dt = rows[0];
             const { data: I_OUTDELIVERY } = await axios.get(
-                `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${hd_dt.id_do}%27)&$format=json`,
+                `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${hd_dt.id_do}%27)&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,
@@ -731,7 +731,6 @@ LoadingNoteModel.getRequestedLoadNote = async (
             WHERE HD.CUR_POS = 'FINA'`;
             const que = `SELECT * FROM (${baseQ}) A ${filterStr} ${sortQue} ${pagiQue} ;`;
             const { rows } = await client.query(que, filter_val);
-            console.log(rows);
             return {
                 limit: pagination.limit,
                 offset: pagination.offset,
@@ -1381,7 +1380,7 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow, type) => {
             }
 
             const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
-            console.log(getDataSess);
+            // console.log(getDataSess);
             if (isallow) {
                 const { rows } = await client.query(getDataSess, [
                     session.id_user,
@@ -1831,10 +1830,10 @@ LoadingNoteModel.syncDataWB = async () => {
             for (const row of rows) {
                 // console.log(row.ln_num);
                 // console.log(
-                //     `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QQWBSet?$filter=(Zdconr%20eq%20%27${row.ln_num}%27)&$format=json`
+                //     `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QQWBSet?$filter=(Zdconr%20eq%20%27${row.ln_num}%27)&$format=json`
                 // );
                 const { data: WBData } = await axios.get(
-                    `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QQWBSet?$filter=(Zdconr%20eq%20%27${row.ln_num}%27)&$format=json`,
+                    `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QQWBSet?$filter=(Zdconr%20eq%20%27${row.ln_num}%27)&$format=json`,
                     {
                         auth: {
                             username: process.env.UNAMESAP,
@@ -2009,7 +2008,7 @@ LoadingNoteModel.showCreatedLN = async (q, limit, offset, id_user, role) => {
     let whereVal = [];
     let whereQ = [];
     let index = 1;
-    console.log(role);
+    // console.log(role);
     if (role !== "ADMIN" && role !== "LOGISTIC") {
         whereVal.push(id_user);
         whereQ.push(`lnd.create_by = $${index}`);
@@ -2067,7 +2066,7 @@ LoadingNoteModel.showCreatedLN = async (q, limit, offset, id_user, role) => {
                 where lnd.tanggal_surat_jalan + interval '7' day > now() and lnd.ln_num is not null ${whereQ.length > 0 && " and " + whereQ.join(" and ")}
                 order by lnh.plant asc, lnd.cre_date desc 
             `;
-            console.log(quer);
+            // console.log(quer);
             const { rows } = await client.query(
                 quer + (limit ? ` limit ${limit} offset ${offset} ;` : ";"),
                 whereVal

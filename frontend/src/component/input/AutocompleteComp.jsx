@@ -26,7 +26,7 @@ export default function AutocompleteComp({
                     <Autocomplete
                         options={options}
                         onChange={(e, newValue) => {
-                            console.log(newValue);
+                            // console.log(newValue);
                             if (freeSolo) {
                                 if (typeof newValue === "object") {
                                     onChange(newValue);

@@ -52,7 +52,7 @@ const CreatedLoadingNote = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const axiosPrivate = useAxiosPrivate();
     const setSelectedRows = value => {
-        console.log(value);
+        // console.log(value);
         _setSelectedRows(value);
         setValue("selected", value);
     };
@@ -241,7 +241,7 @@ const CreatedLoadingNote = () => {
         })();
     }, [refresh]);
 
-    console.log(selectedRows);
+    // console.log(selectedRows);
 
     return (
         <div style={{ width: "100%" }}>

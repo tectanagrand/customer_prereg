@@ -73,7 +73,7 @@ const AuthManager = {
                     }
                     try {
                         const { data } = await axios.get(
-                            `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SOSTOSet?$filter=(Bednr%20eq%20%271001003364%27)&$format=json`,
+                            `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SOSTOSet?$filter=(Bednr%20eq%20%271001003364%27)&$format=json`,
                             {
                                 auth: {
                                     username: req.cookies.username,

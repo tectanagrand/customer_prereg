@@ -245,7 +245,7 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
             new Promise(async (reject, resolve) => {
                 try {
                     const { data } = await axios.get(
-                        `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
+                        `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
                         {
                             auth: {
                                 username: session.username,
@@ -636,7 +636,7 @@ LoadingNoteController.processDelete = async (req, res) => {
             for (const d of selected) {
                 if (action === "APPROVE") {
                     const { data } = await axios.get(
-                        `http://erpdev-gm.gamasap.com:8000/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELDOCSet?$filter=(Bukrs eq '${d.company}')and(Zdconr eq '${d.ln_num}')&$format=json`,
+                        `https://dsmprd-gm.gamasap.com:44300/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELDOCSet?$filter=(Bukrs eq '${d.company}')and(Zdconr eq '${d.ln_num}')&$format=json`,
                         {
                             auth: {
                                 username: req.cookies.username,
@@ -688,6 +688,70 @@ LoadingNoteController.processDelete = async (req, res) => {
         res.status(500).send({
             message: error.message,
         });
+    }
+};
+
+LoadingNoteController.reminderDeadlines = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows: users_row } =
+                await client.query(`select distinct create_by, em.email from loading_note_det lnd 
+            left join (
+                select string_agg(email, ',') as email , id_user from mst_email group by id_user
+            ) em on lnd.create_by = em.id_user
+            where TO_CHAR(lnd.tanggal_surat_jalan + interval '1' day, 'YYYY-MM-DD') = TO_CHAR(now(), 'YYYY-MM-DD')`);
+            const users_os = new Map();
+            for (const d of users_row) {
+                users_os.set(d.create_by, d.email);
+            }
+            for (const [id_user, email] of users_os) {
+                // console.log(id_user);
+                const rowLN = [];
+                const { rows: dataLoadingNote } = await client.query(
+                    `select
+	ln_num,
+	tanggal_surat_jalan,
+	vhcl_id,
+	driver_id,
+	driver_name,
+	plan_qty,
+	lnh.uom
+from
+	loading_note_det lnd
+left join loading_note_hd lnh on
+	lnh.hd_id = lnd.hd_fk
+where
+	lnd.create_by = $1 and TO_CHAR(lnd.tanggal_surat_jalan + interval '1' day, 'YYYY-MM-DD') = TO_CHAR(now(), 'YYYY-MM-DD')`,
+                    [id_user]
+                );
+                for (const x of dataLoadingNote) {
+                    rowLN.push(`
+                        <tr>
+                         <td>${x.ln_num}</td>
+                         <td>${x.tanggal_surat_jalan}</td>
+                         <td>${x.driver_id} - ${x.driver_name}</td>
+                         <td>${x.vhcl_id}</td>
+                         <td>${x.plan_qty.replace(/\B(?=(\d{3})+(?!\d))/g, ",")} ${x.uom}</td>
+                        </tr>
+                        `);
+                }
+                // console.log(rowLN);
+                await EmailModel.ReminderDeadlinesLN(email, rowLN.join(""));
+            }
+            res.status(200).send({
+                message: "Email sent",
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+        console.error(error);
     }
 };
 

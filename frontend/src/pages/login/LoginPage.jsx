@@ -32,7 +32,7 @@ export default function LoginPage() {
                 password: values.password,
             });
             setSession(userData);
-            console.log(userData);
+            // console.log(userData);
             setMenu(userData.permission.jsonMenu);
             toast.success("Login Success");
             setTimeout(() => {

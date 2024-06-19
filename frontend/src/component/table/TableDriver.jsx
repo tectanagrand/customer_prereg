@@ -76,7 +76,7 @@ export default function TableDriver({ refresh, editData, deleteData }) {
                 header: "Foto Driver",
                 accessorKey: "foto_driver",
                 cell: ({ getValue }) => {
-                    console.log(`${source.current}${getValue()}`);
+                    // console.log(`${source.current}${getValue()}`);
                     return (
                         <>
                             <div>

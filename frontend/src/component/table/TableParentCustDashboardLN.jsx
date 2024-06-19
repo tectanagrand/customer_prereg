@@ -62,7 +62,7 @@ export default function TableParentCustDashboard() {
     const navigate = useNavigate();
     const { getPermission } = useSession();
 
-    console.log(getPermission("LOCO Request"));
+    // console.log(getPermission("LOCO Request"));
 
     const buttonAction = async (action, data) => {
         if (action === "edit") {

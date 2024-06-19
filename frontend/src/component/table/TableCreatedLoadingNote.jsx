@@ -42,11 +42,11 @@ export default function TableCreatedLoadingNote({ do_num, ...props }) {
                 console.error(error);
             }
         })();
-        console.log("do num change");
+        // console.log("do num change");
     }, [do_num]);
 
     useEffect(() => {
-        console.log("pagination change");
+        // console.log("pagination change");
         (async () => {
             try {
                 if (do_num !== "" && do_num) {
@@ -178,7 +178,7 @@ export default function TableCreatedLoadingNote({ do_num, ...props }) {
                             rowsPerPage={pagination.pageSize}
                             page={pagination.pageIndex}
                             onPageChange={(_, page) => {
-                                console.log(page);
+                                // console.log(page);
                                 table.setPageIndex(page);
                             }}
                             onRowsPerPageChange={e => {

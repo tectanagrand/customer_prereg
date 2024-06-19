@@ -279,8 +279,8 @@ export default function FormCreateLoadingNote() {
     const pushSAP = async () => {
         const payload = getValues();
         const authPayload = authValue();
-        console.log(authPayload);
-        console.log(payload);
+        // console.log(authPayload);
+        // console.log(payload);
         const newPayload = {
             ...payload,
             ...authPayload,

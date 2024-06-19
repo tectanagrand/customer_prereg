@@ -7,7 +7,7 @@ export default function SelectSTOComp({ control, name, label, preop, do_num }) {
     const axiosPrivate = useAxiosPrivate();
     const [isLoading, setLoading] = useState(false);
     const [stoOP, setSTOOp] = useState([]);
-    console.log(do_num);
+    // console.log(do_num);
 
     useEffect(() => {
         setSTOOp([{ value: preop, label: preop }]);

@@ -36,7 +36,7 @@ const client = new noderfc.Client({ dest: "Q13" });
         };
         await client.open();
         const result = await client.call("ZRFC_PRE_REGISTRA_CUST", param);
-        console.log(result);
+        // console.log(result);
     } catch (error) {
         console.log(error);
     }

@@ -24,7 +24,7 @@ const LoginModal = ({ closeModal, modalState }) => {
     });
 
     const actLogin = values => {
-        console.log(values);
+        // console.log(values);
         (async () => {
             setLoading(true);
             try {

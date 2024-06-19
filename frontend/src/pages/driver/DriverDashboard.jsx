@@ -131,7 +131,7 @@ export default function VehicleDashboard() {
 
     const uploadPhoto = e => {
         const files = e.target.files;
-        console.log(files[0]);
+        // console.log(files[0]);
         setValue("foto_supir", files[0].name);
         clearErrors("foto_supir");
         setPhoto(files[0]);

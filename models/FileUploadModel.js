@@ -55,7 +55,7 @@ FileUploadModel.uploadSIM = async (req, pathtarget) => {
         const form = new formidable.IncomingForm();
         form.options.maxFileSize = 3 * 1024 * 1024;
         [fields, items] = await form.parse(req);
-        console.log(items);
+        // console.log(items);
         let files = items.file_atth[0];
         let photo = items.foto_driver[0];
         let newPath, newPathphoto;

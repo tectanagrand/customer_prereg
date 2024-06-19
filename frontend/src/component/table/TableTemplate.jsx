@@ -52,7 +52,7 @@ const TableTemplate = ({ data, columns, sx }) => {
                                 <TableRow key={row.id}>
                                     {row.getVisibleCells().map(cell => {
                                         if (cell.column.id === "Action") {
-                                            console.log(cell.getValue());
+                                            // console.log(cell.getValue());
                                         }
                                         if (
                                             cell.column.id === "request_id" ||

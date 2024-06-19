@@ -18,7 +18,8 @@ import { lazy } from "react";
 import { ErrorRouter } from "../ErrorRouter";
 import AuthSessionModal from "../pages/approvalreq/AuthSessionModal";
 import AuthDashboard from "../pages/dashboard/AuthDashboard";
-import ApprovalPage from "../pages/approvalreq/ApprovalPage";
+// import ApprovalPage from "../pages/approvalreq/ApprovalPage";
+const ApprovalPage = lazy(() => import("../pages/approvalreq/ApprovalPage"));
 import ErrorPage from "../pages/error/ErrorPage";
 import { Axios } from "../api/axios";
 const OSRequestDrvVeh = lazy(

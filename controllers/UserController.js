@@ -306,7 +306,7 @@ UserController.preFormData = async (req, res) => {
     const client = await db.connect();
     try {
         const { rows: roleData } = await client.query(
-            "SELECT role_id, role_name FROM mst_role"
+            "SELECT role_id, role_name FROM mst_role where is_active = true"
         );
         res.status(200).send({
             role: roleData,

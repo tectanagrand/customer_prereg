@@ -5,7 +5,7 @@ const Q = {};
 Q.pushJob = job => {
     que.push(async cb => {
         try {
-            console.log(job);
+            // console.log(job);
             const result = await job;
             console.log(result);
             cb(null, result);
