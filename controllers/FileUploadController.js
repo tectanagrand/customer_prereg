@@ -67,12 +67,12 @@ FileUploadController.getFileSTNK = async (req, res) => {
                     file_name;
             } else {
                 new_path =
-                    path.join(path.resolve(), "/public" + "stnk") +
+                    path.join(path.resolve(), "/public/" + "stnk") +
                     "/" +
                     file_name;
             }
             const fileStream = fs.createReadStream(new_path);
-            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Type", "image/jpeg");
             res.setHeader(
                 "Content-Disposition",
                 `attachment; filename="${file_name}"`
@@ -113,12 +113,12 @@ FileUploadController.getFileSIM = async (req, res) => {
                     file_name;
             } else {
                 new_path =
-                    path.join(path.resolve(), "/public" + "license") +
+                    path.join(path.resolve(), "/public/" + "license") +
                     "/" +
                     file_name;
             }
             const fileStream = fs.createReadStream(new_path);
-            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Type", "image/jpeg");
             res.setHeader(
                 "Content-Disposition",
                 `attachment; filename="${file_name}"`
@@ -159,7 +159,7 @@ FileUploadController.getFotoDriver = async (req, res) => {
                     file_name;
             } else {
                 new_path =
-                    path.join(path.resolve(), "/public" + "license") +
+                    path.join(path.resolve(), "/public/" + "license") +
                     "/" +
                     file_name;
             }

@@ -13,8 +13,8 @@ import { useNavigate } from "react-router-dom";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 
 export default function NewUserValidateOTP() {
-    const axiosPrivate = useAxiosPrivate();
     const navigate = useNavigate();
+    const axiosPrivate = useAxiosPrivate();
     const { control, handleSubmit } = useForm({
         defaultValues: {
             username: "",

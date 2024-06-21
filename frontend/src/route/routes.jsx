@@ -96,14 +96,26 @@ export const routes = createBrowserRouter([
         ],
     },
     {
-        path: "verif",
-        element: <NewUserValidateOTP />,
+        path: "/",
+        element: <AuthDashboard />,
         errorElement: <ErrorRouter />,
+        children: [
+            {
+                path: "verif",
+                element: <NewUserValidateOTP />,
+            },
+        ],
     },
     {
-        path: "setnewpwd",
-        element: <NewUserPass />,
+        path: "/",
+        element: <AuthDashboard />,
         errorElement: <ErrorRouter />,
+        children: [
+            {
+                path: "setnewpwd",
+                element: <NewUserPass />,
+            },
+        ],
     },
     {
         path: "dashboard",

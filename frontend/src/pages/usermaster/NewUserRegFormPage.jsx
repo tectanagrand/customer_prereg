@@ -145,7 +145,7 @@ export default function NewUserRegFormPage() {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await axiosPrivate.get("/master/plt");
+                const { data } = await axiosPrivate.get("/master/mstplt");
                 setPlantop(data);
             } catch (error) {
                 console.error(error);

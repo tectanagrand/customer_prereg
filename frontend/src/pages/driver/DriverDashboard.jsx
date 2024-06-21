@@ -88,10 +88,10 @@ export default function VehicleDashboard() {
                 alamat: dataSim.alamat,
             });
             const blob = new File([fileData], dataSim.foto_sim, {
-                type: "application/pdf",
+                type: "image/jpeg",
             });
             const blobDriver = new File([photoData], dataSim.foto_driver, {
-                type: "application/pdf",
+                type: "image/jpeg",
             });
             setFile(blob);
             setPhoto(blobDriver);
@@ -143,9 +143,9 @@ export default function VehicleDashboard() {
         form.append("file_atth", file, file.name);
         form.append("foto_driver", photo, photo.name);
         form.append("nama", values.nama);
-        form.append("nomorsim", values.nomorsim);
+        form.append("nomorsim", values.nomorsim.trim());
         form.append("tempat_lahir", values.tempat_lahir.value);
-        form.append("no_telp", values.no_telp);
+        form.append("no_telp", values.no_telp.trim());
         form.append("tanggal_lahir", values.tanggal_lahir.format("MM-DD-YYYY"));
         form.append("alamat", values.alamat);
         form.append("id_row", id_row);
@@ -274,6 +274,7 @@ export default function VehicleDashboard() {
                                     rules={{
                                         required: "Please insert this field",
                                     }}
+                                    toUpperCase={true}
                                 />
                                 <PatternFieldComp
                                     name="nomorsim"

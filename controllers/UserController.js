@@ -51,8 +51,11 @@ UserController.registerNewUser = async (req, res) => {
 
 UserController.validateNewUser = async (req, res) => {
     try {
-        const username = req.body.username;
-        const otp = req.body.otp;
+        const username = req.body?.username;
+        const otp = req.body?.otp;
+        if (!username || !otp) {
+            throw new Error("Please fill field");
+        }
         const validateUser = await OTP.validateNewOTP(otp, username);
         res.cookie("newpass", validateUser, {
             httpOnly: true,
@@ -73,7 +76,13 @@ UserController.setNewPassword = async (req, res) => {
         try {
             const username = req.body.username;
             const password = req.body.newpass;
-            const newpassToken = req.cookies.newpass;
+            const newpassToken = req.cookies?.newpass;
+            if (!newpassToken) {
+                throw new Error("Please validate otp first");
+            }
+            if (!username || !password) {
+                throw new Error("Please fill fields");
+            }
             const { username: tokenUname } = jwt.verify(
                 newpassToken,
                 process.env.TOKEN_KEY

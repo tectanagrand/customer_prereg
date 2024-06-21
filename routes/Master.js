@@ -26,6 +26,7 @@ router.get("/vhcl", MasterController.getVehicleDataDB);
 router.get("/drvr", MasterController.getDriverDataDB);
 router.get("/city", MasterController.getDataCities);
 router.get("/plt", MasterController.getCompanyPlant);
+router.get("/mstplt", MasterController.getCompanyPlantMst);
 router.get("/mediatp", MasterController.getMediaTP);
 router.get("/checksto", MasterController.getSTOData);
 router.get("/checkstolcfrc", MasterController.getSTOLCFRCData);

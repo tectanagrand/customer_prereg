@@ -13,4 +13,4 @@ frontend/vite.config.js
 public/license/*
 public/stnk/*
 node_modules
-nwrfcsdk
+nwrfcsdk*

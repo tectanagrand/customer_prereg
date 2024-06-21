@@ -43,8 +43,8 @@ export default function NewUserPass() {
                 navigate("/login");
             }, 2000);
         } catch (error) {
-            toast.error(error.response.data.message);
             console.error(error);
+            toast.error(error.response.data.message);
         } finally {
             setLoading(false);
         }

@@ -32,7 +32,7 @@ FileUploadModel.uploadFile = async (req, pathtarget) => {
                 newName;
         } else {
             newPath =
-                path.join(path.resolve(), "/public/" + pathtarget) +
+                path.join(path.resolve(), "public/" + pathtarget) +
                 "/" +
                 newName;
         }
@@ -86,11 +86,11 @@ FileUploadModel.uploadSIM = async (req, pathtarget) => {
                 newPhotoName;
         } else {
             newPath =
-                path.join(path.resolve(), "/public/" + pathtarget) +
+                path.join(path.resolve(), "public/" + pathtarget) +
                 "/" +
                 newName;
             newPathphoto =
-                path.join(path.resolve(), "/public/" + pathtarget) +
+                path.join(path.resolve(), "public/" + pathtarget) +
                 "/" +
                 newPhotoName;
         }

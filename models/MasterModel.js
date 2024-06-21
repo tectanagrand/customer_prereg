@@ -799,16 +799,23 @@ MasterModel.getDOList = async (cust_id, type) => {
             );
 
             for (const d of data.d.results) {
-                const { data } = await axios.get(
-                    `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${d.Vbeln}')&$format=json`,
-                    {
-                        auth: {
-                            username: process.env.UNAMESAP,
-                            password: process.env.PWDSAP,
-                        },
+                if (type) {
+                    const { data } = await axios.get(
+                        `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${d.Vbeln}')&$format=json`,
+                        {
+                            auth: {
+                                username: process.env.UNAMESAP,
+                                password: process.env.PWDSAP,
+                            },
+                        }
+                    );
+                    if (data.d.results[0].Inco1 === type) {
+                        dolist.push({
+                            value: d.Vbeln,
+                            label: d.Vbeln,
+                        });
                     }
-                );
-                if (data.d.results[0].Inco1 === type) {
+                } else {
                     dolist.push({
                         value: d.Vbeln,
                         label: d.Vbeln,

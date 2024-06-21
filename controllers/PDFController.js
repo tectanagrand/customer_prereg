@@ -21,7 +21,8 @@ PDFController.exportSuratJalan = async (req, res) => {
                 DET.vhcl_id,
                 DET.fac_plant,
                 DET.ln_num,
-                TO_CHAR(DET.tanggal_surat_jalan, 'DD-MM-YYYY') as CRE_DATE,
+                TO_CHAR(DET.tanggal_surat_jalan, 'DD-MM-YYYY') as tanggal_surat_jalan,
+                TO_CHAR(DET.cre_date, 'DD-MM-YYYY') as cre_date,
                 DET.plan_qty,
                 HD.UOM,
                 HD.DESC_CON,
@@ -100,8 +101,8 @@ PDFController.exportSuratJalan = async (req, res) => {
             doc.fontSize(12).text("No LN :", 100, 140);
             doc.fontSize(12).text(dt.ln_num, 180, 140);
 
-            doc.fontSize(12).text("Tgl. Pengambilan :", 300, 140);
-            doc.fontSize(12).text(moment().format("DD-MM-YYYY"), 420, 140, {
+            doc.fontSize(12).text("Tgl. Pembuatan :", 300, 140);
+            doc.fontSize(12).text(dt.cre_date, 420, 140, {
                 width: 120,
             });
             // doc.fontSize(12).text("Tanggal Pengambilan :", 100, 140);
@@ -114,8 +115,10 @@ PDFController.exportSuratJalan = async (req, res) => {
             doc.fontSize(12).text(dt.vhcl_id, 180, 200, { width: 120 });
             doc.fontSize(12).text("No Do :", 100, 230);
             doc.fontSize(12).text(dt.id_do, 180, 230, { width: 120 });
-            doc.fontSize(12).text("Tanggal DO :", 300, 170);
-            doc.fontSize(12).text(dt.cre_date, 390, 170, { width: 120 });
+            doc.fontSize(12).text("Tgl. Pengambilan :", 300, 170);
+            doc.fontSize(12).text(dt.tanggal_surat_jalan, 420, 170, {
+                width: 120,
+            });
             doc.fontSize(12).text("Tujuan :", 300, 200);
             doc.fontSize(12).text(
                 `${dt.comp_name}(${dt.fac_plant})`,

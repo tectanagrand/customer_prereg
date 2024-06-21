@@ -487,6 +487,8 @@ MasterController.getVehicleDataDB = async (req, res) => {
             envvar = "local";
         } else if (process.env.NODE_ENV === "development") {
             envvar = "server_dev";
+        } else {
+            envvar = "production";
         }
         if (is_send) {
             if (!req_id) {
@@ -559,6 +561,8 @@ MasterController.getDriverDataDB = async (req, res) => {
         envvar = "local";
     } else if (process.env.NODE_ENV === "development") {
         envvar = "server_dev";
+    } else {
+        envvar = "production";
     }
     try {
         const client = await db.connect();
@@ -680,6 +684,32 @@ MasterController.getCompanyPlant = async (req, res) => {
                 mcp.plant_code = mu.plant_code
             where
                 role_name = 'KRANIWB'`);
+            res.status(200).send(rows);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getCompanyPlantMst = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(`select
+                mcp.plant_code as value,
+                concat (mcp.plant_code , ' - ',
+                mcp.company_name , ' ',
+                mcp.lokasi) as label
+            from
+                mst_company_plant mcp 
+                where mcp.plant_code is not null`);
             res.status(200).send(rows);
         } catch (error) {
             throw error;

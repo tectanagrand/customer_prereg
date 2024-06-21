@@ -19,6 +19,7 @@ import { useState, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import { LoadingButton } from "@mui/lab";
 import toast from "react-hot-toast";
+import { Alert } from "@mui/material";
 
 const ApprovalPage = () => {
     const axiosPrivate = useAxiosPrivate();
@@ -144,7 +145,7 @@ const ApprovalPage = () => {
         <Container>
             <Box
                 sx={{
-                    backgroundColor: theme.palette.secondary.lighter,
+                    backgroundColor: theme.palette.primary.lighter,
                     paddingY: 2,
                 }}
             >
@@ -181,6 +182,23 @@ const ApprovalPage = () => {
                 </div>
             </Box>
             <Stack sx={{ paddingY: 2, gap: 4 }}>
+                <Alert severity="info">
+                    <ul>
+                        <li>
+                            Supir atau Truck yang disetujui mohon untuk
+                            dicentang
+                        </li>
+                        <li>
+                            Supir atau Truck yang tidak disetujui, tidak
+                            dicentang
+                        </li>
+                        <li>
+                            Jika ada supir atau truck yang tidak disetujui,
+                            mohon disertai alasannya di field "Rejection
+                            Remarks"
+                        </li>
+                    </ul>
+                </Alert>
                 <form onSubmit={handleSubmit(approveRequest)}>
                     <Box
                         sx={{

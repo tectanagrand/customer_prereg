@@ -79,7 +79,7 @@ export default function VehicleDashboard() {
 
             setPlate(dataStnk.vhcl_id);
             const blob = new File([fileData], dataStnk.foto_stnk, {
-                type: "application/pdf",
+                type: "image/jpeg",
             });
             setFile(blob);
             setOpenDg(true);
