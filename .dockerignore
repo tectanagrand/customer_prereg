@@ -14,3 +14,4 @@ public/license/*
 public/stnk/*
 node_modules
 nwrfcsdk*
+*.sh

@@ -87,6 +87,7 @@ export default function LoadingNoteForm() {
             material: "",
             con_qty: 0,
             os_qty: 0,
+            os_sap_qty: 0,
             plant: "",
             description: "",
             uom: "",
@@ -144,6 +145,7 @@ export default function LoadingNoteForm() {
                     reset({
                         ...data.data,
                         con_qty: data.data.con_qty,
+                        os_sap_qty: data.data.con_qty - data.data.totalSAP,
                         load_detail: load_detail,
                     });
                     setPreOp(data.data.do_num);
@@ -264,11 +266,9 @@ export default function LoadingNoteForm() {
                     }
                 }
             }
-            if (!is_draft) {
-                setTimeout(() => {
-                    navigate("/dashboard/loco");
-                }, 2000);
-            }
+            setTimeout(() => {
+                navigate("/dashboard/loco");
+            }, 2000);
         } catch (error) {
             console.error(error);
             toast.error(error.response.data.message);
@@ -298,6 +298,7 @@ export default function LoadingNoteForm() {
                 material: slip.MATNR,
                 con_qty: slip.KWMENG,
                 os_qty: slip.KWMENG - data.TOTALSPEND,
+                os_sap_qty: slip.KWMENG - data.TOTALSAP,
                 plant: slip.WERKS,
                 description: slip.MAKTX,
                 uom: slip.VRKME,
@@ -535,8 +536,22 @@ export default function LoadingNoteForm() {
                                 thousandSeparator
                             />
                             <NumericFieldComp
+                                name="os_sap_qty"
+                                label="O/S SAP Quantity"
+                                control={control}
+                                sx={{
+                                    minWidth: "15rem",
+                                    maxWidth: "16rem",
+                                }}
+                                endAdornment={
+                                    <InputAdornment>{uomQty}</InputAdornment>
+                                }
+                                thousandSeparator
+                                disabled={true}
+                            />
+                            <NumericFieldComp
                                 name="os_qty"
-                                label="O/S Quantity"
+                                label="O/S WEB Quantity"
                                 control={control}
                                 rules={{
                                     required: "Please Insert",
@@ -652,7 +667,7 @@ export default function LoadingNoteForm() {
                         </Button>
                         <NumericFormat
                             value={remainingQty}
-                            label="Remaining Quantity"
+                            label="Remaining Quantity WEB"
                             customInput={TextField}
                             thousandSeparator
                             disabled
@@ -774,7 +789,7 @@ export default function LoadingNoteForm() {
                                                 }}
                                                 endAdornment={
                                                     <InputAdornment>
-                                                        Kg
+                                                        {getValues("uom")}
                                                     </InputAdornment>
                                                 }
                                                 onBlurOvr={checkExistingOsQty}

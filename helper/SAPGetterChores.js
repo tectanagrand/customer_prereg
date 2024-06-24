@@ -67,22 +67,36 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 let orapayload = {};
                 const { metaData, rows } = await oraclient.execute(
                     `SELECT DET_ID, LOADING_NOTE_NUM, ERRORDESCRIPTION FROM PREREG_LOADING_NOTE_SAP 
-                WHERE ISRETRIVEDBYSAP = 'TRUE'
-                AND DET_ID = :0`,
+                WHERE DET_ID = :0`,
                     [row.det_id]
                 );
                 // console.log(row.det_id);
                 // console.log(rows);
                 if (rows.length > 0) {
                     if (rows[0][1] === null && rows[0][2] !== null) {
-                        payload = {
-                            error_msg:
-                                rows[0][2] + " , Please create new request",
-                            is_active: false,
-                        };
-                        orapayload = {
-                            FLAG_WEB_PULL: "T",
-                        };
+                        if (
+                            !(
+                                rows[0][2].includes("processed by") ||
+                                rows[0][2].includes("process by")
+                            )
+                        ) {
+                            orapayload = {
+                                FLAG_WEB_PULL: "T",
+                                ISRETRIVEDBYSAP: "TRUE",
+                            };
+                            payload = {
+                                error_msg:
+                                    rows[0][2] + " , Please create new request",
+                                is_active: false,
+                            };
+                        } else {
+                            orapayload = {
+                                FLAG_WEB_PULL: "T",
+                            };
+                            payload = {
+                                error_msg: rows[0][2] + "",
+                            };
+                        }
                     } else if (rows[0][1] !== null) {
                         payload = {
                             ln_num: rows[0][1],

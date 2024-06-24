@@ -627,6 +627,24 @@ LoadingNoteModel.getById2 = async id_header => {
                 let real = parseFloat(item.LLfimg);
                 totalFromSAP += real === 0 ? planning : real;
             });
+
+            const { data: DOTRXDELETE } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${hd_dt.id_do}%27)&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            // console.log("deleted sap:");
+            let deletedLN = 0;
+            if (DOTRXDELETE.d.results.length > 0) {
+                DOTRXDELETE.d.results.map(item => {
+                    deletedLN += parseFloat(item.PlnLfimg);
+                    totalFromSAP -= parseFloat(item.PlnLfimg);
+                });
+            }
             const { rows: tempLoadingNote } = await client.query(
                 `SELECT SUM(PLAN_QTY) AS plan_qty
                 FROM LOADING_NOTE_DET DET
@@ -652,12 +670,9 @@ LoadingNoteModel.getById2 = async id_header => {
                 con_num: hd_dt.con_num,
                 material: hd_dt.material,
                 con_qty: hd_dt.con_qty,
-                os_qty:
-                    parseFloat(hd_dt.con_qty) -
-                    totalFromSAP -
-                    qtyTemp +
-                    plan_qty_con,
+                os_qty: parseFloat(hd_dt.con_qty) - totalFromSAP - qtyTemp,
                 totalspend: totalFromSAP + qtyTemp - plan_qty_con,
+                totalSAP: totalFromSAP,
                 plan_qty_con: plan_qty_con,
                 plant: hd_dt.plant,
                 description: hd_dt.desc_con,
@@ -1102,6 +1117,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                 } else {
                     method = "insert";
                 }
+                const splitdt = item.tanggal_surat_jalan.split("-");
                 const param = {
                     HEAD_ID: item.hd_id,
                     DET_ID: item.id,
@@ -1113,7 +1129,9 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     EBELN_REF: item.id_sto,
                     POSNR: "000010",
                     // CREDAT: moment(item.create_date).format("DD.MM.YYYY"),
-                    CREDAT: new Date(item.create_date),
+                    CREDAT: new Date(
+                        `${splitdt[2]}-${splitdt[1]}-${splitdt[0]}T00:00:00`
+                    ),
                     MATNR: item.material,
                     PLN_LFIMG: parseInt(item.plan_qty),
                     DWERKS: item.fac_plant,
@@ -1140,6 +1158,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     ISRETRIVEDBYSAP: "FALSE",
                     USERSAP: session.username,
                 };
+                console.log(param);
                 if (method === "insert") {
                     [queIns, valIns] = crud.insertItemOra(
                         "PREREG_LOADING_NOTE_SAP",
@@ -1358,7 +1377,7 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow, type) => {
                  LEFT JOIN (
                     SELECT HD_FK, COUNT(DET_ID) AS CTRLOG FROM LOADING_NOTE_DET DET
                     LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
-                    WHERE DET.LN_NUM IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true
+                    WHERE DET.LN_NUM IS NULL  AND HD.CUR_POS = 'FINA' and DET.CREATE_AT + interval '7' day > now ()
                     GROUP BY HD_FK
                 ) LOG ON HD.HD_ID = LOG.HD_FK`;
                 whereClause = `WHERE HD.CREATE_BY = $1 AND HD.INCO_1 LIKE '%${type}%' AND ( DET.CTROS IS NOT NULL OR LNU.CTRLN IS NOT NULL OR LOG.CTRLOG IS NOT NULL )
