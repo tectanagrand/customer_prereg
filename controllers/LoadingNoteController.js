@@ -755,4 +755,45 @@ where
     }
 };
 
+LoadingNoteController.deleteRequestCust = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const hd_id = req.body.hd_id;
+        try {
+            await client.query(TRANS.BEGIN);
+            //delete header and child
+            const { rows: checkHd } = await client.query(
+                `select cur_pos from loading_note_hd where hd_id = $1`,
+                [hd_id]
+            );
+            if (checkHd[0].cur_pos === "FINA") {
+                throw new Error(
+                    "Cannot delete request loading note, already on Logistic"
+                );
+            }
+            const { rows: deleteDet } = await client.query(
+                `delete from loading_note_det where hd_fk = $1 `,
+                [hd_id]
+            );
+            const { rows: deleteHead } = await client.query(
+                `delete from loading_note_hd where hd_id = $1`,
+                [hd_id]
+            );
+            await client.query(TRANS.COMMIT);
+            res.status(200).send({
+                message: "Request deleted",
+            });
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = LoadingNoteController;

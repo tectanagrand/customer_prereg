@@ -680,6 +680,24 @@ export default function LoadingNoteFormFRC() {
                                 sx={{ minWidth: "10rem", maxWidth: "20rem" }}
                             />
                         </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                width: "100%",
+                                gap: "1rem",
+                            }}
+                        >
+                            <DatePickerComp
+                                name="create_date"
+                                label="Tanggal Request"
+                                control={control}
+                                sx={{
+                                    minWidth: "15rem",
+                                }}
+                                minDate={moment()}
+                                disabled
+                            />
+                        </div>
                     </div>
                     <div
                         style={{
@@ -806,7 +824,7 @@ export default function LoadingNoteFormFRC() {
                                             />
                                             <DatePickerComp
                                                 name={`load_detail.${index}.loading_date`}
-                                                label="Tanggal Surat Jalan"
+                                                label="Tanggal Pengambilan / Muat"
                                                 control={control}
                                                 rules={{
                                                     required: "Please Insert",
@@ -814,7 +832,7 @@ export default function LoadingNoteFormFRC() {
                                                 sx={{
                                                     minWidth: "15rem",
                                                 }}
-                                                minDate={moment().add(1, "day")}
+                                                minDate={moment()}
                                             />
                                             <NumericFieldComp
                                                 name={`load_detail.${index}.planned_qty`}
@@ -862,91 +880,87 @@ export default function LoadingNoteFormFRC() {
                                     </div>
                                 </div>
                                 <div>
-                                    {index !== 0 && (
-                                        <IconButton
-                                            sx={{
-                                                width: "4rem",
-                                                height: "4rem",
-                                            }}
-                                            onClick={() => {
+                                    <IconButton
+                                        sx={{
+                                            width: "4rem",
+                                            height: "4rem",
+                                        }}
+                                        onClick={() => {
+                                            if (
+                                                field.id_detail !== "" &&
+                                                field.id_detail !== undefined
+                                            ) {
                                                 if (
-                                                    field.id_detail !== "" &&
-                                                    field.id_detail !==
-                                                        undefined
+                                                    getValues(
+                                                        `load_detail.${index}.method`
+                                                    ) === "delete"
                                                 ) {
-                                                    if (
-                                                        getValues(
-                                                            `load_detail.${index}.method`
-                                                        ) === "delete"
-                                                    ) {
-                                                        setValue(
-                                                            `load_detail.${index}.method`,
-                                                            ""
-                                                        );
-                                                    } else {
-                                                        setValue(
-                                                            `load_detail.${index}.method`,
-                                                            "delete"
-                                                        );
-                                                    }
+                                                    setValue(
+                                                        `load_detail.${index}.method`,
+                                                        ""
+                                                    );
                                                 } else {
-                                                    remove(index);
-                                                    checkExistingOsQty();
-                                                    // console.log(index);
-                                                    const newCheckBoxState = [
-                                                        ...checkedMulti,
-                                                    ];
-                                                    // console.log(
-                                                    //     newCheckBoxState
-                                                    // );
-                                                    if (
-                                                        newCheckBoxState.length <=
-                                                        0
-                                                    ) {
-                                                        newCheckBoxState.pop();
-                                                    } else {
-                                                        newCheckBoxState.splice(
-                                                            index,
-                                                            1
-                                                        );
-                                                    }
-                                                    // console.log(
-                                                    //     newCheckBoxState
-                                                    // );
-                                                    setCheckedMulti(
-                                                        newCheckBoxState
+                                                    setValue(
+                                                        `load_detail.${index}.method`,
+                                                        "delete"
                                                     );
                                                 }
-                                                setClick(!click);
-                                            }}
-                                            variant="contained"
-                                            color={
-                                                getValues(
-                                                    `load_detail.${index}.method`
-                                                ) === "delete"
-                                                    ? "warning"
-                                                    : "error"
+                                            } else {
+                                                remove(index);
+                                                checkExistingOsQty();
+                                                // console.log(index);
+                                                const newCheckBoxState = [
+                                                    ...checkedMulti,
+                                                ];
+                                                // console.log(
+                                                //     newCheckBoxState
+                                                // );
+                                                if (
+                                                    newCheckBoxState.length <= 0
+                                                ) {
+                                                    newCheckBoxState.pop();
+                                                } else {
+                                                    newCheckBoxState.splice(
+                                                        index,
+                                                        1
+                                                    );
+                                                }
+                                                // console.log(
+                                                //     newCheckBoxState
+                                                // );
+                                                setCheckedMulti(
+                                                    newCheckBoxState
+                                                );
                                             }
-                                        >
-                                            {getValues(
+                                            setClick(!click);
+                                        }}
+                                        variant="contained"
+                                        color={
+                                            getValues(
                                                 `load_detail.${index}.method`
-                                            ) === "delete" ? (
-                                                <Replay
-                                                    sx={{
-                                                        width: "2rem",
-                                                        height: "2rem",
-                                                    }}
-                                                ></Replay>
-                                            ) : (
-                                                <Cancel
-                                                    sx={{
-                                                        width: "2rem",
-                                                        height: "2rem",
-                                                    }}
-                                                ></Cancel>
-                                            )}
-                                        </IconButton>
-                                    )}
+                                            ) === "delete"
+                                                ? "warning"
+                                                : "error"
+                                        }
+                                    >
+                                        {getValues(
+                                            `load_detail.${index}.method`
+                                        ) === "delete" ? (
+                                            <Replay
+                                                sx={{
+                                                    width: "2rem",
+                                                    height: "2rem",
+                                                }}
+                                            ></Replay>
+                                        ) : (
+                                            <Cancel
+                                                sx={{
+                                                    width: "2rem",
+                                                    height: "2rem",
+                                                }}
+                                            ></Cancel>
+                                        )}
+                                    </IconButton>
                                 </div>
                             </div>
                         );

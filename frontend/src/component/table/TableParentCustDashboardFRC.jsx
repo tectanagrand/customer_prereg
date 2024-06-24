@@ -34,7 +34,9 @@ import {
     Edit,
     Outbox,
     CheckCircleOutline,
+    DeleteOutline,
 } from "@mui/icons-material";
+import RefreshButton from "../common/RefreshButton";
 import { useEffect, useMemo, useState } from "react";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
@@ -46,12 +48,16 @@ import { FilterTextFieldComp } from "../input/FilterTextFieldComp";
 import AutocompleteFilter from "../input/AutocompleteFilterComp";
 import { useTheme } from "@mui/material/styles";
 import { useSession } from "../../provider/sessionProvider";
+import ModalConfirmDelete from "../common/ModalConfirmDelete";
 
 export default function TableParentCustDashboardFRC() {
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
     const [dataCust, setDataCust] = useState([]);
-    const [refresh, setRefresh] = useState(false);
+    const [refresh, _setRefresh] = useState(false);
+    const [deleteLN, setDeleteLN] = useState([]);
+    const [deleteHd, setDeleteHd] = useState("");
+    const [modalDelete, _setModalDel] = useState(false);
     const [sorting, setSorting] = useState([]);
     const [backDrop, setBackdrop] = useState(false);
     const [successModal, setScsModal] = useState(false);
@@ -61,6 +67,14 @@ export default function TableParentCustDashboardFRC() {
     });
     const navigate = useNavigate();
     const { getPermission } = useSession();
+    const setModalDel = value => {
+        _setModalDel(value);
+    };
+    const setRefresh = value => {
+        _setRefresh(value);
+    };
+
+    // console.log(getPermission("LOCO Request"));
 
     const buttonAction = async (action, data) => {
         if (action === "edit") {
@@ -88,6 +102,18 @@ export default function TableParentCustDashboardFRC() {
             } finally {
                 setBackdrop(false);
             }
+        }
+    };
+
+    const deleteData = async id => {
+        try {
+            const { data } = await axiosPrivate.post("/ln/deletecust", {
+                hd_id: id,
+            });
+            toast.success("Success Deleted");
+        } catch (error) {
+            toast.error(error.response?.data.message ?? error.message);
+            throw error;
         }
     };
 
@@ -211,6 +237,46 @@ export default function TableParentCustDashboardFRC() {
                                 </IconButton>
                             </Tooltip>
                         );
+                        buttons.push(
+                            <Tooltip
+                                key={`${props.row.id}-del`}
+                                title={<Typography>Delete Request</Typography>}
+                            >
+                                <IconButton
+                                    sx={{
+                                        backgroundColor:
+                                            theme.palette.error.main,
+                                        color: theme.palette.error.contrastText,
+                                        ":hover": {
+                                            color: theme.palette.grey[800],
+                                        },
+                                        mx: 1,
+                                    }}
+                                    onClick={() =>
+                                        // buttonAction("uplog", {
+                                        //     id: props.row.original.hd_id,
+                                        // })
+                                        {
+                                            setDeleteLN(
+                                                props.row.original.sub_table
+                                            );
+                                            setDeleteHd(
+                                                props.row.original.hd_id
+                                            );
+                                            setModalDel(true);
+                                            console.log(
+                                                props.row.original.sub_table
+                                            );
+                                            console.log(
+                                                props.row.original.hd_id
+                                            );
+                                        }
+                                    }
+                                >
+                                    <DeleteOutline></DeleteOutline>
+                                </IconButton>
+                            </Tooltip>
+                        );
                     }
                     return buttons;
                 },
@@ -254,6 +320,10 @@ export default function TableParentCustDashboardFRC() {
             } catch (error) {
                 console.error(error);
                 toast.error(error.response.data.message);
+            } finally {
+                if (refresh) {
+                    setRefresh(false);
+                }
             }
         })();
     }, [refresh]);
@@ -263,7 +333,11 @@ export default function TableParentCustDashboardFRC() {
             <Toaster />
             {(getPermission("FRANCO Req.").fcreate ||
                 getPermission("FRANCO → LOCO").fcreate) && (
-                <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <RefreshButton
+                        setRefreshbtn={setRefresh}
+                        isLoading={refresh}
+                    />
                     <Button
                         sx={{ width: 200, heigth: 50, margin: 2 }}
                         variant="contained"
@@ -450,6 +524,14 @@ export default function TableParentCustDashboardFRC() {
                     </Typography>
                 </Box>
             </Dialog>
+            <ModalConfirmDelete
+                dataDeleteLN={deleteLN}
+                deleteAction={deleteData}
+                open={modalDelete}
+                setOpen={setModalDel}
+                setRefresh={setRefresh}
+                id={deleteHd}
+            />
         </>
     );
 }

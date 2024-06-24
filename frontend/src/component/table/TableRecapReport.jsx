@@ -88,11 +88,11 @@ export default function TableRecapReport({ onsetFilterData, isLoading }) {
                 accessorKey: "ln_num",
             },
             {
-                header: "Created Date",
+                header: "Tanggal Request LN",
                 accessorKey: "cre_date",
             },
             {
-                header: "Tanggal Surat Jalan",
+                header: "Tanggal Pengambilan / Muat",
                 accessorKey: "tanggal_surat_jalan",
             },
             {

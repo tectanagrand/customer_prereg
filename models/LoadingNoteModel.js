@@ -1381,6 +1381,7 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow, type) => {
 
             const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
             // console.log(getDataSess);
+            // console.log(session);
             if (isallow) {
                 const { rows } = await client.query(getDataSess, [
                     session.id_user,

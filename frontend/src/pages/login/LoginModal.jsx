@@ -35,7 +35,6 @@ const LoginModal = ({ closeModal, modalState }) => {
                         password: values.password,
                     }
                 );
-                console.log;
                 if (userData.role !== "LOGISTIC") {
                     throw new Error("User is not Logistic");
                 }

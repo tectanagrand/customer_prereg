@@ -12,73 +12,24 @@ import {
     TableRow,
 } from "@mui/material";
 import { useMemo } from "react";
-import { useTheme } from "@mui/material/styles";
+// import PaginationActionButton from "./PaginationActionButton";
 
-export default function TableChildCustLN({ dataChild }) {
-    const theme = useTheme();
-    const columns = useMemo(
-        () => [
-            {
-                header: "Tanggal Request LN",
-                accessorKey: "cre_date",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Tanggal Pengambilan / Muat",
-                accessorKey: "tanggal_surat_jalan",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Driver ID",
-                accessorKey: "driver_id",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Driver Name",
-                accessorKey: "driver_name",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Vehicle",
-                accessorKey: "vhcl_id",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Media Transport",
-                accessorKey: "media_tp",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Planning Quantity",
-                accessorKey: "plan_qty",
-                cell: ({ row }) =>
-                    `${row.original.plan_qty?.replace(
-                        /\B(?=(\d{3})+(?!\d))/g,
-                        ","
-                    )} ${row.original.uom}`,
-            },
-            {
-                header: "Error Message",
-                accessorKey: "error_msg",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Current Position",
-                accessorKey: "current_pos",
-                cell: props => props.getValue(),
-            },
-        ],
-        []
-    );
+export default function TableSimple({ rowsData, sx, columns }) {
+    const col = useMemo(() => columns, []);
     const table = useReactTable({
-        columns,
-        data: dataChild,
+        data: rowsData,
+        columns: col,
         getCoreRowModel: getCoreRowModel(),
     });
     return (
         <>
-            <TableContainer>
-                <Table>
+            <TableContainer
+                sx={{
+                    height: "20rem",
+                    ...sx,
+                }}
+            >
+                <Table stickyHeader>
                     <TableHead>
                         {table.getHeaderGroups().map(headerGroup => {
                             return (
@@ -91,12 +42,24 @@ export default function TableChildCustLN({ dataChild }) {
                                             >
                                                 {header.isPlaceholder ? null : (
                                                     <div>
-                                                        {flexRender(
-                                                            header.column
-                                                                .columnDef
-                                                                .header,
-                                                            header.getContext()
-                                                        )}
+                                                        <div>
+                                                            {flexRender(
+                                                                header.column
+                                                                    .columnDef
+                                                                    .header,
+                                                                header.getContext()
+                                                            )}
+                                                        </div>
+                                                        {/* {header.id !==
+                                                            "select" && (
+                                                            <div>
+                                                                <FilterTextFieldComp
+                                                                    column={
+                                                                        header.column
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        )} */}
                                                     </div>
                                                 )}
                                             </TableCell>

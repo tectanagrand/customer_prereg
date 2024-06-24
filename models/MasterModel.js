@@ -178,9 +178,14 @@ MasterModel.getSOData = async do_num => {
             AND DET.LN_NUM IS NULL`,
             [do_num]
         );
+        console.log("temp req:");
         const qtyTemp = tempLoadingNote[0].plan_qty
             ? parseFloat(tempLoadingNote[0].plan_qty)
             : 0;
+        console.log(qtyTemp);
+        console.log(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${do_num}%27)&$format=json`
+        );
         const { data: I_OUTDELIVERY } = await axios.get(
             `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${do_num}%27)&$format=json`,
             {
@@ -190,14 +195,17 @@ MasterModel.getSOData = async do_num => {
                 },
             }
         );
-        I_OUTDELIVERY.d.results.map(item => {
-            // console.log(item);
+        console.log("os sap:");
+        I_OUTDELIVERY.d.results.map((item, index) => {
+            console.log(item);
             let planning = parseFloat(item.PlnLfimg);
             let real = parseFloat(item.LLfimg);
-            // console.log(planning);
-            // console.log(real);
+            console.log(index);
+            console.log("planning :", planning);
+            console.log("real : ", real);
             totalFromSAP += real === 0 ? planning : real;
         });
+        console.log(totalFromSAP);
 
         const { data: DOTRXDELETE } = await axios.get(
             `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${do_num}%27)&$format=json`,
@@ -208,11 +216,15 @@ MasterModel.getSOData = async do_num => {
                 },
             }
         );
+        console.log("deleted sap:");
+        let deletedLN = 0;
         if (DOTRXDELETE.d.results.length > 0) {
             DOTRXDELETE.d.results.map(item => {
+                deletedLN += parseFloat(item.PlnLfimg);
                 totalFromSAP -= parseFloat(item.PlnLfimg);
             });
         }
+        console.log(deletedLN);
 
         if (I_ZSLIP.length === 0) {
             throw new Error("SO Not Found");

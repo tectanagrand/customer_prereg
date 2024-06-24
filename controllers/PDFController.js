@@ -101,7 +101,7 @@ PDFController.exportSuratJalan = async (req, res) => {
             doc.fontSize(12).text("No LN :", 100, 140);
             doc.fontSize(12).text(dt.ln_num, 180, 140);
 
-            doc.fontSize(12).text("Tgl. Pembuatan :", 300, 140);
+            doc.fontSize(12).text("Tgl. Request LN :", 300, 140);
             doc.fontSize(12).text(dt.cre_date, 420, 140, {
                 width: 120,
             });
@@ -111,23 +111,25 @@ PDFController.exportSuratJalan = async (req, res) => {
             // });
             doc.fontSize(12).text("Nama Supir :", 100, 170);
             doc.fontSize(12).text(dt.driver_name, 180, 170, { width: 120 });
-            doc.fontSize(12).text("No Polisi : ", 100, 200);
-            doc.fontSize(12).text(dt.vhcl_id, 180, 200, { width: 120 });
-            doc.fontSize(12).text("No Do :", 100, 230);
-            doc.fontSize(12).text(dt.id_do, 180, 230, { width: 120 });
-            doc.fontSize(12).text("Tgl. Pengambilan :", 300, 170);
+            doc.fontSize(12).text("No Polisi : ", 100, 240);
+            doc.fontSize(12).text(dt.vhcl_id, 180, 240, { width: 120 });
+            doc.fontSize(12).text("No Do :", 100, 260);
+            doc.fontSize(12).text(dt.id_do, 180, 260, { width: 120 });
+            doc.fontSize(12).text("Tgl. Pengambilan / Muat :", 300, 170, {
+                width: 120,
+            });
             doc.fontSize(12).text(dt.tanggal_surat_jalan, 420, 170, {
                 width: 120,
             });
-            doc.fontSize(12).text("Tujuan :", 300, 200);
+            doc.fontSize(12).text("Tujuan :", 300, 240);
             doc.fontSize(12).text(
                 `${dt.comp_name}(${dt.fac_plant})`,
                 390,
-                200,
+                240,
                 { width: 120 }
             );
-            doc.fontSize(12).text("Alamat :", 300, 230);
-            doc.fontSize(12).text(dt.alamat, 355, 230, { width: 120 });
+            doc.fontSize(12).text("Alamat :", 300, 260);
+            doc.fontSize(12).text(dt.alamat, 355, 260, { width: 120 });
 
             var xline = 350;
 
