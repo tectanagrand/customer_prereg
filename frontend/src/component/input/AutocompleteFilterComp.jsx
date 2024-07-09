@@ -42,6 +42,7 @@ export default function AutocompleteFilter({ column, ...props }) {
                 }}
                 isOptionEqualToValue={(value, label) => true}
                 renderInput={params => <StyledTextfield {...params} />}
+                {...props}
             />
         </>
     );

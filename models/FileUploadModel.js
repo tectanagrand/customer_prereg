@@ -9,6 +9,8 @@ const crud = require("../helper/crudquery");
 const uuid = require("uuidv4");
 const TRANS = require("../config/transaction");
 const TicketGen = require("../helper/TicketGen");
+const { Pool, sqls } = require("../config/sqlservconn");
+const ncrypt = require("ncrypt-js");
 
 FileUploadModel.uploadFile = async (req, pathtarget) => {
     try {
@@ -40,6 +42,10 @@ FileUploadModel.uploadFile = async (req, pathtarget) => {
         await fs.promises.writeFile(newPath, rawData);
         return {
             plate_num: fields.plate_num[0],
+            plant: fields.plant[0],
+            transportir: fields.transportir[0],
+            tp_name: fields.tp_name[0],
+            plant_name: fields.plant_name[0],
             filename: newName,
             id_row: fields.id_row[0],
         };
@@ -105,6 +111,8 @@ FileUploadModel.uploadSIM = async (req, pathtarget) => {
             tempat_lahir: fields.tempat_lahir[0],
             tanggal_lahir: fields.tanggal_lahir[0],
             alamat: fields.alamat[0],
+            plant: fields.plant[0],
+            plant_name: fields.plant_name[0],
             filename: newName,
             photoname: newPhotoName,
             id_row: fields.id_row[0],
@@ -114,7 +122,16 @@ FileUploadModel.uploadSIM = async (req, pathtarget) => {
     }
 };
 
-FileUploadModel.submitSTNK = async (plate_num, stnk, id_row, id_session) => {
+FileUploadModel.submitSTNK = async (
+    plate_num,
+    plant,
+    transportir,
+    tp_name,
+    plant_name,
+    stnk,
+    id_row,
+    id_session
+) => {
     try {
         const client = await db.connect();
         let que, val;
@@ -124,6 +141,10 @@ FileUploadModel.submitSTNK = async (plate_num, stnk, id_row, id_session) => {
             let payload = {
                 vhcl_id: plate_num,
                 foto_stnk: stnk,
+                plant: plant,
+                transportir: transportir,
+                tp_name: tp_name,
+                plant_name: plant_name,
                 is_send: false,
                 create_by: id_session,
             };
@@ -162,6 +183,8 @@ FileUploadModel.submitSIM = async ({
     alamat,
     filename,
     photoname,
+    plant,
+    plant_name,
     id_row,
     id_session,
 }) => {
@@ -179,6 +202,8 @@ FileUploadModel.submitSIM = async ({
                 tanggal_lahir: moment(tanggal_lahir).format("YYYY-MM-DD"),
                 no_telp: no_telp,
                 foto_sim: filename,
+                plant: plant,
+                plant_name: plant_name,
                 foto_driver: photoname,
                 create_by: id_session,
                 is_send: false,
@@ -476,6 +501,9 @@ FileUploadModel.processDrvVeh = async ({
                     },
                     "create_by, request_id"
                 );
+                const insertWBNET = await FileUploadModel.savetoWBNET({
+                    req_id: id_req,
+                });
                 const { rows: getCreateBy } = await client.query(
                     queRej,
                     valRej
@@ -636,6 +664,435 @@ FileUploadModel.processDrvVeh = async ({
         throw error;
     }
 };
+
+FileUploadModel.savetoWBNET = async ({ req_id }) => {
+    try {
+        const client = await db.connect();
+        const ncry = new ncrypt(process.env.TOKEN_KEY);
+        try {
+            let plant = new Map();
+            const { rows: vehData } = await client.query(
+                `
+                select vhcl_id,
+                transportir, plant, mu.username, mwc.location_code from mst_vehicle mv
+                left join mst_user mu on mv.create_by = mu.id_user
+                left join mst_wbnet_conn mwc on mwc.plant = mv.plant
+                where req_uuid = $1
+                `,
+                [req_id]
+            );
+            const { rows: drvData } = await client.query(
+                `
+                select driver_name, driver_id, alamat,
+                mc.city as tempat_lahir, tanggal_lahir, no_telp,
+                mwc.location_code,
+                plant, mu.username from mst_driver md
+                left join mst_user mu on md.create_by = mu.id_user
+                left join mst_cities mc on mc.code = md.tempat_lahir 
+                left join mst_wbnet_conn mwc on mwc.plant = md.plant
+                where req_uuid = $1
+                `,
+                [req_id]
+            );
+            for (const row of vehData) {
+                if (!plant.get(row.plant)?.vehicle) {
+                    plant.set(row.plant, {
+                        vehicle: [
+                            {
+                                truck_number: row.vhcl_id,
+                                create_by: row.username,
+                                transporter_code: row.transportir,
+                                coy: row.plant.slice(0, 2),
+                                location_code: row.location_code,
+                                black_list: "N",
+                                tipe: "H",
+                                create_date: moment().format("YYYY-MM-DD"),
+                            },
+                        ],
+                        ...plant.get(row.plant),
+                    });
+                } else {
+                    plant.set(row.plant, {
+                        vehicle: [
+                            ...plantVeh.get(row.plant).vehicle,
+                            {
+                                truck_number: row.vhcl_id,
+                                create_by: row.username,
+                                transporter_code: row.transportir,
+                                coy: row.plant.slice(0, 2),
+                                location_code: row.location_code,
+                                black_list: "N",
+                                tipe: "H",
+                                create_date: moment().format("YYYY-MM-DD"),
+                            },
+                        ],
+                        ...plant.get(row.plant),
+                    });
+                }
+            }
+
+            for (const row of drvData) {
+                if (!plant.get(row.plant)?.driver) {
+                    plant.set(row.plant, {
+                        driver: [
+                            {
+                                coy: row.plant.slice(0, 2),
+                                location_code: row.location_code,
+                                black_list: "N",
+                                license_no: row.driver_id,
+                                name: row.driver_name,
+                                address: row.alamat.toUpperCase(),
+                                birth_place: row.tempat_lahir,
+                                birth_date: moment(row.tanggal_lahir).format(
+                                    "YYYY-MM-DD"
+                                ),
+                                create_by: row.username,
+                                create_date: moment().format("YYYY-MM-DD"),
+                            },
+                        ],
+                        ...plant.get(row.plant),
+                    });
+                } else {
+                    plant.set(row.plant, {
+                        driver: [
+                            ...plantDrv.get(row.plant).driver,
+                            {
+                                coy: row.plant.slice(0, 2),
+                                location_code: row.location_code,
+                                black_list: "N",
+                                license_no: row.driver_id,
+                                name: row.driver_name,
+                                address: row.alamat.toUpperCase(),
+                                birth_place: row.tempat_lahir,
+                                birth_date: moment(row.tanggal_lahir).format(
+                                    "YYYY-MM-DD"
+                                ),
+                                create_by: row.username,
+                                create_date: moment().format("YYYY-MM-DD"),
+                            },
+                        ],
+                        ...plant.get(row.plant),
+                    });
+                }
+            }
+
+            for (let [key, value] of plant) {
+                try {
+                    const { rows: wbconf } = await client.query(
+                        `select * from mst_wbnet_conn where plant = $1`,
+                        [key]
+                    );
+                    const confData = wbconf[0];
+                    const conf = {
+                        user: confData.username,
+                        password: ncry.decrypt(confData.password),
+                        server: confData.ip_host,
+                        database: confData.dbase,
+                    };
+                    const sqlsclient = await Pool.newPool(conf).connect();
+                    try {
+                        const transaction = new sqls.Transaction(sqlsclient);
+                        await transaction.begin();
+                        try {
+                            if (value.vehicle.length > 0) {
+                                for (const d of value.vehicle) {
+                                    const request = new sqls.Request(
+                                        transaction
+                                    );
+                                    const insertData = await request
+                                        .input(
+                                            "truck_number",
+                                            sqls.VarChar,
+                                            d.truck_number
+                                        )
+                                        .input(
+                                            "create_by",
+                                            sqls.VarChar,
+                                            d.create_by
+                                        )
+                                        .input(
+                                            "transporter_code",
+                                            sqls.VarChar,
+                                            d.transporter_code
+                                        )
+                                        .input("coy", sqls.VarChar, d.coy)
+                                        .input(
+                                            "location_code",
+                                            sqls.VarChar,
+                                            d.location_code
+                                        )
+                                        .input(
+                                            "black_list",
+                                            sqls.VarChar,
+                                            d.black_list
+                                        )
+                                        .input("tipe", sqls.VarChar, d.tipe)
+                                        .input(
+                                            "create_date",
+                                            sqls.Date,
+                                            d.create_date
+                                        )
+                                        .query(`insert into dbo.wb_truck (Truck_Number, Create_By, Transporter_Code, Coy, Location_Code, Black_List, Tipe, Create_Date) values
+                                    (
+                                        @truck_number,
+                                        @create_by,
+                                        @transporter_code,
+                                        @coy,
+                                        @location_code,
+                                        @black_list,
+                                        @tipe,
+                                        @create_date
+                                    ) ;`);
+                                }
+                            }
+                            if (value.driver.length > 0) {
+                                for (const d of value.driver) {
+                                    const request = new sqls.Request(
+                                        transaction
+                                    );
+                                    const insertData = await request
+                                        .input(
+                                            "create_by",
+                                            sqls.VarChar,
+                                            d.create_by
+                                        )
+                                        .input(
+                                            "transporter_code",
+                                            sqls.VarChar,
+                                            d.transporter_code
+                                        )
+                                        .input("coy", sqls.VarChar, d.coy)
+                                        .input(
+                                            "location_code",
+                                            sqls.VarChar,
+                                            d.location_code
+                                        )
+                                        .input(
+                                            "black_list",
+                                            sqls.VarChar,
+                                            d.black_list
+                                        )
+                                        .input(
+                                            "license_no",
+                                            sqls.VarChar,
+                                            d.license_no
+                                        )
+                                        .input("name", sqls.VarChar, d.name)
+                                        .input(
+                                            "address",
+                                            sqls.VarChar,
+                                            d.address
+                                        )
+                                        .input(
+                                            "birth_place",
+                                            sqls.VarChar,
+                                            d.birth_place
+                                        )
+                                        .input(
+                                            "birth_date",
+                                            sqls.Date,
+                                            d.birth_date
+                                        )
+                                        .input(
+                                            "create_date",
+                                            sqls.Date,
+                                            d.create_date
+                                        ).query(`insert into dbo.wb_driver (
+                                        Create_By,
+                                        Coy,
+                                        Location_Code,
+                                        Black_List,
+                                        License_no,
+                                        Name,
+                                        Address, 
+                                        Birth_Place,
+                                        Birth_Date, 
+                                        Create_Date    
+                                        ) values
+                                    (
+                                        @create_by,
+                                        @coy,
+                                        @location_code,
+                                        @black_list,
+                                        @license_no,
+                                        @name,
+                                        @address, 
+                                        @birth_place,
+                                        @birth_date,
+                                        @create_date
+                                    ) ;`);
+                                }
+                            }
+                            await transaction.commit();
+                        } catch (error) {
+                            await transaction.rollback();
+                            throw error;
+                        }
+                    } catch (error) {
+                        throw error;
+                    } finally {
+                        sqlsclient.close();
+                    }
+                } catch (error) {
+                    throw error;
+                }
+            }
+            return "Success insert wbnet";
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+// FileUploadModel.saveDrvtoWBNET = async ({req_id}) => {
+//     try {
+//         const client = await db.connect();
+//         const ncry = new ncrypt(process.env.TOKEN_KEY);
+//         try {
+//             let plant = new Map();
+//             const { rows } = await client.query(
+//                 `
+//                 select driver_name, driver_id, alamat,
+//                 tempat_lahir, tanggal_lahir, no_telp,
+//                 plant, mu.username from mst_driver
+//                 left join mst_user mu on mv.create_by = mu.id_user
+//                 where req_id = $1
+//                 `,
+//                 [req_id]
+//             );
+//             for (const row of rows) {
+//                 if (!plant.get(row.plant)) {
+//                     plant.set(row.plant, [
+//                         {
+//                             coy: row.plant.slice(0, 2),
+//                             location_code: row.plant.slice(2, 4),
+//                             black_list: "N",
+//                             license_no : row.driver_id,
+//                             name : row.driver_name,
+//                             address : row.address.toUpperCase(),
+//                             birth_place : row.tempat_lahir,
+//                             birth_date : moment(row.tanggal_lahir).format('YYYY-MM-DD'),
+//                             create_by : row.username
+//                         },
+//                     ]);
+//                 } else {
+//                     plant.set(row.plant, [
+//                         ...plant.get(row.plant),
+//                         {
+//                             coy: row.plant.slice(0, 2),
+//                             location_code: row.plant.slice(2, 4),
+//                             black_list: "N",
+//                             license_no : row.driver_id,
+//                             name : row.driver_name,
+//                             address : row.address.toUpperCase(),
+//                             birth_place : row.tempat_lahir,
+//                             birth_date : moment(row.tanggal_lahir).format('YYYY-MM-DD'),
+//                             create_by : row.username
+//                         },
+//                     ]);
+//                 }
+//             }
+
+//             for (let [key, value] of plant) {
+//                 try {
+//                     const { rows: wbconf } = await client.query(
+//                         `select * from mst_wbnet_conn where plant = $1`,
+//                         [key]
+//                     );
+//                     const confData = wbconf[0];
+//                     const conf = {
+//                         user: confData.username,
+//                         password: ncry.decrypt(confData.password),
+//                         server: confData.ip_host,
+//                         database: confData.dbase,
+//                     };
+//                     const sqlsclient = await Pool.newPool(conf).connect();
+//                     try {
+//                         const transaction = new sqls.Transaction(sqlsclient);
+//                         await transaction.begin();
+//                         const { recordsets } = await sqlsclient.query(
+//                             `select max(uniq) as last_id from dbo.wb_driver`
+//                         );
+//                         let last_id = recordsets[0][0].last_id;
+//                         const request = new sqls.Request(transaction);
+//                         try {
+
+//                             for (const d of value) {
+//                                 const insertData = await request
+//                                     .input("create_by", sqls.VarChar, d.create_by)
+//                                     .input(
+//                                         "transporter_code",
+//                                         sqls.VarChar,
+//                                         d.transporter_code
+//                                     )
+//                                     .input("coy", sqls.VarChar, d.coy)
+//                                     .input(
+//                                         "location_code",
+//                                         sqls.VarChar,
+//                                         d.location_code
+//                                     )
+//                                     .input("black_list", sqls.VarChar, d.black_list)
+//                                     .input("uniq", sqls.BigInt, last_id + 1)
+//                                     .input('license_no', sqls.VarChar, d.license_no)
+//                                     .input('name', sqls.VarChar, d.driver_name)
+//                                     .input('address', sqls.VarChar, d.address)
+//                                     .input('birth_place', sqls.VarChar, d.birth_place)
+//                                     .input('birth_date', sqls.Date, d.birth_date)
+//                                     .request(`insert into dbo.wb_driver set(
+//                                     create_by,
+//                                     transporter_code,
+//                                     coy,
+//                                     location_code,
+//                                     black_list,
+//                                     uniq,
+//                                     license_no,
+//                                     name,
+//                                     address,
+//                                     birth_place,
+//                                     birth_date
+//                                     ) values
+//                                 (
+//                                     @create_by,
+//                                     @transporter_code,
+//                                     @coy,
+//                                     @location_code,
+//                                     @black_list,
+//                                     @uniq,
+//                                     @license_no,
+//                                     @name,
+//                                     @address,
+//                                     @birth_place,
+//                                     @birth_date
+//                                 ) ;`);
+//                                 last_id = last_id + 1;
+//                             }
+//                             await transaction.commit() ;
+//                         } catch (error) {
+//                             await transaction.rollback() ;
+//                             throw error ;
+//                         }
+//                     } catch (error) {
+//                         throw error ;
+//                     } finally {
+//                         sqlsclient.close();
+//                     }
+//                 } catch (error) {
+//                     throw error ;
+//                 }
+//             }
+//         } catch (error) {
+//             throw error ;
+//         } finally {
+//             client.release();
+//         }
+//     } catch (error) {
+//         throw error ;
+//     }
+// }
 
 FileUploadModel.CreatedKrani = async ({ req_uuid }) => {
     try {

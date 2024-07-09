@@ -13,10 +13,21 @@ const TicketGen = require("../helper/TicketGen");
 FileUploadController.uploadSTNK = async (req, res) => {
     try {
         const id_session = req.cookies.id_user;
-        const { plate_num, filename, id_row } =
-            await FileUploadModel.uploadFile(req, "stnk");
+        const {
+            plate_num,
+            filename,
+            plant,
+            transportir,
+            tp_name,
+            plant_name,
+            id_row,
+        } = await FileUploadModel.uploadFile(req, "stnk");
         const nump = await FileUploadModel.submitSTNK(
             plate_num,
+            plant,
+            transportir,
+            tp_name,
+            plant_name,
             filename,
             id_row,
             id_session
@@ -193,12 +204,22 @@ FileUploadController.getDataSTNK = async (req, res) => {
         const client = await db.connect();
         try {
             const { rows } = await client.query(
-                "SELECT uuid, vhcl_id, foto_stnk FROM mst_vehicle WHERE uuid = $1",
+                "SELECT uuid, vhcl_id, foto_stnk, plant, plant_name, transportir, tp_name FROM mst_vehicle WHERE uuid = $1",
                 [id_row]
             );
             res.status(200).send({
                 vhcl_id: rows[0].vhcl_id,
                 foto_stnk: rows[0].foto_stnk,
+                plant: {
+                    value: rows[0].plant,
+                    label: `${rows[0].plant} - ${rows[0].plant_name}`,
+                    plant_name: rows[0].plant_name,
+                },
+                transportir: {
+                    value: rows[0].tranportir,
+                    label: `${rows[0].transportir} - ${rows[0].tp_name}`,
+                    tp_name: rows[0].tp_name,
+                },
             });
         } catch (error) {
             throw error;
@@ -220,7 +241,7 @@ FileUploadController.getDataSIM = async (req, res) => {
         try {
             const { rows } = await client.query(
                 `SELECT uuid as id, driver_id, driver_name, alamat, tempat_lahir, ct.city, tanggal_lahir,
-                no_telp, foto_sim, is_send
+                no_telp, foto_sim, is_send, plant, plant_name
                  FROM mst_driver drv
                  LEFT JOIN mst_cities ct ON drv.tempat_lahir = ct.code 
                  WHERE uuid = $1`,
@@ -229,6 +250,10 @@ FileUploadController.getDataSIM = async (req, res) => {
 
             res.status(200).send({
                 ...rows[0],
+                plant: {
+                    value: rows[0].plant,
+                    label: `${rows[0].plant} - ${rows[0].plant_name}`,
+                },
             });
         } catch (error) {
             throw error;

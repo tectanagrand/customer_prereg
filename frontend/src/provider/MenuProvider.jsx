@@ -34,27 +34,34 @@ const MenuProvider = ({ children }) => {
         // }, 2000);
         const simFetch = async () => {
             try {
-                const getData = await axiosPrivate.post("/page/showall", {
-                    role_id: Cookies.get("role_id"),
-                });
-                _setMenu(new Map(Object.entries(getData.data.jsonMenu)));
-                localStorage.setItem(
-                    "permission",
-                    JSON.stringify(getData.data.jsonMenu)
-                );
-                setMenuName(new Map(Object.entries(getData.data.nameMenu)));
-                localStorage.setItem(
-                    "menuname",
-                    JSON.stringify(getData.data.nameMenu)
-                );
+                const isRoleUp = await axiosPrivate.post("/user/isroleup");
+                if (isRoleUp.status === 200) {
+                    const getData = await axiosPrivate.post("/page/showall", {
+                        role_id: Cookies.get("role_id"),
+                    });
+                    _setMenu(new Map(Object.entries(getData.data.jsonMenu)));
+                    localStorage.setItem(
+                        "permission",
+                        JSON.stringify(getData.data.jsonMenu)
+                    );
+                    setMenuName(new Map(Object.entries(getData.data.nameMenu)));
+                    localStorage.setItem(
+                        "menuname",
+                        JSON.stringify(getData.data.nameMenu)
+                    );
+                }
             } catch (error) {
-                console.error(error);
+                if (error.response.status === 303) {
+                    console.log("role updated");
+                } else {
+                    console.error(error);
+                }
             }
         };
         if (Cookies.get("role")) {
             simFetch();
         }
-        //fetch data menu
+        // fetch data menu
     }, []);
 
     const contextValue = useMemo(

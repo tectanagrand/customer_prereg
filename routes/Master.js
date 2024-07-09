@@ -35,5 +35,8 @@ router.get("/valtypedb", MasterController.ValtypeByComp);
 router.get("/batchdb", MasterController.BatchByComp);
 router.get("/reqdrvveh", MasterController.getReqDrvVehLog);
 router.get("/checkstobydo", MasterController.getStobyDo);
+router.get("/transpwbnet", MasterController.getTransporterWBNET);
+router.get("/plantwbnet", MasterController.plantWBNET);
+router.get("/dodb", MasterController.getDoDB);
 
 module.exports = router;

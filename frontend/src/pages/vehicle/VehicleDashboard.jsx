@@ -14,6 +14,8 @@ import PatternInputComp from "../../component/input/PatternInputTxt";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import TableVehicle from "../../component/table/TableVehicle";
+import AutoSelectPlant from "../../component/input/AutoSelectPlant";
+import AutoSelectTransportir from "./AutoselectTransportir";
 
 export default function VehicleDashboard() {
     const axiosPrivate = useAxiosPrivate();
@@ -25,6 +27,9 @@ export default function VehicleDashboard() {
     const [previewStnk, setPreviewstnk] = useState();
     const [plateVal, setPlate] = useState("");
     const [deleteDg, setDelDg] = useState(false);
+    const [plant, setPlant] = useState("");
+    console.log(plant);
+
     const {
         control,
         handleSubmit,
@@ -37,6 +42,8 @@ export default function VehicleDashboard() {
         defaultValues: {
             plate: "",
             filename: "",
+            plant: null,
+            transportir: null,
         },
     });
 
@@ -75,9 +82,12 @@ export default function VehicleDashboard() {
             reset({
                 plate: parsingDataSTNK(dataStnk.vhcl_id.replace(/ /g, "")),
                 filename: dataStnk.foto_stnk,
+                plant: dataStnk.plant,
+                transportir: dataStnk.transportir,
             });
 
             setPlate(dataStnk.vhcl_id);
+            setPlant(dataStnk.plant);
             const blob = new File([fileData], dataStnk.foto_stnk, {
                 type: "image/jpeg",
             });
@@ -92,6 +102,10 @@ export default function VehicleDashboard() {
     const openDelete = id => {
         setDelDg(true);
         setIdRow(id);
+    };
+
+    const onChangePlant = value => {
+        setPlant(value);
     };
 
     const DeleteData = async id => {
@@ -138,6 +152,10 @@ export default function VehicleDashboard() {
                 .replace(/_/g, "")
                 .toUpperCase()
         );
+        form.append("plant", values.plant.value);
+        form.append("plant_name", values.plant.plant_name);
+        form.append("transportir", values.transportir.value);
+        form.append("tp_name", values.transportir.transporter_name);
         form.append("id_row", id_row);
         try {
             const { data } = await axiosPrivate.post("/file/stnk", form, {
@@ -245,6 +263,28 @@ export default function VehicleDashboard() {
                             <Typography variant="h6" sx={{ ml: 4 }}>
                                 {plateVal}
                             </Typography>
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "1rem",
+                            }}
+                        >
+                            <AutoSelectPlant
+                                name="plant"
+                                label={"Plant WBNET"}
+                                control={control}
+                                onControlChgOvr={onChangePlant}
+                                rules={{ required: "Insert This Field" }}
+                            />
+                            <AutoSelectTransportir
+                                name="transportir"
+                                label="Transportir"
+                                control={control}
+                                plant={plant?.value ?? ""}
+                                rules={{ required: "Insert this field" }}
+                            />
                         </div>
                         <div>
                             <LoadingButton

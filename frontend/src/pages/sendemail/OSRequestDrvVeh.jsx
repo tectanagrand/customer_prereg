@@ -27,8 +27,8 @@ const OSRequestDrvVeh = () => {
     const [rows, setRows] = useState([]);
     const [modalVeh, _setModalVeh] = useState(false);
     const [modalDrv, _setModalDrv] = useState(false);
-    const [vehUuid, setVehuuid] = useState("");
-    const [drvUuid, setDrvuuid] = useState("");
+    const [vehUuid, _setVehuuid] = useState("");
+    const [drvUuid, _setDrvuuid] = useState("");
     const [loadedData, setLoadedData] = useState(false);
     const [refresh, setRefresh] = useState(true);
     const [openBackdrop, _setOpenBackdrop] = useState(false);
@@ -42,10 +42,16 @@ const OSRequestDrvVeh = () => {
         _setOpenBackdrop(value);
     };
     const getVehDetail = vehuuid => {
-        setVehuuid(vehuuid);
+        _setVehuuid(vehuuid);
     };
-    const getDrvDetail = vehuuid => {
-        setDrvuuid(vehuuid);
+    const getDrvDetail = drvuuid => {
+        _setDrvuuid(drvuuid);
+    };
+    const setVehuuid = vehuuid => {
+        _setVehuuid(vehuuid);
+    };
+    const setDrvuuid = drvuuid => {
+        _setDrvuuid(drvuuid);
     };
     const refreshButton = () => {
         setRefresh(true);
@@ -266,6 +272,7 @@ const OSRequestDrvVeh = () => {
                 uuid={vehUuid}
                 setOpenBackdrop={setOpenBackdrop}
                 loadedData={loadedData}
+                setVehUuid={setVehuuid}
             />
             <ModalDriver
                 isOpen={modalDrv}
@@ -273,6 +280,7 @@ const OSRequestDrvVeh = () => {
                 uuid={drvUuid}
                 setOpenBackdrop={setOpenBackdrop}
                 loadedData={loadedData}
+                setDrvUuid={setDrvuuid}
             />
             <Backdrop
                 sx={{ color: "#fff", zIndex: theme => theme.zIndex.drawer + 1 }}

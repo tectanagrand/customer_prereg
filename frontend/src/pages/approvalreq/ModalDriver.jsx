@@ -8,6 +8,7 @@ const ModalDriver = ({
     modalCtrl,
     setOpenBackdrop,
     loadedData,
+    setDrvUuid,
 }) => {
     const axiosPrivate = useAxiosPrivate();
     const [driver, setDriver] = useState({
@@ -23,7 +24,7 @@ const ModalDriver = ({
         modalCtrl(value);
     };
     useEffect(() => {
-        if (loadedData) {
+        if (loadedData && uuid !== "") {
             (async () => {
                 setOpenBackdrop(true);
                 try {
@@ -43,6 +44,7 @@ const ModalDriver = ({
                         imagedrv: data.source + "/" + data.data[0].foto_driver,
                     });
                     setModalDrv(true);
+                    setDrvUuid("");
                 } catch (error) {
                     console.error(error);
                 } finally {
@@ -82,7 +84,7 @@ const ModalDriver = ({
                         <tr>
                             <td style={{ width: "30%" }}>Nomor Telfon </td>
                             <td style={{ width: "5%" }}>:</td>
-                            <td>{driver.no_telp}</td>
+                            <td>{driver.nomortelfon}</td>
                         </tr>
                     </table>
                     <div

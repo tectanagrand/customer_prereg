@@ -8,6 +8,7 @@ const ModalVehicle = ({
     modalCtrl,
     setOpenBackdrop,
     loadedData,
+    setVehUuid,
 }) => {
     const axiosPrivate = useAxiosPrivate();
     const [vehicle, setVehicle] = useState({
@@ -18,7 +19,7 @@ const ModalVehicle = ({
         modalCtrl(value);
     };
     useEffect(() => {
-        if (loadedData) {
+        if (loadedData && uuid !== "") {
             (async () => {
                 setOpenBackdrop(true);
                 try {
@@ -30,6 +31,7 @@ const ModalVehicle = ({
                         platImage: data.source + "/" + data.data[0].foto_stnk,
                     });
                     setModalVeh(true);
+                    setVehUuid("");
                 } catch (error) {
                     console.error(error);
                 } finally {

@@ -4,6 +4,8 @@ const TRANS = require("../config/transaction");
 const crud = require("../helper/crudquery");
 const axios = require("axios");
 const MappingKeys = require("../helper/MappingKeys");
+const ncrypt = require("ncrypt-js");
+const { Pool, sqls } = require("../config/sqlservconn");
 // noderfc.setIniFileDirectory(process.env.SAPINIFILE);
 
 const MasterModel = {};
@@ -808,7 +810,7 @@ MasterModel.getDOList = async (cust_id, type) => {
                     },
                 }
             );
-
+            // console.log(data);
             for (const d of data.d.results) {
                 if (type) {
                     const { data } = await axios.get(
@@ -1189,6 +1191,64 @@ MasterModel.getDataTP = async rule => {
         }
     } catch (error) {
         console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.getTransporterWB = async (plant, limit, offset, q) => {
+    try {
+        const client = await db.connect();
+        const ncry = new ncrypt(process.env.TOKEN_KEY);
+        try {
+            const { rows: connplant } = await client.query(
+                `select * from mst_wbnet_conn where plant = $1`,
+                [plant]
+            );
+            const plantcon = connplant[0];
+            const conf = {
+                user: plantcon.username,
+                password: ncry.decrypt(plantcon.password),
+                server: plantcon.ip_host,
+                database: plantcon.dbase,
+            };
+            const sqlsclient = await Pool.newPool(conf).connect();
+            try {
+                const { recordsets: dataTp } = await sqlsclient
+                    .request()
+                    .input("q", sqls.Char, `%${q}%`)
+                    .input("Offset", sqls.Int, offset)
+                    .input("Limit", sqls.Int, limit).query(`   
+                    SELECT distinct transporter_code, transporter_name 
+                    from [dbo].wb_transporter
+                    where transporter_code like @q or transporter_name like @q
+                    order by transporter_name asc
+                    offset @Offset rows
+                    fetch next @Limit rows only ;`);
+
+                const { recordsets: dataCount } = await sqlsclient
+                    .request()
+                    .input("q", sqls.VarChar, `%${q}%`)
+                    .query(`SELECT distinct count(transporter_code) as datacount 
+                        from [dbo].wb_transporter
+                        where transporter_code like @q or transporter_name like @q
+                        `);
+
+                const dataTransporter = dataTp[0];
+                return {
+                    count: dataCount[0][0].datacount,
+                    data: dataTransporter,
+                };
+            } catch (error) {
+                throw error;
+            } finally {
+                sqlsclient.close();
+            }
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
         throw error;
     }
 };

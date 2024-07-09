@@ -19,6 +19,7 @@ import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import TableDriver from "../../component/table/TableDriver";
 import { useTheme } from "@mui/material/styles";
+import AutoSelectPlant from "../../component/input/AutoSelectPlant";
 
 export default function VehicleDashboard() {
     const axiosPrivate = useAxiosPrivate();
@@ -52,6 +53,7 @@ export default function VehicleDashboard() {
             foto_sim: "",
             foto_supir: "",
             alamat: "",
+            plant: null,
         },
     });
 
@@ -83,6 +85,7 @@ export default function VehicleDashboard() {
                     label: dataSim.city,
                 },
                 tanggal_lahir: moment(dataSim.tanggal_lahir),
+                plant: dataSim.plant,
                 no_telp: dataSim.no_telp,
                 foto_sim: dataSim.foto_sim,
                 alamat: dataSim.alamat,
@@ -148,6 +151,8 @@ export default function VehicleDashboard() {
         form.append("no_telp", values.no_telp.trim());
         form.append("tanggal_lahir", values.tanggal_lahir.format("MM-DD-YYYY"));
         form.append("alamat", values.alamat);
+        form.append("plant", values.plant.value);
+        form.append("plant_name", values.plant.plant_name);
         form.append("id_row", id_row);
         try {
             const { data } = await axiosPrivate.post("/file/sim", form, {
@@ -258,6 +263,21 @@ export default function VehicleDashboard() {
                                 flexGrow: 1,
                             }}
                         >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    flexWrap: "wrap",
+                                    gap: "1rem",
+                                }}
+                            >
+                                <AutoSelectPlant
+                                    label="Plant Target"
+                                    name="plant"
+                                    control={control}
+                                    sx={{ width: "20rem" }}
+                                />
+                            </div>
                             <div
                                 style={{
                                     display: "flex",

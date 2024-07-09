@@ -1,17 +1,9 @@
-const crypto = require("crypto");
+const ncrypt = require("ncrypt-js");
 require("dotenv").config({ path: `../.env.development` });
 
-const algorithm = process.env.CRYPTALGO;
-const key = "key01";
-const iv = "iv1";
-console.log(key);
-console.log(iv);
-
-const cipher = crypto.createCipheriv(algorithm, key, iv);
-
-let encrypted = cipher.update("Bebas-01", "utf8", "hex");
-encrypted += cipher.final("hex");
-console.log(encrypted);
+const cipher = new ncrypt(process.env.TOKEN_KEY);
+const encry = cipher.encrypt("admin");
+console.log(encry);
 
 // const decipher = crypto.createDecipheriv(algorithm, key, iv);
 
