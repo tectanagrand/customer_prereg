@@ -7,6 +7,7 @@ const EmailModel = require("../models/EmailModel");
 const crud = require("../helper/crudquery");
 const OTP = require("../helper/OTPHandler");
 const { hashPassword } = require("../helper/hashpass");
+const TRANS = require("../config/transaction");
 
 const UserController = {};
 // UserController.registerUser = async (req, res) => {
@@ -535,6 +536,46 @@ UserController.deleteUser = async (req, res) => {
         res.status(500).send({
             message: error.message,
         });
+    }
+};
+
+UserController.isRoleUp = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows: checkRoleUp } = await client.query(
+                "select is_role_update from mst_user where id_user = $1",
+                [req.cookies.id_user]
+            );
+            if (checkRoleUp[0].is_role_update) {
+                const deactRoleUpdate = await client.query(
+                    "UPDATE mst_user set is_role_update = false where id_user = $1",
+                    [req.cookies.id_user]
+                );
+                await client.query(TRANS.COMMIT);
+                res.status(200).send({
+                    message: "Role Updated",
+                });
+            } else {
+                throw new Error("Role not updated");
+            }
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        if (error.message === "Role not updated") {
+            res.status(303).send({
+                message: error.message,
+            });
+        } else {
+            res.status(500).send({
+                message: error.message,
+            });
+        }
     }
 };
 module.exports = UserController;

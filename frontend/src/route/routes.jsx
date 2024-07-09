@@ -78,6 +78,9 @@ const HistoricalLoadingNote = lazy(
 const ApprovalRoutes = lazy(
     () => import("../pages/approvalreq/ApprovalRoutes")
 );
+const ReportLoadingNote = lazy(
+    () => import("../pages/recap/ReportLoadingNote")
+);
 export const routes = createBrowserRouter([
     {
         path: "/",
@@ -214,6 +217,10 @@ export const routes = createBrowserRouter([
                     {
                         path: "approvedel",
                         element: <ApprovalReqDelete />,
+                    },
+                    {
+                        path: "report",
+                        element: <ReportLoadingNote />,
                     },
                 ],
             },

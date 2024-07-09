@@ -996,4 +996,106 @@ MasterController.getStobyDo = async (req, res) => {
         });
     }
 };
+
+MasterController.getTransporterWBNET = async (req, res) => {
+    try {
+        const plantwbnet = req.query.plant;
+        const { limit, offset, q } = req.query;
+        const dataTp = await Master.getTransporterWB(
+            plantwbnet,
+            limit,
+            offset,
+            q
+        );
+        res.status(200).send(dataTp);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.plantWBNET = async (req, res) => {
+    try {
+        const { limit, offset, q } = req.query;
+        const que = `%${q}%`;
+        const client = await db.connect();
+        try {
+            const { rows: plant } = await client.query(
+                `
+                select
+                    mwc.plant ,
+                    CONCAT(mcp.company_name, ' - ', mcp.plant_name) as plant_name
+                from
+                    mst_wbnet_conn mwc
+                left join mst_company_plant mcp on
+                    mcp.plant_code = mwc.plant
+                    where mwc.plant like $1 or mcp.plant_name like $2
+                    limit $3 offset $4
+                `,
+                [que, que, limit, offset]
+            );
+            const { rows: countPlant } = await client.query(
+                `
+                    select
+                       count(mwc.plant) as countdata 
+                    from
+                        mst_wbnet_conn mwc
+                    left join mst_company_plant mcp on
+                        mcp.plant_code = mwc.plant
+                        where mwc.plant like $1 or mcp.plant_name like $2
+                    `,
+                [que, que]
+            );
+            res.status(200).send({
+                data: plant,
+                count: countPlant[0].countdata,
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getDoDB = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const { id_user, role } = req.cookies;
+        try {
+            if (
+                role !== "LOGISTIC" &&
+                role !== "ADMIN" &&
+                role !== "COMMERCIAL"
+            ) {
+                const { rows } = await client.query(
+                    `select distinct id_do from loading_note_hd where create_by = $1`,
+                    [id_user]
+                );
+                res.status(200).send(rows);
+            } else {
+                const { rows } = await client.query(
+                    `select distinct id_do from loading_note_hd`
+                );
+                res.status(200).send(rows);
+            }
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
 module.exports = MasterController;

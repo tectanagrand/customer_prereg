@@ -25,4 +25,5 @@ router.get("/allrole", UserController.showAllRole);
 router.post("/getauth", UserController.getAllAuth);
 router.post("/email", UserController.sendEmailCredentials2);
 router.post("/delete", UserController.deleteUser);
+router.post("/isroleup", UserController.isRoleUp);
 module.exports = router;

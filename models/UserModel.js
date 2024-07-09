@@ -689,6 +689,10 @@ UserModel.submitRoleGroup = async (role_id, accesses, id_user, role_name) => {
             promises.push(client.query(query, val));
         });
         const upPageAcs = await Promise.all(promises);
+        const updateRole = await client.query(
+            "UPDATE mst_user set is_role_update = true where role = $1",
+            [role_id]
+        );
         await client.query(TRANS.COMMIT);
         return {
             role_id: roleid,
