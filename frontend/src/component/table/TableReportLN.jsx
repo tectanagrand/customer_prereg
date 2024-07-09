@@ -32,6 +32,7 @@ import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { debounce } from "lodash";
 import moment from "moment";
 import DatePickerNoComp from "../common/DatePickerNoCont";
+import AutoCompleteDODB from "../input/AutoCompleteDODB";
 
 export default function TableReportLN({ onsetFilterData, isLoading }) {
     const formatNumber = (number, uom) => {
@@ -59,6 +60,10 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
         _setEndDate(moment(value));
         refreshTableData(startDate, moment(value));
     };
+    const [do_number, _setDoNum] = useState(null);
+    const setDoNum = value => {
+        console.log(value);
+    };
     const [summary, setSum] = useState({
         plan_qty: 0,
         bruto: 0,
@@ -72,6 +77,7 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
             {
                 header: "Do Number",
                 accessorKey: "id_do",
+                enableColumnFilter: false,
             },
             {
                 header: "Loading Note",
@@ -341,6 +347,7 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
                     onChange={setEndDate}
                     format={"DD-MM-YYYY"}
                 />
+                <AutoCompleteDODB onChangeovr={setDoNum} />
             </div>
             <div
                 style={{

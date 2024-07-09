@@ -48,15 +48,18 @@ export const LazySelectCompNoCont = ({
 
     // const valueMemo = useMemo(() => value, [value]);
 
-    const lastOptionElementRef = useCallback(async node => {
-        if (observer.current) observer.current.disconnect();
-        observer.current = new IntersectionObserver(async entries => {
-            if (entries[0].isIntersecting && hasMore) {
-                await onFetchMore();
-            }
-        });
-        if (node) observer.current.observe(node);
-    }, []);
+    const lastOptionElementRef = useCallback(
+        async node => {
+            if (observer.current) observer.current.disconnect();
+            observer.current = new IntersectionObserver(async entries => {
+                if (entries[0].isIntersecting && hasMore) {
+                    await onFetchMore();
+                }
+            });
+            if (node) observer.current.observe(node);
+        },
+        [onFetchMore]
+    );
 
     return (
         <>

@@ -1069,22 +1069,41 @@ MasterController.getDoDB = async (req, res) => {
     try {
         const client = await db.connect();
         const { id_user, role } = req.cookies;
+        const { limit, offset } = req.query;
         try {
             if (
                 role !== "LOGISTIC" &&
                 role !== "ADMIN" &&
-                role !== "COMMERCIAL"
+                role !== "COMMERCIAL" &&
+                role
             ) {
+                const query = `select distinct id_do from loading_note_hd where create_by = $1 and id_do like $2`;
                 const { rows } = await client.query(
-                    `select distinct id_do from loading_note_hd where create_by = $1`,
-                    [id_user]
+                    `${query} limit $3 offset $4`,
+                    [id_user, `%${q}%`, limit, offset]
                 );
-                res.status(200).send(rows);
+                const { rowCount } = await client.query(
+                    `select distinct id_do from loading_note_hd where create_by = $1 and id_do like $2`,
+                    [id_user, `%${q}%`]
+                );
+                res.status(200).send({
+                    data: rows,
+                    count: rowCount,
+                });
             } else {
+                const query = `select distinct id_do from loading_note_hd where id_do like $1`;
                 const { rows } = await client.query(
-                    `select distinct id_do from loading_note_hd`
+                    `${query} limit $2 offset $3`,
+                    [`%${q}%`, limit, offset]
                 );
-                res.status(200).send(rows);
+                const { rowCount } = await client.query(
+                    `select distinct id_do from loading_note_hd where id_do like $1`,
+                    [`%${q}%`]
+                );
+                res.status(200).send({
+                    data: rows,
+                    count: rowCount,
+                });
             }
         } catch (error) {
             throw error;
