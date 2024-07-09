@@ -5,11 +5,12 @@ import useRefreshTokenApproval from "./useRefreshTokenApproval";
 import { useSession } from "../provider/sessionProvider";
 import axios from "axios";
 
-const notNeeded = ["GET", "HEAD", "OPTIONS"];
+const notNeeded = ["POST"];
 const useAxiosPrivate = () => {
     const refresh = useRefreshToken();
     const refreshApproval = useRefreshTokenApproval();
     const { session } = useSession();
+    const csrfTokenSet = new Set(notNeeded.map(method => method.toUpperCase()));
 
     useEffect(() => {
         const requestIntercept = axiosPrivate.interceptors.request.use(
@@ -18,7 +19,10 @@ const useAxiosPrivate = () => {
                     config.headers["Authorization"] =
                         `Bearer ${session?.access_token}`;
                 }
-                if (!notNeeded.includes(config.method.toUpperCase())) {
+                if (
+                    csrfTokenSet.has(config.method.toUpperCase()) ||
+                    !config.headers["X-CSRF-Token"]
+                ) {
                     // console.log(config.method);
                     try {
                         const response = await axios.get(

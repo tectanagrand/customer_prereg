@@ -36,19 +36,27 @@ export const LazySelectComp = ({
     onControlChgOvr,
     onBlurovr,
     defaultValue,
+    searchQuery,
     ...props
 }) => {
     const observer = useRef();
 
-    const lastOptionElementRef = useCallback(async node => {
-        if (observer.current) observer.current.disconnect();
-        observer.current = new IntersectionObserver(async entries => {
-            if (entries[0].isIntersecting && hasMore) {
-                await onFetchMore();
-            }
-        });
-        if (node) observer.current.observe(node);
-    }, []);
+    const lastOptionElementRef = useCallback(
+        async node => {
+            if (observer.current) observer.current.disconnect();
+            observer.current = new IntersectionObserver(async entries => {
+                if (entries[0].isIntersecting && hasMore) {
+                    try {
+                        await onFetchMore(searchQuery);
+                    } catch (error) {
+                        console.error(error);
+                    }
+                }
+            });
+            if (node) observer.current.observe(node);
+        },
+        [onFetchMore]
+    );
 
     return (
         <Controller
@@ -69,6 +77,7 @@ export const LazySelectComp = ({
                         }
                         onChange(newValue);
                     }}
+                    onInputChange={onChangeovr}
                     value={value}
                     error={error}
                     fullWidth

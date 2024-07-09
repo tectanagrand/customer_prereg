@@ -137,10 +137,7 @@ export default function LoadingNoteForm() {
                         };
                     });
                     setCheckedMulti(checkedMulti);
-                    setRemaining(
-                        parseFloat(data.data.os_qty) -
-                            parseFloat(data.data.plan_qty_con)
-                    );
+                    setRemaining(parseFloat(data.data.remaining));
                     usedQty.current = parseFloat(data.data.totalspend);
                     reset({
                         ...data.data,
@@ -534,6 +531,7 @@ export default function LoadingNoteForm() {
                                     <InputAdornment>{uomQty}</InputAdornment>
                                 }
                                 thousandSeparator
+                                disabled
                             />
                             <NumericFieldComp
                                 name="os_sap_qty"

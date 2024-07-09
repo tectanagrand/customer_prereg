@@ -12,7 +12,7 @@ export default function AutoSelectDriver({
 }) {
     const axiosPrivate = useAxiosPrivate();
     const limit = 10;
-    const max = 999999;
+    const max = 0;
     const [dataRow, setDataRow] = useState([]);
     let paginationRef = useRef({
         offset: 99999,
