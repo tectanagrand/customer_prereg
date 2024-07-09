@@ -112,15 +112,33 @@ const AuthManager = {
                             sessionSAP[0].refresh_token,
                             process.env.TOKEN_KEY
                         );
+                        const pass = ncryption.decrypt(sessionSAP[0].enc_pwd);
+                        const { data } = await axios.get(
+                            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SOSTOSet?$filter=(Bednr%20eq%20%271001003364%27)&$format=json`,
+                            {
+                                auth: {
+                                    username: req.cookies.username,
+                                    password: pass,
+                                },
+                            }
+                        );
                     } catch (error) {
-                        if (error.name === "TokenExpiredError") {
-                            //delete session
+                        try {
                             await client.query(
                                 "delete from session_sap where id_user = $1",
                                 [id_user]
                             );
                             await client.query(TRANS.COMMIT);
+                        } catch (error) {
+                            throw error;
+                        }
+                        if (error?.name === "TokenExpiredError") {
+                            //delete session
                             throw new Error("Session Expired");
+                        } else if (error.response.status === 401) {
+                            throw new Error("SAP Credential Not Valid");
+                        } else {
+                            throw error;
                         }
                     }
                     req.body.password = ncryption.decrypt(

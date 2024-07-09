@@ -39,5 +39,9 @@ router.post("/requestdel", LoadNote.deleteRequest);
 router.post("/processdel", AuthManager.authSAP, LoadNote.processDelete);
 router.get("/emailreminder", LoadNote.reminderDeadlines);
 router.post("/deletecust", LoadNote.deleteRequestCust);
+router.post("/getinfln", LoadNote.getDataReport);
+router.get("/getdatawb", LoadNote.getDataWB);
+router.get("/syncwbnet", LoadNote.syncDataWBNET);
+router.post("/genexcelv2", LoadNote.generateExcelV2);
 
 module.exports = router;

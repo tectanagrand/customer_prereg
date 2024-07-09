@@ -8,6 +8,7 @@ const Crud = require("../helper/crudquery");
 const TRANS = require("../config/transaction");
 const EmailGen = require("../helper/EmailGen");
 const EmailModel = require("../models/EmailModel");
+const moment = require("moment");
 
 const LoadingNoteController = {};
 
@@ -242,9 +243,13 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
             session
         );
         q.pushJob(
-            new Promise(async (reject, resolve) => {
-                try {
-                    const { data } = await axios.get(
+            new Promise((resolve, reject) => {
+                console.log(
+                    "Start new Job : " +
+                        moment().format("YYYY-MM-DD T HH:mm:ss")
+                );
+                axios
+                    .get(
                         `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
                         {
                             auth: {
@@ -252,11 +257,19 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
                                 password: password,
                             },
                         }
-                    );
-                    resolve("Success Push");
-                } catch (error) {
-                    reject(error.response?.data.message);
-                }
+                    )
+                    .then(result => {
+                        resolve(
+                            "Success Push" +
+                                moment().format("YYYY-MM-DD T HH:mm:ss") +
+                                " " +
+                                insertSAP.data
+                        );
+                    })
+                    .catch(error => {
+                        console.log(error);
+                        reject(error);
+                    });
             })
         );
         res.status(200).send({
@@ -339,10 +352,42 @@ LoadingNoteController.getDataRecapSS = async (req, res) => {
     try {
         const filters = req.body.filters;
         let customer_id = req.cookies.username;
-        if (req.cookies.role === "ADMIN" || req.cookies.role === "LOGISTIC") {
+        if (
+            req.cookies.role === "ADMIN" ||
+            req.cookies.role === "LOGISTIC" ||
+            req.cookies.role === "COMMERCIAL"
+        ) {
             customer_id = "";
         }
         const data = await LoadNote.getSSRecap(filters, customer_id);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            messsage: error.message,
+        });
+    }
+};
+
+LoadingNoteController.getDataReport = async (req, res) => {
+    try {
+        const filters = req.body.filters;
+        const limit = req.body.limit;
+        const offset = req.body.offset;
+        let customer_id = req.cookies.username ?? "";
+        if (
+            req.cookies.role === "ADMIN" ||
+            req.cookies.role === "LOGISTIC" ||
+            req.cookies.role === "COMMERCIAL"
+        ) {
+            customer_id = "";
+        }
+        const data = await LoadNote.getReportLN(
+            filters,
+            customer_id,
+            limit,
+            offset
+        );
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
@@ -796,4 +841,53 @@ LoadingNoteController.deleteRequestCust = async (req, res) => {
     }
 };
 
+LoadingNoteController.getDataWB = async (req, res) => {
+    try {
+        const dataWB = await LoadNote.getDataWB();
+        res.status(200).send(dataWB);
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.syncDataWBNET = async (req, res) => {
+    try {
+        const dataWB = await LoadNote.syncDataWBNET();
+        res.status(200).send(dataWB);
+    } catch (error) {
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.generateExcelV2 = async (req, res) => {
+    try {
+        const { filters, customer_id } = req.body;
+        const do_number = filters.find(row => row.id === "id_do");
+        if (!do_number) {
+            throw new Error("Please provide SO Number");
+        }
+        const excelData = await LoadNote.generateExcelv2(filters, customer_id);
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+        res.setHeader(
+            "Content-Disposition",
+            "attachment; filename=" +
+                `Report_Loading_Note_${do_number.value}.xlsx`
+        );
+        await excelData.xlsx.write(res);
+        res.status(200);
+        res.end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
 module.exports = LoadingNoteController;

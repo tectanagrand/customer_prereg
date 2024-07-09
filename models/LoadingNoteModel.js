@@ -4,6 +4,7 @@ const TRANS = require("../config/transaction");
 const ExcelJS = require("exceljs");
 const crud = require("../helper/crudquery");
 const uuid = require("uuidv4");
+const ncrypt = require("ncrypt-js");
 // const noderfc = require("node-rfc");
 // const INDICATOR = require("../config/IndicateRFC");
 const moment = require("moment");
@@ -11,6 +12,7 @@ const moment = require("moment");
 // const poolRFC = require("../config/rfcconnection");
 const axios = require("axios");
 const EmailModel = require("../models/EmailModel");
+const { Pool, sqls } = require("../config/sqlservconn");
 
 const LoadingNoteModel = {};
 
@@ -612,6 +614,13 @@ LoadingNoteModel.getById2 = async id_header => {
                 };
             });
             const hd_dt = rows[0];
+            const { rows: qtyExcept } = await client.query(
+                `SELECT sum(det.plan_qty) as qty
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
+            WHERE HD.hd_id <> $1 AND HD.ID_DO = $2 AND DET.is_active = true AND det.ln_num is null`,
+                [id_header, hd_dt.id_do]
+            );
             const { data: I_OUTDELIVERY } = await axios.get(
                 `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${hd_dt.id_do}%27)&$format=json`,
                 {
@@ -673,6 +682,8 @@ LoadingNoteModel.getById2 = async id_header => {
                 os_qty: parseFloat(hd_dt.con_qty) - totalFromSAP - qtyTemp,
                 totalspend: totalFromSAP + qtyTemp - plan_qty_con,
                 totalSAP: totalFromSAP,
+                remaining:
+                    parseFloat(hd_dt.con_qty) - totalFromSAP - qtyExcept[0].qty,
                 plan_qty_con: plan_qty_con,
                 plant: hd_dt.plant,
                 description: hd_dt.desc_con,
@@ -1103,6 +1114,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
         const fac_batch = params.fac_batch;
         const oth_batch = params.oth_batch;
         let queIns, valIns;
+        let det_id_pushed = [];
         try {
             await client.query(TRANS.BEGIN);
             for (item of uploadData) {
@@ -1158,7 +1170,6 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     ISRETRIVEDBYSAP: "FALSE",
                     USERSAP: session.username,
                 };
-                console.log(param);
                 if (method === "insert") {
                     [queIns, valIns] = crud.insertItemOra(
                         "PREREG_LOADING_NOTE_SAP",
@@ -1202,12 +1213,14 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                 );
                 const uptoDb = await client.query(upDb, valDb);
                 const insertToStage = await oraclient.execute(queIns, valIns);
+                det_id_pushed.push(item.id);
             }
             // console.log(resultDb);
             await client.query(TRANS.COMMIT);
             await oraclient.commit();
             return {
                 message: "Loading Note request staged to SAP",
+                data: det_id_pushed.join(","),
             };
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
@@ -1762,7 +1775,15 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             id = "cre_date";
             date = true;
         } else if (item.id === "tanggal_surat_jalan") {
-            value = `TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+            value = `= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+            id = "tanggal_surat_jalan";
+            date = true;
+        } else if (item.id === "start_tsj") {
+            value = `>= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+            id = "tanggal_surat_jalan";
+            date = true;
+        } else if (item.id === "end_tsj") {
+            value = `<= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
             id = "tanggal_surat_jalan";
             date = true;
         }
@@ -1779,7 +1800,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
                 ltindex++;
             }
         } else {
-            where.push(`${id} = ${value}`);
+            where.push(`${id} ${value}`);
         }
     });
     if (customer_id !== "") {
@@ -1799,6 +1820,157 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         try {
             const { rows } = await client.query(que, val);
             return rows;
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
+    const getRecapData = `SELECT
+            DET.LN_NUM,
+            HD.ID_DO,
+            HD.INCO_1,
+            HD.INCO_2,
+            HD.COMPANY,
+            HD.PLANT,
+            HD.DESC_CON,
+            HD.CON_QTY,
+            CASE 
+                WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
+                WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+                WHEN INT.KUNNR IS NOT NULL THEN INT.KUNNR
+                ELSE ''
+                END AS KUNNR,
+            CASE
+                WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
+                WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+                WHEN INT.NAME_1 IS NOT NULL THEN INT.NAME_1
+                ELSE ''
+                END AS NAME_1,
+            DET.DRIVER_ID,
+            DET.DRIVER_NAME,
+            DET.VHCL_ID,
+            DET.PLAN_QTY,
+            TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
+            TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN,
+            TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE_MOMENT,
+            TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'MM-DD-YYYY') AS TANGGAL_SURAT_JALAN_MOMENT,
+            HD.UOM,
+            DET.BRUTO,
+            DET.TARRA,
+            DET.NETTO,
+            DET.RECEIVE,
+            DET.DEDUCTION,
+            det.posted,
+            COALESCE(DET.print_count, 0) as print_count
+        FROM LOADING_NOTE_DET DET
+        LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
+        LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+        LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+        LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+        LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
+        WHERE DET.LN_NUM IS NOT NULL`;
+
+    const getCountData = `SELECT
+    COUNT(DET.*) as count_rows,
+    MAX(det.tanggal_surat_jalan) as max_tgl_muat,
+    MIN(det.tanggal_surat_jalan) as min_tgl_muat,
+    SUM(det.plan_qty) as plan_qty,
+    HD.con_qty,
+    coalesce(SUM(det.bruto), 0) as bruto,
+    coalesce(SUM(det.tarra), 0) as tarra,
+    coalesce(SUM(det.netto), 0) as netto,
+    coalesce(SUM(det.deduction), 0) as deduction,
+    coalesce(SUM(det.receive), 0) as receive
+        FROM LOADING_NOTE_DET DET
+        LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
+        LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+        LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+        LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+        LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
+        WHERE DET.LN_NUM IS NOT NULL`;
+    let where = [];
+    let whereVal = [];
+    let ltindex = 0;
+    let whereQue = "";
+    filters.forEach((item, index) => {
+        let value = item.value;
+        let id = item.id;
+        let date = false;
+        if (item.id === "Incoterms") {
+            value = item.value.split("-")[0].trim();
+            id = "inco_1";
+        } else if (item.id === "Customer") {
+            value = item.value.split("-")[0].trim();
+            id = ["cust.kunnr", "ven.lifnr", "int.kunnr"];
+        } else if (item.id === "Contract Quantity") {
+            value = item.value.split(" ")[0].trim();
+            id = "con_qty";
+        } else if (item.id === "Planning Quantity") {
+            value = item.value.split(" ")[0].trim();
+            id = "plan_qty";
+        } else if (item.id === "cre_date") {
+            value = `= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+            id = "cre_date";
+            date = true;
+        } else if (item.id === "tanggal_surat_jalan") {
+            value = `= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+            id = "tanggal_surat_jalan";
+            date = true;
+        } else if (item.id === "start_tsj") {
+            value = `>= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+            id = "tanggal_surat_jalan";
+            date = true;
+        } else if (item.id === "end_tsj") {
+            value = `<= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+            id = "tanggal_surat_jalan";
+            date = true;
+        }
+        if (!date) {
+            if (item.id === "Customer") {
+                where.push(
+                    `(${id[0]} = $${ltindex + 1} OR ${id[1]} = $${ltindex + 2} OR ${id[2]} = $${ltindex + 3})`
+                );
+                whereVal.push(...[value, value, value]);
+                ltindex += 3;
+            } else {
+                where.push(`${id} = $${ltindex + 1}`);
+                whereVal.push(value);
+                ltindex++;
+            }
+        } else {
+            where.push(`${id} ${value}`);
+        }
+    });
+    if (customer_id !== "") {
+        // where.push(`kunnr = $${ltindex + 1}`);
+        where.push(
+            `(cust.kunnr = $${ltindex + 1} OR ven.lifnr = $${ltindex + 2} OR int.kunnr =  $${ltindex + 3} )`
+        );
+        whereVal.push(...[customer_id, customer_id, customer_id]);
+    }
+    if (where.length != 0) {
+        whereQue = `AND ${where.join(" AND ")}`;
+    }
+    let que = `${getRecapData} ${whereQue} ORDER BY DET.TANGGAL_SURAT_JALAN ASC ${limit && limit !== "" ? `LIMIT ${limit} OFFSET ${offset}` : ""} `;
+    let countData = `${getCountData} ${whereQue} group by hd.con_qty`;
+    let val = whereVal;
+    try {
+        const client = await db.connect();
+        try {
+            const { rows, rowCount } = await client.query(que, val);
+            const { rows: dataCount } = await client.query(countData, val);
+            return {
+                data: rows,
+                limit: rowCount,
+                count: dataCount[0].count_rows,
+                sum_data: { ...dataCount[0], uom: rows[0].uom },
+            };
         } catch (error) {
             throw error;
         } finally {
@@ -1829,6 +2001,282 @@ LoadingNoteModel.generateExcel = async (filters, customer_id) => {
         return bookRecap;
     } catch (error) {
         console.error(error);
+        throw error;
+    }
+};
+
+LoadingNoteModel.generateExcelv2 = async (filters, customer_id) => {
+    try {
+        const excelData = await LoadingNoteModel.getReportLN(
+            filters,
+            customer_id
+        );
+        const dataCount = excelData.data.length;
+        const filtersmap = new Map();
+        filters.map(item => {
+            filtersmap.set(item.id, item.value);
+        });
+        const do_number = filters.find(row => row.id == "id_do");
+        const reportBook = new ExcelJS.Workbook();
+        const recapSheet = reportBook.addWorksheet(
+            "Report DO " + do_number.value
+        );
+        const tableHeader = new Map([
+            [
+                "A",
+                {
+                    value: "cre_date_moment",
+                    label: "Tanggal Pembuatan",
+                    width: 20,
+                },
+            ],
+            [
+                "B",
+                {
+                    value: "tanggal_surat_jalan_moment",
+                    label: "Tanggal Muat",
+                    width: 20,
+                },
+            ],
+            [
+                "C",
+                {
+                    value: "company",
+                    label: "Company",
+                    width: 10,
+                },
+            ],
+            [
+                "D",
+                {
+                    value: "plant",
+                    label: "Plant",
+                    width: 10,
+                },
+            ],
+            [
+                "E",
+                {
+                    value: "name_1",
+                    label: "Customer",
+                    width: 20,
+                },
+            ],
+            [
+                "F",
+                {
+                    value: "id_do",
+                    label: "SO Number",
+                    width: 15,
+                },
+            ],
+            [
+                "G",
+                {
+                    value: "ln_num",
+                    label: "Loading Note Number",
+                    width: 20,
+                },
+            ],
+            [
+                "H",
+                {
+                    value: "inco_1",
+                    label: "Incoterm",
+                    width: 10,
+                },
+            ],
+            [
+                "I",
+                {
+                    value: "desc_con",
+                    label: "Material",
+                    width: 30,
+                },
+            ],
+            [
+                "J",
+                {
+                    value: "driver_name",
+                    label: "Driver",
+                    width: 30,
+                },
+            ],
+            [
+                "K",
+                {
+                    value: "vhcl_id",
+                    label: "Vehicle",
+                    width: 12,
+                },
+            ],
+            [
+                "L",
+                {
+                    value: "plan_qty",
+                    label: "Planning Quantity",
+                    width: 16,
+                },
+            ],
+            [
+                "M",
+                {
+                    value: "bruto",
+                    label: "Bruto",
+                    width: 16,
+                },
+            ],
+            [
+                "N",
+                {
+                    value: "tarra",
+                    label: "Tarra",
+                    width: 16,
+                },
+            ],
+            [
+                "O",
+                {
+                    value: "netto",
+                    label: "Netto",
+                    width: 16,
+                },
+            ],
+            [
+                "P",
+                {
+                    value: "receive",
+                    label: "Receive",
+                    width: 16,
+                },
+            ],
+            [
+                "Q",
+                {
+                    value: "deduction",
+                    label: "Deduction",
+                    width: 16,
+                },
+            ],
+            [
+                "R",
+                {
+                    value: "uom",
+                    label: "UOM",
+                    width: 5,
+                },
+            ],
+            [
+                "S",
+                {
+                    value: "posted",
+                    label: "Post",
+                    width: 5,
+                },
+            ],
+        ]);
+        //Date
+        recapSheet.getCell("A1").value = "Date";
+        recapSheet.getCell("C1").value = moment(
+            excelData.sum_data.min_tgl_muat
+        ).format("DD/MM/YYYY");
+        recapSheet.getCell("D1").value = "-";
+        recapSheet.getCell("E1").value = moment(
+            excelData.sum_data.max_tgl_muat
+        ).format("DD/MM/YYYY");
+        //SONumber
+        recapSheet.getCell("A2").value = "SO Number";
+        recapSheet.getCell("C2").value = do_number.value;
+        //contractqty
+        recapSheet.getCell("A3").value = "Contract Quantity";
+        recapSheet.getCell("C3").value = parseInt(excelData.sum_data.con_qty);
+        recapSheet.getCell("C3").numFmt = "#,##0";
+        let tableStart = 4;
+        for (const [cell, header] of tableHeader) {
+            recapSheet.getCell(cell + tableStart).value = header.label;
+            recapSheet.getColumn(cell).width = header.width;
+            recapSheet.getCell(cell + tableStart).fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "ffffcc00" },
+            };
+            recapSheet.getCell(cell + tableStart).border = {
+                top: { style: "thin" },
+                left: { style: "thin" },
+                bottom: { style: "thin" },
+                right: { style: "thin" },
+            };
+        }
+        tableStart = tableStart + 1;
+        for (let i = tableStart; i <= dataCount; i++) {
+            const dataRow = excelData.data[i - tableStart];
+            for (const [cell, header] of tableHeader) {
+                if (
+                    header.value === "cre_date_moment" ||
+                    header.value === "tanggal_surat_jalan_moment"
+                ) {
+                    let dataOnRow;
+                    dataOnRow = moment(dataRow[header.value]).format(
+                        "YYYY-MM-DDT00:00:00"
+                    );
+                    if (dataRow[header.value] !== null) {
+                        recapSheet.getCell(cell + i).numFmt = "dd/mm/yyyy";
+                        recapSheet.getCell(cell + i).value = new Date(
+                            dataOnRow
+                        );
+                    }
+                } else if (
+                    header.value === "plan_qty" ||
+                    header.value === "bruto" ||
+                    header.value === "tarra" ||
+                    header.value === "netto" ||
+                    header.value === "receive" ||
+                    header.value === "deduction"
+                ) {
+                    if (dataRow[header.value] !== null) {
+                        recapSheet.getCell(cell + i).value = parseInt(
+                            dataRow[header.value]
+                        );
+                        recapSheet.getCell(cell + i).numFmt = "#,##0";
+                    }
+                } else if (header.value === "posted") {
+                    if (
+                        dataRow[header.value] &&
+                        dataRow[header.value] !== null
+                    ) {
+                        recapSheet.getCell(cell + i).value = dataRow[
+                            header.value
+                        ]
+                            ? "v"
+                            : "";
+                    }
+                } else if (
+                    dataRow[header.value] &&
+                    dataRow[header.value] !== null
+                ) {
+                    recapSheet.getCell(cell + i).value = {
+                        richText: [
+                            {
+                                text:
+                                    typeof dataRow[header.value] !== "string"
+                                        ? dataRow[header.value].toString()
+                                        : dataRow[header.value],
+                            },
+                        ],
+                    };
+                }
+                recapSheet.getCell(cell + i).border = {
+                    top: { style: "thin" },
+                    left: { style: "thin" },
+                    bottom: { style: "thin" },
+                    right: { style: "thin" },
+                };
+            }
+        }
+        tableStart += dataCount;
+
+        return reportBook;
+    } catch (error) {
         throw error;
     }
 };
@@ -2186,4 +2634,125 @@ LoadingNoteModel.requestDelete = async (selected, remark, id_user) => {
     }
 };
 
+LoadingNoteModel.getDataWB = async () => {
+    try {
+        const config = {
+            user: "sa",
+            password: "admin",
+            server: `localhost\\MSSQLSERVER01`,
+            database: "WBSYSTEM_PS",
+        };
+        const sqlsclient = await Pool.newPool(config).connect();
+        try {
+            const result = await sqlsclient
+                .request()
+                .query("SELECT top 10 * from [dbo].wb_transaction ");
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.syncDataWBNET = async () => {
+    try {
+        const client = await db.connect();
+        const ncry = new ncrypt(process.env.TOKEN_KEY);
+        try {
+            //group by plant
+            const { rows: plants } = await client.query(`select
+                lnh.plant, lnd.ln_num
+            from
+                loading_note_hd lnh
+            left join loading_note_det lnd on
+                lnh.hd_id = lnd.hd_fk
+            where
+               ( lnd.posted = false or lnd.posted is null
+                or lnd.receive is null)
+                and ln_num is not null
+            order by plant
+            `);
+            const plt = new Map();
+            for (const pl of plants) {
+                if (!plt.get(pl.plant)) {
+                    plt.set(pl.plant, [`'${pl.ln_num}'`]);
+                } else {
+                    plt.set(pl.plant, [...plt.get(pl.plant), `'${pl.ln_num}'`]);
+                }
+            }
+            for (const [key, value] of plt) {
+                try {
+                    const { rows: credent } = await client.query(
+                        `select ip_host, username, password, dbase from mst_wbnet_conn where plant = $1`,
+                        [key]
+                    );
+                    const conf = {
+                        user: credent[0].username,
+                        password: ncry.decrypt(credent[0].password),
+                        server: credent[0].ip_host,
+                        database: credent[0].dbase,
+                    };
+                    const sqlsclient = await Pool.newPool(conf).connect();
+                    await client.query(TRANS.BEGIN);
+                    try {
+                        const { recordsets } = await sqlsclient.request()
+                            .query(`select
+                            wtd.[Ref],
+                            wtd.internal_number ,
+                            wtd.Bruto ,
+                            wtd.Tarra ,
+                            wtd.Netto ,
+                            wt.received ,
+                            wt.deduction,
+                            wt.posted
+                        from
+                            wb_transDO wtd
+                        left join wb_transaction wt on
+                            wtd.[Ref] = wt.[Ref]
+                        where
+                            wtd.internal_number in (${value.join(",")})`);
+                        if (recordsets[0].length > 0) {
+                            for (const d of recordsets[0]) {
+                                const payload = {
+                                    bruto: d.Bruto,
+                                    tarra: d.Tarra,
+                                    netto: d.Netto,
+                                    receive: d.received,
+                                    deduction: d.deduction,
+                                    posted: d.posted === "Y" ? true : false,
+                                };
+                                const [que, val] = crud.updateItem(
+                                    "loading_note_det",
+                                    payload,
+                                    { ln_num: d.internal_number },
+                                    "ln_num"
+                                );
+                                await client.query(que, val);
+                            }
+                        }
+                    } catch (error) {
+                        throw error;
+                    } finally {
+                        sqlsclient.close();
+                    }
+                } catch (error) {
+                    throw error;
+                }
+            }
+            await client.query(TRANS.COMMIT);
+            return {
+                message: "WBNET Synced",
+            };
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
 module.exports = LoadingNoteModel;

@@ -19,7 +19,6 @@ SAPGetterChores.LoadingNoteSync = async () => {
         const email_wb = new Map();
         try {
             // get data db psql
-            await psqlclient.query(TRANS.BEGIN);
             const { rows } = await psqlclient.query(
                 `SELECT DET.DET_ID,
                 EM_CR.EMAIL AS EMAIL_CREATOR,
@@ -61,154 +60,162 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 WHERE LN_NUM IS NULL AND DET.IS_ACTIVE = TRUE`
             );
 
-            for (const row of rows) {
-                //check data db oracle
-                let payload = {};
-                let orapayload = {};
-                const { metaData, rows } = await oraclient.execute(
-                    `SELECT DET_ID, LOADING_NOTE_NUM, ERRORDESCRIPTION FROM PREREG_LOADING_NOTE_SAP 
-                WHERE DET_ID = :0`,
-                    [row.det_id]
-                );
-                // console.log(row.det_id);
-                // console.log(rows);
-                if (rows.length > 0) {
-                    if (rows[0][1] === null && rows[0][2] !== null) {
-                        if (
-                            !(
-                                rows[0][2].includes("processed by") ||
-                                rows[0][2].includes("process by")
-                            )
-                        ) {
+            if (rows.length > 0) {
+                await psqlclient.query(TRANS.BEGIN);
+
+                for (const row of rows) {
+                    //check data db oracle
+                    let payload = {};
+                    let orapayload = {};
+                    const { metaData, rows } = await oraclient.execute(
+                        `SELECT DET_ID, LOADING_NOTE_NUM, ERRORDESCRIPTION FROM PREREG_LOADING_NOTE_SAP 
+                    WHERE DET_ID = :0`,
+                        [row.det_id]
+                    );
+                    // console.log(row.det_id);
+                    // console.log(rows);
+                    if (rows.length > 0) {
+                        if (rows[0][1] === null && rows[0][2] !== null) {
+                            if (
+                                !(
+                                    rows[0][2].includes("processed by") ||
+                                    rows[0][2].includes("process by")
+                                )
+                            ) {
+                                orapayload = {
+                                    FLAG_WEB_PULL: "T",
+                                    ISRETRIVEDBYSAP: "TRUE",
+                                };
+                                payload = {
+                                    error_msg:
+                                        rows[0][2] +
+                                        " , Please create new request",
+                                    is_active: false,
+                                };
+                            } else {
+                                orapayload = {
+                                    FLAG_WEB_PULL: "T",
+                                };
+                                payload = {
+                                    error_msg: rows[0][2] + "",
+                                };
+                            }
+                        } else if (rows[0][1] !== null) {
+                            payload = {
+                                ln_num: rows[0][1],
+                                error_msg: "",
+                            };
                             orapayload = {
                                 FLAG_WEB_PULL: "T",
-                                ISRETRIVEDBYSAP: "TRUE",
-                            };
-                            payload = {
-                                error_msg:
-                                    rows[0][2] + " , Please create new request",
-                                is_active: false,
-                            };
-                        } else {
-                            orapayload = {
-                                FLAG_WEB_PULL: "T",
-                            };
-                            payload = {
-                                error_msg: rows[0][2] + "",
                             };
                         }
-                    } else if (rows[0][1] !== null) {
-                        payload = {
-                            ln_num: rows[0][1],
-                            error_msg: "",
-                        };
-                        orapayload = {
-                            FLAG_WEB_PULL: "T",
-                        };
-                    }
 
-                    const payloadEmail = `
-                    <tr>
-                      <td>
-                       ${row.id_do}
-                      </td>
-                      <td>
-                      ${row.kunnr + " - " + row.name_1}
-                      </td>
-                      <td>
-                      ${row.cre_date}
-                      </td>
-                      <td>
-                      ${row.plan_qty + " " + row.uom}
-                      </td>
-                      <td>
-                      ${row.driver_id + " - " + row.driver_name}
-                      </td>
-                      <td>
-                      ${row.vhcl_id}
-                      </td>
-                      <td>
-                      ${row.fac_sloc + " - " + row.fac_sloc_desc}
-                      </td>
-                      <td>
-                      ${row.fac_valtype}
-                      </td>
-                      <td>
-                      ${row.oth_sloc + " - " + row.oth_sloc_desc}
-                      </td>
-                      <td>
-                      ${row.oth_valtype}
-                      </td>
-                      <td>
-                      ${rows[0][1] !== null ? rows[0][1] : ""}
-                      </td>
-                      <td>
-                      ${rows[0][2] !== null ? rows[0][2] : ""}
-                      </td>
-                    </tr>
-                    `;
-                    if (row.email_creator !== null) {
-                        if (!email_creator.has(row.email_creator)) {
-                            email_creator.set(row.email_creator, [
-                                payloadEmail,
-                            ]);
-                        } else {
-                            email_creator
-                                .get(row.email_creator)
-                                .push(payloadEmail);
+                        const payloadEmail = `
+                        <tr>
+                          <td>
+                           ${row.id_do}
+                          </td>
+                          <td>
+                          ${row.kunnr + " - " + row.name_1}
+                          </td>
+                          <td>
+                          ${row.cre_date}
+                          </td>
+                          <td>
+                          ${row.plan_qty + " " + row.uom}
+                          </td>
+                          <td>
+                          ${row.driver_id + " - " + row.driver_name}
+                          </td>
+                          <td>
+                          ${row.vhcl_id}
+                          </td>
+                          <td>
+                          ${row.fac_sloc + " - " + row.fac_sloc_desc}
+                          </td>
+                          <td>
+                          ${row.fac_valtype}
+                          </td>
+                          <td>
+                          ${row.oth_sloc + " - " + row.oth_sloc_desc}
+                          </td>
+                          <td>
+                          ${row.oth_valtype}
+                          </td>
+                          <td>
+                          ${rows[0][1] !== null ? rows[0][1] : ""}
+                          </td>
+                          <td>
+                          ${rows[0][2] !== null ? rows[0][2] : ""}
+                          </td>
+                        </tr>
+                        `;
+                        if (row.email_creator !== null) {
+                            if (!email_creator.has(row.email_creator)) {
+                                email_creator.set(row.email_creator, [
+                                    payloadEmail,
+                                ]);
+                            } else {
+                                email_creator
+                                    .get(row.email_creator)
+                                    .push(payloadEmail);
+                            }
                         }
-                    }
 
-                    if (row.email_updater !== null) {
-                        if (!email_updater.has(row.email_updater)) {
-                            email_updater.set(row.email_updater, [
-                                payloadEmail,
-                            ]);
-                        } else {
-                            email_updater
-                                .get(row.email_updater)
-                                .push(payloadEmail);
+                        if (row.email_updater !== null) {
+                            if (!email_updater.has(row.email_updater)) {
+                                email_updater.set(row.email_updater, [
+                                    payloadEmail,
+                                ]);
+                            } else {
+                                email_updater
+                                    .get(row.email_updater)
+                                    .push(payloadEmail);
+                            }
                         }
-                    }
 
-                    if (row.email_wb !== null) {
-                        if (!email_wb.has(row.email_wb)) {
-                            email_wb.set(row.email_wb, [payloadEmail]);
-                        } else {
-                            email_wb.get(row.email_wb).push(payloadEmail);
+                        if (row.email_wb !== null) {
+                            if (!email_wb.has(row.email_wb)) {
+                                email_wb.set(row.email_wb, [payloadEmail]);
+                            } else {
+                                email_wb.get(row.email_wb).push(payloadEmail);
+                            }
                         }
-                    }
 
-                    const id_db = row.det_id;
-                    const [queW, valW] = crud.updateItem(
-                        "loading_note_det",
-                        payload,
-                        { det_id: id_db },
-                        "det_id"
-                    );
-                    const [queO, valO] = crud.updateItemOra(
-                        "PREREG_LOADING_NOTE_SAP",
-                        orapayload,
-                        { DET_ID: id_db }
-                    );
-                    const updateData = await psqlclient.query(queW, valW);
-                    const upDataSAP = await oraclient.execute(queO, valO);
-                } else {
-                    continue;
+                        const id_db = row.det_id;
+                        const [queW, valW] = crud.updateItem(
+                            "loading_note_det",
+                            payload,
+                            { det_id: id_db },
+                            "det_id"
+                        );
+                        const [queO, valO] = crud.updateItemOra(
+                            "PREREG_LOADING_NOTE_SAP",
+                            orapayload,
+                            { DET_ID: id_db }
+                        );
+                        const updateData = await psqlclient.query(queW, valW);
+                        const upDataSAP = await oraclient.execute(queO, valO);
+                    } else {
+                        continue;
+                    }
                 }
+                if (email_creator.size > 0) {
+                    await EmailModel.NotifyEmail(email_creator);
+                }
+                if (email_updater.size > 0) {
+                    await EmailModel.NotifyEmail(email_updater);
+                }
+                if (email_wb.size > 0) {
+                    await EmailModel.NotifyEmail(email_wb);
+                }
+                await psqlclient.query(TRANS.COMMIT);
+                await oraclient.commit();
+                return "SAP Synced";
+            } else {
+                // console.log("no stage to be sync");
+                return "no stage to be sync";
             }
-            if (email_creator.size > 0) {
-                await EmailModel.NotifyEmail(email_creator);
-            }
-            if (email_updater.size > 0) {
-                await EmailModel.NotifyEmail(email_updater);
-            }
-            if (email_wb.size > 0) {
-                await EmailModel.NotifyEmail(email_wb);
-            }
-            await psqlclient.query(TRANS.COMMIT);
-            await oraclient.commit();
-            return "SAP Synced";
         } catch (error) {
             await psqlclient.query(TRANS.ROLLBACK);
             await oraclient.rollback();
@@ -223,7 +230,7 @@ SAPGetterChores.LoadingNoteSync = async () => {
             psqlclient.release();
         }
         if (oraclient) {
-            oraclient.release();
+            oraclient.close();
         }
         throw error;
     }
