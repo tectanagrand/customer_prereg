@@ -11,7 +11,6 @@ export default function AutoSelectTransportir({
     plant,
     ...props
 }) {
-    console.log(plant);
     const axiosPrivate = useAxiosPrivate();
     const limit = 20;
     const [dataRow, setDataRow] = useState([]);

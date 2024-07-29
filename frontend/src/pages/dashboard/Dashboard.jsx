@@ -219,7 +219,9 @@ export default function Dashboard() {
             >
                 <DrawerHeader />
                 {session.menuname && (
-                    <h4>{session.menuname[location.pathname]}</h4>
+                    <h4 style={{ margin: "0 0 1rem 0" }}>
+                        {session.menuname[location.pathname]}
+                    </h4>
                 )}
                 <Suspense fallback={<LoadingSuspense />}>
                     <Outlet />

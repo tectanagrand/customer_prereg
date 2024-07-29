@@ -41,7 +41,8 @@ export default function AvatarComp() {
         <>
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                 <Typography alignItems={"center"}>
-                    Welcome, {session.fullname?.split(" ")[0]}
+                    Welcome, {session.fullname?.split(" ")[0]}{" "}
+                    {session.fullname?.split(" ")[1]}
                 </Typography>
                 <IconButton onClick={handleMenu}>
                     <Avatar>
@@ -72,7 +73,8 @@ export default function AvatarComp() {
                             </Avatar>
                         </IconButton>
                         <Typography>
-                            {session.fullname?.split(" ")[0]}
+                            {session.fullname?.split(" ")[0]}{" "}
+                            {session.fullname?.split(" ")[1]}
                         </Typography>
                     </Box>
                 </MenuItem>

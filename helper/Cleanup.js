@@ -2,6 +2,7 @@ const db = require("../config/connection");
 const cron = require("node-cron");
 const TRANS = require("../config/transaction");
 const EmailModel = require("../models/EmailModel");
+const LoadingNoteModel = require("../models/LoadingNoteModel");
 
 const CleanUp = {};
 
@@ -115,7 +116,16 @@ CleanUp.CronLNReminder = async () => {
     try {
         cron.schedule("0 7 * * *", CleanUp.reminder);
     } catch (error) {
-        console.error();
+        console.error(error);
+    }
+};
+
+CleanUp.CronSync = async () => {
+    try {
+        cron.schedule("0 1 * * *", LoadingNoteModel.syncLNDataSAP);
+        cron.schedule("0 2 * * *", LoadingNoteModel.syncDataWBNET);
+    } catch (error) {
+        console.error(error);
     }
 };
 
