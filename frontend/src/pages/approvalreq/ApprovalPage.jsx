@@ -53,7 +53,6 @@ const ApprovalPage = () => {
                 ? {
                       driver: [],
                       vehicle: [],
-                      plant: "",
                   }
                 : {
                       reject_remark: "",
@@ -114,7 +113,6 @@ const ApprovalPage = () => {
 
         if (searchParams.get("action") === "approve") {
             payload = {
-                plant: values.plant.value,
                 driver: values.driver,
                 vehicle: values.vehicle,
                 action: "APPROVE",
@@ -130,6 +128,7 @@ const ApprovalPage = () => {
             };
             endpoint = `/file/rejectreq`;
         }
+        console.log(payload);
         setRefresh(true);
         try {
             const { data } = await axiosPrivate.post(endpoint, payload);
@@ -207,7 +206,7 @@ const ApprovalPage = () => {
                             gap: 1,
                         }}
                     >
-                        {searchParams.get("action") === "approve" && (
+                        {/* {searchParams.get("action") === "approve" && (
                             <AutocompleteComp
                                 control={control}
                                 name="plant"
@@ -216,7 +215,7 @@ const ApprovalPage = () => {
                                 options={plantOp}
                                 sx={{ minWidth: "8rem", maxWidth: "30rem" }}
                             />
-                        )}
+                        )} */}
                         {(searchParams.get("action") === "reject" ||
                             someSelDrv ||
                             someSelVeh) && (
