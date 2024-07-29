@@ -11,6 +11,7 @@ export const TextFieldComp = ({
     onChangeovr,
     toUpperCase,
     toLowerCase,
+    maxLength,
     sx,
     endAdornment,
     thousandSeparator,
@@ -31,6 +32,12 @@ export const TextFieldComp = ({
                         helperText={error ? error.message : null}
                         error={!!error}
                         onChange={e => {
+                            if (
+                                maxLength &&
+                                e.target.value.length > maxLength
+                            ) {
+                                return;
+                            }
                             if (toUpperCase) {
                                 onChange(e.target.value.toUpperCase());
                             } else if (toLowerCase) {
