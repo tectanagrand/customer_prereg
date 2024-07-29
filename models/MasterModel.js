@@ -610,6 +610,59 @@ MasterModel.updateMstInterco = async () => {
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
             throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.updateMstIntercoByDate = async dateFrom => {
+    try {
+        const client = await db.connect();
+        let promises = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            const { data: custData } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRCISet?$filter=(Erdat eq datetime'${dateFrom ?? "1990-01-01"}T00:00:00')&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            for (const item of custData.d.results) {
+                const { rowCount: isExist } = await client.query(
+                    `select kunnr from mst_interco where kunnr = $1`,
+                    [item.Kunnr]
+                );
+                if (isExist > 0) {
+                    continue;
+                }
+                const dte = item.Erdatshow.split(".");
+                const payload = {
+                    kunnr: item.Kunnr,
+                    name_1: item.Name1,
+                    ort_1: item.Ort01,
+                    erdat: dte[2] + "-" + dte[1] + "-" + dte[0],
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_interco",
+                    payload,
+                    "kunnr"
+                );
+                promises.push(client.query(que, val));
+            }
+            const insertData = await Promise.all(promises);
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
         }
     } catch (error) {
         console.error(error);
@@ -656,6 +709,61 @@ MasterModel.updateMstCust = async () => {
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
             throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.updateMstCustbyDate = async dateFrom => {
+    try {
+        const client = await db.connect();
+        let promises = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            const { data: custData } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/KUNNRSet?$filter=(Erdat eq datetime'${dateFrom}T00:00:00')&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            for (const item of custData.d.results) {
+                console.log(item);
+                const { rowCount: isExist } = await client.query(
+                    `select kunnr from mst_customer where kunnr = $1`,
+                    [item.Kunnr]
+                );
+                if (isExist > 0) {
+                    continue;
+                }
+                const dte = item.Erdatshow.split(".");
+                const payload = {
+                    kunnr: item.Kunnr,
+                    name_1: item.Name1,
+                    ort_1: item.Ort01,
+                    erdat: dte[2] + "-" + dte[1] + "-" + dte[0],
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_customer",
+                    payload,
+                    "kunnr"
+                );
+                promises.push(client.query(que, val));
+            }
+            const insertData = await Promise.all(promises);
+            await client.query(TRANS.COMMIT);
+            return;
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
         }
     } catch (error) {
         console.error(error);
@@ -736,7 +844,7 @@ MasterModel.updateMstVen = async () => {
                 const [que, val] = crud.insertItem(
                     "mst_vendor",
                     payload,
-                    "kunnr"
+                    "lifnr"
                 );
                 promises.push(client.query(que, val));
             });
@@ -745,6 +853,58 @@ MasterModel.updateMstVen = async () => {
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
             throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+MasterModel.updateMstVenbyDate = async dateFrom => {
+    try {
+        const client = await db.connect();
+        let promises = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            const { data: custData } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/LIFNRSet?$filter=(Erdat eq datetime'${dateFrom}T00:00:00')&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            for (const item of custData.d.results) {
+                const { rowCount: isExist } = await client.query(
+                    `select lifnr from mst_vendor where lifnr = $1`,
+                    [item.Lifnr]
+                );
+                if (isExist > 0) {
+                    continue;
+                }
+                const dte = item.Erdatshow.split(".");
+                const payload = {
+                    lifnr: item.Lifnr,
+                    name_1: item.Name1,
+                    erdat: dte[2] + "-" + dte[1] + "-" + dte[0],
+                };
+                const [que, val] = crud.insertItem(
+                    "mst_vendor",
+                    payload,
+                    "lifnr"
+                );
+                promises.push(client.query(que, val));
+            }
+            const insertData = await Promise.all(promises);
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
         }
     } catch (error) {
         console.error(error);
