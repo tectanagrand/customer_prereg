@@ -1855,7 +1855,6 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
             DET.DRIVER_ID,
             DET.DRIVER_NAME,
             DET.VHCL_ID,
-            DET.PLAN_QTY,
             TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
             TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN,
             TO_CHAR(DET.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE_MOMENT,
@@ -1867,6 +1866,29 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
             DET.RECEIVE,
             DET.DEDUCTION,
             det.posted,
+            hd.uom,
+            case
+                when det.posted = true then det.receive 
+                else 0
+            end
+            as receive_posted,
+            case
+                when det.posted = false or det.posted is null then det.receive 
+                else 0
+            end
+            as receive_unposted,
+            case
+                when det.ln_num is null then det.plan_qty
+                else 0
+            end 
+            as pending_plan_qty,
+            case
+                when det.ln_num is not null then det.plan_qty
+                else 0
+            end 
+            as plan_qty,
+            coalesce(det.plan_qty_sap, 0) as plan_qty_sap,
+             coalesce(det.fac_qty_sap, 0) as fac_qty_sap,
             COALESCE(DET.print_count, 0) as print_count
         FROM LOADING_NOTE_DET DET
         LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
@@ -1874,26 +1896,57 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
         LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
         LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
         LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
-        WHERE DET.LN_NUM IS NOT NULL`;
+        WHERE DET.is_active = true`;
 
     const getCountData = `SELECT
     COUNT(DET.*) as count_rows,
     MAX(det.tanggal_surat_jalan) as max_tgl_muat,
     MIN(det.tanggal_surat_jalan) as min_tgl_muat,
-    SUM(det.plan_qty) as plan_qty,
-    HD.con_qty,
     coalesce(SUM(det.bruto), 0) as bruto,
     coalesce(SUM(det.tarra), 0) as tarra,
     coalesce(SUM(det.netto), 0) as netto,
     coalesce(SUM(det.deduction), 0) as deduction,
-    coalesce(SUM(det.receive), 0) as receive
+    coalesce(SUM(det.receive), 0) as receive,
+    coalesce(SUM(det.plan_qty_sap), 0) as plan_qty_sap,
+    coalesce(SUM(det.fac_qty_sap), 0) as fac_qty_sap
         FROM LOADING_NOTE_DET DET
         LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
         LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
         LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
         LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
         LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
-        WHERE DET.LN_NUM IS NOT NULL`;
+        WHERE  DET.is_active = true`;
+
+    const pendingQty = `select coalesce(sum(det.plan_qty), 0) as plan_qty from loading_note_det det
+    left join loading_note_hd hd on hd.hd_id = det.hd_fk
+    LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+    LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+    LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+    LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
+    where  det.is_active = true and det.ln_num is null `;
+
+    const planQtyWeb = `select sum(det.plan_qty) as plan_qty from loading_note_det det
+    left join loading_note_hd hd on hd.hd_id = det.hd_fk
+    LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+        LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+        LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+        LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
+    where  det.is_active = true and det.ln_num is not null `;
+
+    const totalPosted = `select sum(det.receive) as receive from loading_note_det det
+    left join loading_note_hd hd on hd.hd_id = det.hd_fk
+    LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+        LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+        LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+        LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
+    where  det.is_active = true and det.posted = true `;
+    const totalunPosted = `select sum(det.receive) as receive from loading_note_det det
+    left join loading_note_hd hd on hd.hd_id = det.hd_fk
+    LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+        LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+        LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+        LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
+    where  det.is_active = true and (det.posted = false or det.posted is null) `;
     let where = [];
     let whereVal = [];
     let ltindex = 0;
@@ -1924,11 +1977,11 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
             date = true;
         } else if (item.id === "start_tsj") {
             value = `>= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
-            id = "tanggal_surat_jalan";
+            id = "cre_date";
             date = true;
         } else if (item.id === "end_tsj") {
             value = `<= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
-            id = "tanggal_surat_jalan";
+            id = "cre_date";
             date = true;
         }
         if (!date) {
@@ -1957,20 +2010,69 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
     if (where.length != 0) {
         whereQue = `AND ${where.join(" AND ")}`;
     }
-    let que = `${getRecapData} ${whereQue} ORDER BY DET.TANGGAL_SURAT_JALAN ASC ${limit && limit !== "" ? `LIMIT ${limit} OFFSET ${offset}` : ""} `;
-    let countData = `${getCountData} ${whereQue} group by hd.con_qty`;
+    let que = `${getRecapData} ${whereQue} ORDER BY DET.CRE_DATE ASC ${limit && limit !== "" ? `LIMIT ${limit} OFFSET ${offset}` : ""} `;
+    let countData = `${getCountData} ${whereQue}`;
+    let postedTotal = `${totalPosted} ${whereQue}`;
+    let unpostedTotal = `${totalunPosted} ${whereQue}`;
+    let quependingQty = `${pendingQty} ${whereQue}`;
+    let quePlanQtyWeb = `${planQtyWeb} ${whereQue}`;
+    let contractQue = `select con_qty from loading_note_hd where id_do = $1`;
     let val = whereVal;
     try {
         const client = await db.connect();
         try {
             const { rows, rowCount } = await client.query(que, val);
             const { rows: dataCount } = await client.query(countData, val);
-            return {
+            const { rows: postTot } = await client.query(postedTotal, val);
+            const { rows: unpostTot } = await client.query(unpostedTotal, val);
+            const { rows: pendingQty } = await client.query(quependingQty, val);
+            const { rows: planQty } = await client.query(quePlanQtyWeb, val);
+            const do_number = filters.find(row => row.id === "id_do");
+            let returnData = {
                 data: rows,
                 limit: rowCount,
                 count: dataCount[0].count_rows,
-                sum_data: { ...dataCount[0], uom: rows[0].uom },
+                sum_data: {
+                    ...dataCount[0],
+                    uom: rows[0].uom,
+                    plan_qty: planQty[0].plan_qty,
+                    pending_qty: pendingQty[0].plan_qty,
+                    postedTotal: postTot[0].receive,
+                    unpostedTotal: unpostTot[0].receive,
+                },
             };
+            if (do_number) {
+                const { rows: contractData } = await client.query(contractQue, [
+                    do_number.value,
+                ]);
+                const { os_sap } = await LoadingNoteModel.getOSQtySAP(
+                    moment(dataCount[0].max_tgl_muat)
+                        .add(1, "days")
+                        .format("YYYY-MM-DD"),
+                    do_number.value
+                );
+                const { osposted, osunposted } =
+                    await LoadingNoteModel.getOSQtyWB(
+                        moment(dataCount[0].max_tgl_muat)
+                            .add(1, "days")
+                            .format("YYYY-MM-DD"),
+                        do_number.value
+                    );
+                const osweb = os_sap - parseFloat(pendingQty[0].plan_qty);
+                returnData = {
+                    ...returnData,
+                    contract: {
+                        con_qty: contractData[0].con_qty,
+                    },
+                    outstanding: {
+                        os_sap: os_sap,
+                        osposted: osposted,
+                        osunposted: osunposted,
+                        osweb: osweb,
+                    },
+                };
+            }
+            return returnData;
         } catch (error) {
             throw error;
         } finally {
@@ -2011,6 +2113,7 @@ LoadingNoteModel.generateExcelv2 = async (filters, customer_id) => {
             filters,
             customer_id
         );
+        // console.log(excelData);
         const dataCount = excelData.data.length;
         const filtersmap = new Map();
         filters.map(item => {
@@ -2208,8 +2311,10 @@ LoadingNoteModel.generateExcelv2 = async (filters, customer_id) => {
             };
         }
         tableStart = tableStart + 1;
-        for (let i = tableStart; i <= dataCount; i++) {
+        for (let i = tableStart; i <= dataCount + tableStart - 1; i++) {
             const dataRow = excelData.data[i - tableStart];
+            console.log(i - tableStart);
+            console.log(dataRow);
             for (const [cell, header] of tableHeader) {
                 if (
                     header.value === "cre_date_moment" ||
@@ -2217,7 +2322,7 @@ LoadingNoteModel.generateExcelv2 = async (filters, customer_id) => {
                 ) {
                     let dataOnRow;
                     dataOnRow = moment(dataRow[header.value]).format(
-                        "YYYY-MM-DDT00:00:00"
+                        "YYYY-MM-DD"
                     );
                     if (dataRow[header.value] !== null) {
                         recapSheet.getCell(cell + i).numFmt = "dd/mm/yyyy";
@@ -2559,6 +2664,11 @@ LoadingNoteModel.requestDelete = async (selected, remark, id_user) => {
     try {
         const client = await db.connect();
         const loadNote = [];
+        const phase =
+            process.env.NODE_ENV === "production" ||
+            process.env.NODE_ENV === "sandbox"
+                ? "production"
+                : "development";
         try {
             await client.query(TRANS.BEGIN);
             const { rows: hostname } = await client.query(
@@ -2659,6 +2769,7 @@ LoadingNoteModel.getDataWB = async () => {
 LoadingNoteModel.syncDataWBNET = async () => {
     try {
         const client = await db.connect();
+        const ln_num_synced = [];
         const ncry = new ncrypt(process.env.TOKEN_KEY);
         try {
             //group by plant
@@ -2688,6 +2799,9 @@ LoadingNoteModel.syncDataWBNET = async () => {
                         `select ip_host, username, password, dbase from mst_wbnet_conn where plant = $1`,
                         [key]
                     );
+                    if (credent.length < 1) {
+                        continue;
+                    }
                     const conf = {
                         user: credent[0].username,
                         password: ncry.decrypt(credent[0].password),
@@ -2730,6 +2844,7 @@ LoadingNoteModel.syncDataWBNET = async () => {
                                     "ln_num"
                                 );
                                 await client.query(que, val);
+                                ln_num_synced.push(d.internal_number);
                             }
                         }
                     } catch (error) {
@@ -2742,11 +2857,238 @@ LoadingNoteModel.syncDataWBNET = async () => {
                 }
             }
             await client.query(TRANS.COMMIT);
+            console.log("WBNET Synced");
+            console.log(ln_num_synced);
             return {
                 message: "WBNET Synced",
             };
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.getLNDataSAP = async (dateStart, dateEnd, do_num) => {
+    try {
+        const { data } = await axios.get(
+            `
+            ${process.env.ODATADOM}:${process.env.ODATAPORT}//sap/opu/odata/sap/ZGW_REGISTRA_SRV/QTYPLANSet?$filter=(Erdat%20ge%20datetime%27${dateStart}T00:00:00%27)and(Erdat%20le%20datetime%27${dateEnd}T00:00:00%27)and(VbelnRef%20eq%20%27${do_num}%27)&$format=json
+            `,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        const resultodata = data.d.results;
+        const result = resultodata.map(row => {
+            let str = row.Erdat;
+            let unix = str.match(/\d+/)[0];
+            return {
+                ln_num: row.Zdconr,
+                planning_qty: row.PlnLfimg,
+                erdat: moment(new Date(parseInt(unix))).format("YYYY-MM-DD"),
+            };
+        });
+        return result;
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.syncLNDataSAP = async () => {
+    try {
+        const client = await db.connect();
+        const ln_num_synced = [];
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows: do_num } =
+                await client.query(`select distinct id_do from loading_note_hd hd
+                left join loading_note_det det on hd.hd_id = det.hd_fk
+                where( det.plan_qty_sap is null or det.fac_qty_sap is null) and det.ln_num is not null
+                `);
+            for (const dt of do_num) {
+                const que = `select TO_CHAR(max(cre_date), 'YYYY-MM-DD') as max_erdat, TO_CHAR(min(cre_date), 'YYYY-MM-DD') as min_erdat from loading_note_det det
+                    left join loading_note_hd hd on hd.hd_id = det.hd_fk
+                    where hd.id_do = $1`;
+                let startDate;
+                let endDate;
+                const { rows: dateRangeLast } = await client.query(
+                    `${que} and (det.plan_qty_sap is not null or det.fac_qty_sap is not null) and ln_num is not null
+                    `,
+                    [dt.id_do]
+                );
+
+                if (dateRangeLast[0].min_erdat === null) {
+                    const { rows: dateRange } = await client.query(
+                        `${que} and ln_num is not null`,
+                        [dt.id_do]
+                    );
+                    startDate = moment(dateRange[0].min_erdat).format(
+                        "YYYY-MM-DD"
+                    );
+                    endDate = moment(dateRange[0].max_erdat).format(
+                        "YYYY-MM-DD"
+                    );
+                } else {
+                    startDate = moment(dateRangeLast[0].min_erdat)
+                        .add(1, "days")
+                        .format("YYYY-MM-DD");
+                    endDate = moment(dateRangeLast[0].max_erdat)
+                        .add(1, "days")
+                        .format("YYYY-MM-DD");
+                }
+                const { data } = await axios.get(
+                    `
+                    ${process.env.ODATADOM}:${process.env.ODATAPORT}//sap/opu/odata/sap/ZGW_REGISTRA_SRV/QTYPLANSet?$filter=(Erdat%20ge%20datetime%27${startDate}T00:00:00%27)and(Erdat%20le%20datetime%27${endDate}T00:00:00%27)and(VbelnRef%20eq%20%27${dt.id_do}%27)&$format=json
+                    `,
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                const resultodata = data.d.results;
+                for (const row of resultodata) {
+                    const payload = {
+                        plan_qty_sap: parseInt(row.PlnLfimg),
+                        fac_qty_sap: parseInt(row.LLfimg),
+                    };
+                    const [queUp, valUp] = crud.updateItem(
+                        "loading_note_det",
+                        payload,
+                        { ln_num: row.Zdconr },
+                        "ln_num"
+                    );
+                    await client.query(queUp, valUp);
+                    ln_num_synced.push(row.Zdconr);
+                }
+            }
+            await client.query(TRANS.COMMIT);
+            console.log("LN SAP Synced :");
+            console.log(ln_num_synced);
+            return ln_num_synced;
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.getOSQtySAP = async (beforeDate, do_num) => {
+    try {
+        const { data } = await axios.get(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${do_num}')&$format=json
+        `,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        // console.log(beforeDate);
+        const conData = data.d.results[0];
+        const con_qty = parseFloat(conData.Kwmeng);
+        // console.log(
+        //     `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QTYPLANSet?$filter=(Erdat%20le%20datetime%27${beforeDate}T00:00:00%27)and(VbelnRef%20eq%20%27${do_num}%27)&$format=json`
+        // );
+        const { data: planQty } = await axios.get(
+            `
+            ${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QTYPLANSet?$filter=(Erdat%20le%20datetime%27${beforeDate}T00:00:00%27)and(VbelnRef%20eq%20%27${do_num}%27)&$format=json
+            `,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        let totalQuantity = 0;
+        let totalDeleted = 0;
+        const { data: DOTRXDELETE } = await axios.get(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${do_num}%27)&$format=json`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        if (DOTRXDELETE.d.results.length > 0) {
+            DOTRXDELETE.d.results.map(item => {
+                totalDeleted += parseFloat(item.PlnLfimg);
+            });
+        }
+        for (const d of planQty.d.results) {
+            const planQty = parseFloat(d.PlnLfimg);
+            const actualQty = parseFloat(d.LLfimg);
+            if (actualQty == 0) {
+                totalQuantity += planQty;
+            } else {
+                totalQuantity += actualQty;
+            }
+        }
+        console.log(totalQuantity);
+        console.log(con_qty);
+        return {
+            os_sap: con_qty - (totalQuantity - totalDeleted),
+        };
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.getOSQtyWB = async (beforeDate, do_num) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows: postedData } = await client.query(
+                `select coalesce(sum(receive), 0) as receive from loading_note_det det
+                left join loading_note_hd hd on det.hd_fk = hd.hd_id
+                where hd.id_do = $1 and cre_date < TO_DATE('${beforeDate}', 'YYYY-MM-DD')
+                and posted = true
+                ;`,
+                [do_num]
+            );
+            const { rows: unpostedData } = await client.query(
+                `select coalesce(sum(receive), 0) as receive from loading_note_det det
+                left join loading_note_hd hd on det.hd_fk = hd.hd_id 
+                where hd.id_do = $1 and cre_date < TO_DATE('${beforeDate}', 'YYYY-MM-DD')
+                and (posted = false or posted is null)
+                ;`,
+                [do_num]
+            );
+            const { data } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${do_num}')&$format=json
+            `,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            const conData = data.d.results[0];
+            const con_qty = parseFloat(conData.Kwmeng);
+            const qtyposted = parseFloat(postedData[0].receive);
+            const qtyunposted = parseFloat(unpostedData[0].receive);
+            return {
+                osposted: con_qty - qtyposted,
+                osunposted: con_qty - qtyunposted,
+            };
+        } catch (error) {
             throw error;
         } finally {
             client.release();

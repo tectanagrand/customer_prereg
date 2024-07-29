@@ -41,7 +41,9 @@ router.get("/emailreminder", LoadNote.reminderDeadlines);
 router.post("/deletecust", LoadNote.deleteRequestCust);
 router.post("/getinfln", LoadNote.getDataReport);
 router.get("/getdatawb", LoadNote.getDataWB);
-router.get("/syncwbnet", LoadNote.syncDataWBNET);
+router.post("/syncwbnet", LoadNote.syncDataWBNET);
 router.post("/genexcelv2", LoadNote.generateExcelV2);
+router.get("/lndatasap", LoadNote.LNDataSAP);
+router.post("/synclnsap", LoadNote.syncLNSAP);
 
 module.exports = router;
