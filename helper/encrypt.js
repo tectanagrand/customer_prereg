@@ -2,7 +2,7 @@ const ncrypt = require("ncrypt-js");
 require("dotenv").config({ path: `../.env.development` });
 
 const cipher = new ncrypt(process.env.TOKEN_KEY);
-const encry = cipher.encrypt("admin");
+const encry = cipher.encrypt("");
 console.log(encry);
 
 // const decipher = crypto.createDecipheriv(algorithm, key, iv);
