@@ -33,7 +33,6 @@ export default function VehicleDashboard() {
     const [photo, setPhoto] = useState();
     const [preview, setPreview] = useState();
     const [previewSim, setPreviewSim] = useState();
-    const [plateVal, setPlate] = useState("");
     const [deleteDg, setDelDg] = useState(false);
     const {
         control,
@@ -52,9 +51,13 @@ export default function VehicleDashboard() {
             no_telp: "",
             foto_sim: "",
             foto_supir: "",
-            alamat: "",
+            alamat1: "",
+            alamat2: "",
+            alamat3: "",
+            kota_tinggal: null,
             plant: null,
         },
+        mode: "onChange",
     });
 
     const EditData = async id => {
@@ -76,6 +79,7 @@ export default function VehicleDashboard() {
             );
 
             // Read additional data line by line
+            console.log(dataSim);
             setIdRow(id);
             reset({
                 nama: dataSim.driver_name,
@@ -88,7 +92,14 @@ export default function VehicleDashboard() {
                 plant: dataSim.plant,
                 no_telp: dataSim.no_telp,
                 foto_sim: dataSim.foto_sim,
-                alamat: dataSim.alamat,
+                foto_supir: dataSim.foto_driver,
+                alamat1: dataSim.alamat,
+                alamat2: dataSim.alamat2,
+                alamat3: dataSim.alamat3,
+                kota_tinggal: {
+                    value: dataSim.kota_tinggal,
+                    label: dataSim.city_live,
+                },
             });
             const blob = new File([fileData], dataSim.foto_sim, {
                 type: "image/jpeg",
@@ -150,9 +161,11 @@ export default function VehicleDashboard() {
         form.append("tempat_lahir", values.tempat_lahir.value);
         form.append("no_telp", values.no_telp.trim());
         form.append("tanggal_lahir", values.tanggal_lahir.format("MM-DD-YYYY"));
-        form.append("alamat", values.alamat);
+        form.append("alamat", values.alamat1);
+        form.append("alamat2", values.alamat2);
+        form.append("alamat3", values.alamat3);
+        form.append("kota_tinggal", values.kota_tinggal.value);
         form.append("plant", values.plant.value);
-        form.append("plant_name", values.plant.plant_name);
         form.append("id_row", id_row);
         try {
             const { data } = await axiosPrivate.post("/file/sim", form, {
@@ -182,6 +195,10 @@ export default function VehicleDashboard() {
             no_telp: "",
             foto_sim: "",
             alamat: "",
+            alamat2: "",
+            alamat3: "",
+            kota_tinggal: null,
+            plant: null,
         });
         setOpenDg(false);
     };
@@ -235,9 +252,8 @@ export default function VehicleDashboard() {
                     onClick={() => {
                         setOpenDg(true);
                         setFile();
-                        setValue("plate", "");
-                        setValue("filename", "");
-                        setPlate("");
+                        setValue("foto_supir", "");
+                        setValue("foto_sim", "");
                     }}
                     sx={{ height: "4rem", width: "10rem" }}
                     variant="contained"
@@ -258,8 +274,9 @@ export default function VehicleDashboard() {
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: 3,
-                                p: 6,
-                                mb: 3,
+                                pl: 6,
+                                pt: 6,
+                                pr: 6,
                                 flexGrow: 1,
                             }}
                         >
@@ -276,6 +293,9 @@ export default function VehicleDashboard() {
                                     name="plant"
                                     control={control}
                                     sx={{ width: "20rem" }}
+                                    rules={{
+                                        required: "Please input this field",
+                                    }}
                                 />
                             </div>
                             <div
@@ -293,6 +313,10 @@ export default function VehicleDashboard() {
                                     sx={{ maxWidth: "30rem" }}
                                     rules={{
                                         required: "Please insert this field",
+                                        maxLength: {
+                                            value: 100,
+                                            message: "Max 100 character",
+                                        },
                                     }}
                                     toUpperCase={true}
                                 />
@@ -357,15 +381,103 @@ export default function VehicleDashboard() {
                                     sx={{ maxWidth: "20rem" }}
                                     fullWidth
                                 />
-                                <TextFieldComp
-                                    name="alamat"
-                                    label="Alamat"
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: "1rem",
+                                }}
+                            >
+                                <AutocompleteComp
+                                    name="kota_tinggal"
+                                    label="Kota Tinggal"
                                     control={control}
-                                    sx={{ maxWidth: "40rem" }}
+                                    options={citiesOp.filter(
+                                        item => !item.label.includes("KAB.")
+                                    )}
+                                    sx={{ maxWidth: "20rem" }}
                                     rules={{
                                         required: "Please insert this field",
                                     }}
                                 />
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        position: "relative",
+                                        flexWrap: "wrap",
+                                        gap: 1,
+                                        borderStyle: "solid",
+                                        borderWidth: "1px",
+                                        borderColor: theme.palette.grey[400],
+                                        borderRadius: "20px",
+                                        padding: 3,
+                                        width: "40rem",
+                                    }}
+                                >
+                                    <p
+                                        style={{
+                                            position: "absolute",
+                                            top: "-13px",
+                                            padding: "0 10px 0 10px",
+                                            margin: "0",
+                                            backgroundColor: "white",
+                                            color: theme.palette.grey[800],
+                                        }}
+                                    >
+                                        Alamat
+                                    </p>
+                                    <TextFieldComp
+                                        name="alamat1"
+                                        control={control}
+                                        maxLength={50}
+                                        rules={{
+                                            required:
+                                                "Please insert this field",
+                                            maxLength: {
+                                                value: 50,
+                                                message: "Max 50 Character",
+                                            },
+                                            pattern: {
+                                                value: /^[^,]*$/,
+                                                message: `Please fill without ',' (comma) character`,
+                                            },
+                                        }}
+                                        toUpperCase={true}
+                                    />
+                                    <TextFieldComp
+                                        name="alamat2"
+                                        control={control}
+                                        maxLength={50}
+                                        rules={{
+                                            maxLength: {
+                                                value: 50,
+                                                message: "Max 50 Character",
+                                            },
+                                            pattern: {
+                                                value: /^[^,]*$/,
+                                                message: `Please fill without ',' (comma) character`,
+                                            },
+                                        }}
+                                        toUpperCase={true}
+                                    />
+                                    <TextFieldComp
+                                        name="alamat3"
+                                        control={control}
+                                        maxLength={50}
+                                        rules={{
+                                            maxLength: {
+                                                value: 50,
+                                                message: "Max 50 Character",
+                                            },
+                                            pattern: {
+                                                value: /^[^,]*$/,
+                                                message: `Please fill without ',' (comma) character`,
+                                            },
+                                        }}
+                                        toUpperCase={true}
+                                    />
+                                </Box>
                             </div>
                         </Box>
                         <Box sx={{ width: "20rem" }}>
@@ -425,6 +537,11 @@ export default function VehicleDashboard() {
                                     hidden
                                 />
                             </Button>
+                            {errors.foto_supir && (
+                                <p style={{ color: "red" }}>
+                                    {errors.foto_supir.message}
+                                </p>
+                            )}
                             <input
                                 {...register("foto_supir", {
                                     required: "Please attach foto supir ",

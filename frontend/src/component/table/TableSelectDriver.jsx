@@ -82,6 +82,11 @@ export default function TableSelectDriver({
                 },
             },
             {
+                header: "Plant Location",
+                accessorKey: "plant",
+                cell: props => props.getValue(),
+            },
+            {
                 header: "Nomor SIM",
                 accessorKey: "driver_id",
                 cell: props => props.getValue(),
@@ -103,7 +108,7 @@ export default function TableSelectDriver({
             },
             {
                 header: "Alamat",
-                accessorKey: "alamat",
+                accessorKey: "display_alamat",
                 cell: props => props.getValue(),
             },
             {

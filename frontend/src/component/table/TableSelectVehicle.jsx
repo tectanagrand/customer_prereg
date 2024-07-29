@@ -84,6 +84,11 @@ export default function TableSelectVehicle({
                 },
             },
             {
+                header: "Plant Location",
+                accessorKey: "plant",
+                cell: props => props.getValue(),
+            },
+            {
                 header: "Nomor Plat",
                 accessorKey: "vhcl_id",
                 cell: props => props.getValue(),

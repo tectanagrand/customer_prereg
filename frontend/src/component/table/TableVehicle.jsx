@@ -41,7 +41,8 @@ export default function TableVehicle({ refresh, editData, deleteData }) {
                                         {
                                             filename: props.getValue(),
                                             type: "stnk",
-                                        }
+                                        },
+                                        { responseType: "blob" }
                                     );
                                     fileDownload(data, props.getValue());
                                 } catch (error) {

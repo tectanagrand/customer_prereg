@@ -17,17 +17,17 @@ FileUploadController.uploadSTNK = async (req, res) => {
             plate_num,
             filename,
             plant,
-            transportir,
-            tp_name,
-            plant_name,
+            // transportir,
+            // tp_name,
+            // plant_name,
             id_row,
         } = await FileUploadModel.uploadFile(req, "stnk");
         const nump = await FileUploadModel.submitSTNK(
             plate_num,
             plant,
-            transportir,
-            tp_name,
-            plant_name,
+            // transportir,
+            // tp_name,
+            // plant_name,
             filename,
             id_row,
             id_session
@@ -204,7 +204,11 @@ FileUploadController.getDataSTNK = async (req, res) => {
         const client = await db.connect();
         try {
             const { rows } = await client.query(
-                "SELECT uuid, vhcl_id, foto_stnk, plant, plant_name, transportir, tp_name FROM mst_vehicle WHERE uuid = $1",
+                `SELECT mv.uuid, vhcl_id, foto_stnk, mv.plant,
+                concat(mcp.company_name, ' - ', mcp.plant_name) as plant_name
+                FROM mst_vehicle mv
+                LEFT JOIN mst_company_plant mcp on mv.plant = mcp.plant_code
+                WHERE mv.uuid = $1`,
                 [id_row]
             );
             res.status(200).send({
@@ -213,12 +217,6 @@ FileUploadController.getDataSTNK = async (req, res) => {
                 plant: {
                     value: rows[0].plant,
                     label: `${rows[0].plant} - ${rows[0].plant_name}`,
-                    plant_name: rows[0].plant_name,
-                },
-                transportir: {
-                    value: rows[0].tranportir,
-                    label: `${rows[0].transportir} - ${rows[0].tp_name}`,
-                    tp_name: rows[0].tp_name,
                 },
             });
         } catch (error) {
@@ -240,11 +238,17 @@ FileUploadController.getDataSIM = async (req, res) => {
         const client = await db.connect();
         try {
             const { rows } = await client.query(
-                `SELECT uuid as id, driver_id, driver_name, alamat, tempat_lahir, ct.city, tanggal_lahir,
-                no_telp, foto_sim, is_send, plant, plant_name
+                `SELECT drv.uuid as id, driver_id, driver_name, drv.alamat, alamat2, alamat3,
+                 tempat_lahir, ct.city, ctlv.city as city_live, tanggal_lahir,
+                 kota_tinggal,
+                 no_telp, foto_sim, foto_driver, is_send,
+                 drv.plant,
+                 concat(mcp.company_name, ' - ', mcp.plant_name) as plant_name
                  FROM mst_driver drv
                  LEFT JOIN mst_cities ct ON drv.tempat_lahir = ct.code 
-                 WHERE uuid = $1`,
+                 LEFT JOIN mst_cities ctlv ON drv.kota_tinggal = ctlv.code 
+                 LEFT JOIN mst_company_plant mcp on drv.plant = mcp.plant_code
+                 WHERE drv.uuid = $1`,
                 [id_row]
             );
 
@@ -639,9 +643,10 @@ FileUploadController.ApproveReqDrvVeh = async (req, res) => {
             const { rows: getEmailTarget } = await client.query(
                 `select string_agg(me.email, ',') as email from mst_email me 
             left join mst_user mu on mu.id_user = me.id_user 
-            where mu.plant_code = $1`,
-                [plant]
+            where mu.plant_code in (${result.plant.join(",")})`
             );
+            console.log(getEmailCC);
+            console.log(getEmailTarget);
             await EmailModel.RequestCreateDrvVeh(
                 result.driverHTML,
                 result.vehHTML,
@@ -658,6 +663,7 @@ FileUploadController.ApproveReqDrvVeh = async (req, res) => {
                 message: `Request ${result.ticketNum} Approved`,
             });
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             client.release();

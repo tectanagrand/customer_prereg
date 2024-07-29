@@ -5,12 +5,14 @@ const os = require("os");
 const path = require("path");
 const fs = require("fs");
 const db = require("../config/connection");
+const { PoolOra, ora } = require("../config/oracleconnection");
 const crud = require("../helper/crudquery");
 const uuid = require("uuidv4");
 const TRANS = require("../config/transaction");
 const TicketGen = require("../helper/TicketGen");
 const { Pool, sqls } = require("../config/sqlservconn");
 const ncrypt = require("ncrypt-js");
+const axios = require("axios");
 
 FileUploadModel.uploadFile = async (req, pathtarget) => {
     try {
@@ -43,9 +45,9 @@ FileUploadModel.uploadFile = async (req, pathtarget) => {
         return {
             plate_num: fields.plate_num[0],
             plant: fields.plant[0],
-            transportir: fields.transportir[0],
-            tp_name: fields.tp_name[0],
-            plant_name: fields.plant_name[0],
+            // transportir: fields.transportir[0],
+            // tp_name: fields.tp_name[0],
+            // plant_name: fields.plant_name[0],
             filename: newName,
             id_row: fields.id_row[0],
         };
@@ -56,67 +58,104 @@ FileUploadModel.uploadFile = async (req, pathtarget) => {
 
 FileUploadModel.uploadSIM = async (req, pathtarget) => {
     try {
-        //allowed extensions
-        const extensions = ["jpg", "jpeg", "png", "pneg"];
-        const form = new formidable.IncomingForm();
-        form.options.maxFileSize = 3 * 1024 * 1024;
-        [fields, items] = await form.parse(req);
-        // console.log(items);
-        let files = items.file_atth[0];
-        let photo = items.foto_driver[0];
-        let newPath, newPathphoto;
-        let fileName = files.originalFilename.split(".");
-        let photoName = photo.originalFilename.split(".");
-        if (!extensions.includes(fileName[fileName.length - 1].toLowerCase())) {
-            throw new Error("File Format invalid");
+        const oraclient = await ora.getConnection();
+        try {
+            //allowed extensions
+            const extensions = ["jpg", "jpeg", "png", "pneg"];
+            const form = new formidable.IncomingForm();
+            form.options.maxFileSize = 3 * 1024 * 1024;
+            [fields, items] = await form.parse(req);
+            //check if iddriver is exist
+            const iddriver = fields.nomorsim[0].trim();
+            const { metaData, rows } = await oraclient.execute(
+                `SELECT LICENSENO FROM DRIVER 
+            WHERE LICENSENO = :0`,
+                [iddriver]
+            );
+            const { data } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/SIMSet?$filter=(Snosim%20eq%20%27${iddriver}%27)&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            if (data.d.results.length > 0 || rows.length > 0) {
+                throw new Error("Driver already exist");
+            }
+            // console.log(items);
+            let files = items.file_atth[0];
+            let photo = items.foto_driver[0];
+            let newPath, newPathphoto;
+            let fileName = files.originalFilename.split(".");
+            let photoName = photo.originalFilename.split(".");
+            if (
+                !extensions.includes(
+                    fileName[fileName.length - 1].toLowerCase()
+                )
+            ) {
+                throw new Error("File Format invalid");
+            }
+            if (
+                !extensions.includes(
+                    photoName[photoName.length - 1].toLowerCase()
+                )
+            ) {
+                throw new Error("File Format invalid");
+            }
+            let newName =
+                "SIM " +
+                fields.nomorsim[0] +
+                "." +
+                fileName[fileName.length - 1];
+            let oldPath = files.filepath;
+            let newPhotoName =
+                "SIM " + fields.nama[0] + "." + fileName[fileName.length - 1];
+            let oldPathPhotoName = photo.filepath;
+            if (os.platform() === "win32") {
+                newPath =
+                    path.join(path.resolve(), "public\\" + pathtarget) +
+                    "\\" +
+                    newName;
+                newPathphoto =
+                    path.join(path.resolve(), "public\\" + pathtarget) +
+                    "\\" +
+                    newPhotoName;
+            } else {
+                newPath =
+                    path.join(path.resolve(), "public/" + pathtarget) +
+                    "/" +
+                    newName;
+                newPathphoto =
+                    path.join(path.resolve(), "public/" + pathtarget) +
+                    "/" +
+                    newPhotoName;
+            }
+            let rawData = fs.readFileSync(oldPath);
+            let rawPhotoData = fs.readFileSync(oldPathPhotoName);
+            await fs.promises.writeFile(newPath, rawData);
+            await fs.promises.writeFile(newPathphoto, rawPhotoData);
+            return {
+                nomorsim: fields.nomorsim[0].trim(),
+                nama: fields.nama[0],
+                no_telp: fields.no_telp[0].trim(),
+                tempat_lahir: fields.tempat_lahir[0],
+                tanggal_lahir: fields.tanggal_lahir[0],
+                alamat: fields.alamat[0],
+                alamat2: fields.alamat2[0],
+                alamat3: fields.alamat3[0],
+                kota_tinggal: fields.kota_tinggal[0],
+                plant: fields.plant[0],
+                filename: newName,
+                photoname: newPhotoName,
+                id_row: fields.id_row[0],
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            oraclient.release();
         }
-        if (
-            !extensions.includes(photoName[photoName.length - 1].toLowerCase())
-        ) {
-            throw new Error("File Format invalid");
-        }
-        let newName =
-            "SIM " + fields.nomorsim[0] + "." + fileName[fileName.length - 1];
-        let oldPath = files.filepath;
-        let newPhotoName =
-            "SIM " + fields.nama[0] + "." + fileName[fileName.length - 1];
-        let oldPathPhotoName = photo.filepath;
-        if (os.platform() === "win32") {
-            newPath =
-                path.join(path.resolve(), "public\\" + pathtarget) +
-                "\\" +
-                newName;
-            newPathphoto =
-                path.join(path.resolve(), "public\\" + pathtarget) +
-                "\\" +
-                newPhotoName;
-        } else {
-            newPath =
-                path.join(path.resolve(), "public/" + pathtarget) +
-                "/" +
-                newName;
-            newPathphoto =
-                path.join(path.resolve(), "public/" + pathtarget) +
-                "/" +
-                newPhotoName;
-        }
-        let rawData = fs.readFileSync(oldPath);
-        let rawPhotoData = fs.readFileSync(oldPathPhotoName);
-        await fs.promises.writeFile(newPath, rawData);
-        await fs.promises.writeFile(newPathphoto, rawPhotoData);
-        return {
-            nomorsim: fields.nomorsim[0].trim(),
-            nama: fields.nama[0],
-            no_telp: fields.no_telp[0].trim(),
-            tempat_lahir: fields.tempat_lahir[0],
-            tanggal_lahir: fields.tanggal_lahir[0],
-            alamat: fields.alamat[0],
-            plant: fields.plant[0],
-            plant_name: fields.plant_name[0],
-            filename: newName,
-            photoname: newPhotoName,
-            id_row: fields.id_row[0],
-        };
     } catch (error) {
         throw error;
     }
@@ -125,9 +164,9 @@ FileUploadModel.uploadSIM = async (req, pathtarget) => {
 FileUploadModel.submitSTNK = async (
     plate_num,
     plant,
-    transportir,
-    tp_name,
-    plant_name,
+    // transportir,
+    // tp_name,
+    // plant_name,
     stnk,
     id_row,
     id_session
@@ -142,9 +181,9 @@ FileUploadModel.submitSTNK = async (
                 vhcl_id: plate_num,
                 foto_stnk: stnk,
                 plant: plant,
-                transportir: transportir,
-                tp_name: tp_name,
-                plant_name: plant_name,
+                // transportir: transportir,
+                // tp_name: tp_name,
+                // plant_name: plant_name,
                 is_send: false,
                 create_by: id_session,
             };
@@ -181,10 +220,13 @@ FileUploadModel.submitSIM = async ({
     tempat_lahir,
     tanggal_lahir,
     alamat,
+    alamat2,
+    alamat3,
+    kota_tinggal,
     filename,
     photoname,
     plant,
-    plant_name,
+    // plant_name,
     id_row,
     id_session,
 }) => {
@@ -198,12 +240,15 @@ FileUploadModel.submitSIM = async ({
                 driver_id: nomorsim,
                 driver_name: nama,
                 alamat: alamat,
+                alamat2: alamat2,
+                alamat3: alamat3,
+                kota_tinggal: kota_tinggal,
                 tempat_lahir: tempat_lahir,
                 tanggal_lahir: moment(tanggal_lahir).format("YYYY-MM-DD"),
                 no_telp: no_telp,
                 foto_sim: filename,
                 plant: plant,
-                plant_name: plant_name,
+                // plant_name: plant_name,
                 foto_driver: photoname,
                 create_by: id_session,
                 is_send: false,
@@ -364,7 +409,7 @@ FileUploadModel.processDrvVeh = async ({
     id_user,
     action,
     reject_remark,
-    plant,
+    // plant,
 }) => {
     try {
         const client = await db.connect();
@@ -486,174 +531,242 @@ FileUploadModel.processDrvVeh = async ({
                     noveh: notVeh.join(""),
                 };
             } else if (action === "APPROVE") {
-                let updateData = {
-                    position: "ADM",
-                    update_at: moment().format(),
-                    update_by: id_user,
-                    plant: plant,
-                    remark_reject: reject_remark,
-                };
-                const [queRej, valRej] = crud.updateItem(
-                    "req_drvr_vhcl",
-                    updateData,
-                    {
-                        uuid: id_req,
-                    },
-                    "create_by, request_id"
-                );
-                const insertWBNET = await FileUploadModel.savetoWBNET({
-                    req_id: id_req,
-                });
-                const { rows: getCreateBy } = await client.query(
-                    queRej,
-                    valRej
-                );
-                let driverHTML = [];
-                let driverAtth = [];
-                let vehHTML = [];
-                let vehAtth = [];
-                let notDriver = [];
-                let notVeh = [];
-                let idDriver = [];
-                let idVeh = [];
-                let notDriverData = [];
-                let notVehData = [];
-                if (driverData.length > 0) {
-                    for (const d of driverData) {
-                        idDriver.push(`'${d.id}'`);
-                        driverHTML.push(`
-                            <tr>
-                                <td>${d.driver_id}</td>
-                                <td>${d.driver_name}</td>
-                                <td>${d.tempat_lahir}</td>
-                                <td>${d.tanggal_lahir}</td>
-                                <td>${d.no_telp}</td>
-                                <td>${d.alamat}</td>
-                            </tr>
-                            `);
-                        let pathStream = "";
-                        if (os.platform() === "win32") {
-                            pathStream =
-                                path.join(path.resolve(), "public\\license") +
-                                "\\" +
-                                d.foto_sim;
-                        } else {
-                            pathStream =
-                                path.join(path.resolve(), "public/license") +
-                                "/" +
-                                d.foto_sim;
+                try {
+                    const oraclient = await ora.getConnection();
+                    let plantList = new Set();
+                    try {
+                        let updateData = {
+                            position: "ADM",
+                            update_at: moment().format(),
+                            update_by: id_user,
+                            // plant: plant,
+                            remark_reject: reject_remark,
+                        };
+                        const [queRej, valRej] = crud.updateItem(
+                            "req_drvr_vhcl",
+                            updateData,
+                            {
+                                uuid: id_req,
+                            },
+                            "create_by, request_id"
+                        );
+                        // const insertWBNET = await FileUploadModel.savetoWBNET({
+                        //     req_id: id_req,
+                        // });
+                        const { rows: getCreateBy } = await client.query(
+                            queRej,
+                            valRej
+                        );
+                        let driverHTML = [];
+                        let driverAtth = [];
+                        let vehHTML = [];
+                        let vehAtth = [];
+                        let notDriver = [];
+                        let notVeh = [];
+                        let idDriver = [];
+                        let idVeh = [];
+                        let notDriverData = [];
+                        let notVehData = [];
+                        if (driverData.length > 0) {
+                            //insert driverdata
+                            for (const d of driverData) {
+                                const tglr = d.tanggal_lahir.split("-");
+                                let tanggallahirstg = new Date(
+                                    `${tglr[2]}-${tglr[1]}-${tglr[0]}T00:00:00`
+                                );
+                                let driverPayload = {
+                                    DRIVERNAME: d.driver_name,
+                                    LICENSENO: d.driver_id,
+                                    LOCATION: d.location_sap,
+                                    STGLLAHIR: tanggallahirstg,
+                                    STMPLAHIR: d.tempat_lahir,
+                                    SALAMAT1: d.alamat,
+                                    SALAMAT2: d.alamat2,
+                                    SALAMAT3: d.alamat3,
+                                    SKOTA: d.kota_tinggal,
+                                };
+                                plantList.add(d.plant);
+                                const [queOra, valOra] = crud.insertItemOra(
+                                    "DRIVER",
+                                    driverPayload
+                                );
+                                await oraclient.execute(queOra, valOra);
+                                idDriver.push(`'${d.id}'`);
+                                driverHTML.push(`
+                                    <tr>
+                                        <td>${d.driver_id}</td>
+                                        <td>${d.driver_name}</td>
+                                        <td>${d.tempat_lahir}</td>
+                                        <td>${d.tanggal_lahir}</td>
+                                        <td>${d.no_telp}</td>
+                                        <td>${d.alamat}</td>
+                                    </tr>
+                                    `);
+                                let pathStream = "";
+                                if (os.platform() === "win32") {
+                                    pathStream =
+                                        path.join(
+                                            path.resolve(),
+                                            "public\\license"
+                                        ) +
+                                        "\\" +
+                                        d.foto_sim;
+                                } else {
+                                    pathStream =
+                                        path.join(
+                                            path.resolve(),
+                                            "public/license"
+                                        ) +
+                                        "/" +
+                                        d.foto_sim;
+                                }
+                                driverAtth.push({
+                                    filename: d.foto_sim,
+                                    content: fs.createReadStream(pathStream),
+                                });
+                            }
+                            const { rows: getNoDriver } =
+                                await client.query(`select
+                            md.uuid as id,
+                            md.driver_name,
+                            md.driver_id,
+                            mc.city as tempat_lahir,
+                            md.tanggal_lahir ,
+                            md.no_telp ,
+                            md.alamat
+                            from
+                            mst_driver md
+                            left join mst_cities mc on md.tempat_lahir = mc.code 
+                            where md.req_uuid = '${id_req}' 
+                            and md.uuid not in (${idDriver.join(",")})`);
+                            notDriverData = getNoDriver;
                         }
-                        driverAtth.push({
-                            filename: d.foto_sim,
-                            content: fs.createReadStream(pathStream),
-                        });
-                    }
-                    const { rows: getNoDriver } = await client.query(`select
-                    md.uuid as id,
-                    md.driver_name,
-                    md.driver_id,
-                    mc.city as tempat_lahir,
-                    md.tanggal_lahir ,
-                    md.no_telp ,
-                    md.alamat
-                    from
-                    mst_driver md
-                    left join mst_cities mc on md.tempat_lahir = mc.code 
-                    where md.req_uuid = '${id_req}' 
-                    and md.uuid not in (${idDriver.join(",")})`);
-                    notDriverData = getNoDriver;
-                }
 
-                if (notDriverData.length > 0) {
-                    for (const d of notDriverData) {
-                        let idDriver = d.id;
-                        const [que, val] = crud.updateItem(
-                            "mst_driver",
-                            { is_active: false },
-                            { uuid: idDriver },
-                            "driver_id"
-                        );
-                        await client.query(que, val);
-                        notDriver.push(`
-                            <tr>
-                                <td>${d.driver_id}</td>
-                                <td>${d.driver_name}</td>
-                                <td>${d.tempat_lahir}</td>
-                                <td>${d.tanggal_lahir}</td>
-                                <td>${d.no_telp}</td>
-                                <td>${d.alamat}</td>
-                            </tr>
-                            `);
-                    }
-                }
-                if (vehData.length > 0) {
-                    for (const v of vehData) {
-                        idVeh.push(`'${v.id}'`);
-                        vehHTML.push(`
-                            <tr>
-                                <td>${v.vhcl_id}</td>
-                            </tr>
-                            `);
-                        let pathStream = "";
-                        if (os.platform() === "win32") {
-                            pathStream =
-                                path.join(path.resolve(), "public\\stnk") +
-                                "\\" +
-                                v.foto_stnk;
-                        } else {
-                            pathStream =
-                                path.join(path.resolve(), "public/stnk") +
-                                "/" +
-                                v.foto_stnk;
+                        if (notDriverData.length > 0) {
+                            for (const d of notDriverData) {
+                                let idDriver = d.id;
+                                const [que, val] = crud.updateItem(
+                                    "mst_driver",
+                                    { is_active: false },
+                                    { uuid: idDriver },
+                                    "driver_id"
+                                );
+                                await client.query(que, val);
+                                notDriver.push(`
+                                    <tr>
+                                        <td>${d.driver_id}</td>
+                                        <td>${d.driver_name}</td>
+                                        <td>${d.tempat_lahir}</td>
+                                        <td>${d.tanggal_lahir}</td>
+                                        <td>${d.no_telp}</td>
+                                        <td>${d.alamat}</td>
+                                    </tr>
+                                    `);
+                            }
                         }
-                        vehAtth.push({
-                            filename: v.foto_stnk,
-                            content: fs.createReadStream(pathStream),
-                        });
-                    }
-                    const { rows: getNoVeh } = await client.query(`select
-                        vhcl_id ,
-                        uuid as id
-                    from
-                        mst_vehicle mv
-                    where
-                        req_uuid = '${id_req}'
-                        and uuid not in (${idVeh.join(",")})
-                    `);
-                    notVehData = getNoVeh;
-                }
-                if (notVehData.length > 0) {
-                    for (const v of notVehData) {
-                        let idVeh = v.id;
-                        const [que, val] = crud.updateItem(
-                            "mst_vehicle",
-                            { is_active: false },
-                            { uuid: idVeh },
-                            "vhcl_id"
-                        );
-                        await client.query(que, val);
-                        notVeh.push(`
-                            <tr>
-                                <td>${v.vhcl_id}</td>
-                            </tr>
+                        if (vehData.length > 0) {
+                            //insert vehicle data
+                            for (const v of vehData) {
+                                let vehiclePayload = {
+                                    CARPLATE: v.vhcl_id,
+                                    LOCATION: v.location_sap,
+                                    FLAG: "U",
+                                };
+                                plantList.add(v.plant);
+                                const [queOra, valOra] = crud.insertItemOra(
+                                    "TRUCK",
+                                    vehiclePayload
+                                );
+                                await oraclient.execute(queOra, valOra);
+                                idVeh.push(`'${v.id}'`);
+                                vehHTML.push(`
+                                    <tr>
+                                        <td>${v.vhcl_id}</td>
+                                    </tr>
+                                    `);
+                                let pathStream = "";
+                                if (os.platform() === "win32") {
+                                    pathStream =
+                                        path.join(
+                                            path.resolve(),
+                                            "public\\stnk"
+                                        ) +
+                                        "\\" +
+                                        v.foto_stnk;
+                                } else {
+                                    pathStream =
+                                        path.join(
+                                            path.resolve(),
+                                            "public/stnk"
+                                        ) +
+                                        "/" +
+                                        v.foto_stnk;
+                                }
+                                vehAtth.push({
+                                    filename: v.foto_stnk,
+                                    content: fs.createReadStream(pathStream),
+                                });
+                            }
+                            const { rows: getNoVeh } =
+                                await client.query(`select
+                                vhcl_id ,
+                                uuid as id
+                            from
+                                mst_vehicle mv
+                            where
+                                req_uuid = '${id_req}'
+                                and uuid not in (${idVeh.join(",")})
                             `);
+                            notVehData = getNoVeh;
+                        }
+                        if (notVehData.length > 0) {
+                            for (const v of notVehData) {
+                                let idVeh = v.id;
+                                const [que, val] = crud.updateItem(
+                                    "mst_vehicle",
+                                    { is_active: false },
+                                    { uuid: idVeh },
+                                    "vhcl_id"
+                                );
+                                await client.query(que, val);
+                                notVeh.push(`
+                                    <tr>
+                                        <td>${v.vhcl_id}</td>
+                                    </tr>
+                                    `);
+                            }
+                        }
+                        await client.query(TRANS.COMMIT);
+                        await oraclient.commit();
+                        const plantResult = Array.from(plantList).map(
+                            item => `'${item}'`
+                        );
+                        console.log(plantResult);
+                        return {
+                            create_by: getCreateBy[0].create_by,
+                            ticketNum: getCreateBy[0].request_id,
+                            driverAtth: driverAtth,
+                            driverHTML: driverHTML,
+                            vehHTML: vehHTML,
+                            vehAtth: vehAtth,
+                            notDriver: notDriver,
+                            notVeh: notVeh,
+                            plant: plantResult,
+                        };
+                    } catch (error) {
+                        await oraclient.rollback();
+                        throw error;
+                    } finally {
+                        oraclient.release();
                     }
+                } catch (error) {
+                    throw error;
                 }
-                await client.query(TRANS.COMMIT);
-                return {
-                    create_by: getCreateBy[0].create_by,
-                    ticketNum: getCreateBy[0].request_id,
-                    driverAtth: driverAtth,
-                    driverHTML: driverHTML,
-                    vehHTML: vehHTML,
-                    vehAtth: vehAtth,
-                    notDriver: notDriver,
-                    notVeh: notVeh,
-                };
             }
             await client.query(TRANS.COMMIT);
             return false;
         } catch (error) {
+            console.error(error);
             await client.query(TRANS.ROLLBACK);
             throw error;
         } finally {
