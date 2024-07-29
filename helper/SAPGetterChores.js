@@ -1,10 +1,11 @@
-require("dotenv").config({ path: `.env.development` });
+require("dotenv").config({ path: `.env.${process.env.NODE_ENV}` });
 
 const psqlconn = require("../config/connection");
 const { PoolOra, ora } = require("../config/oracleconnection");
 const TRANS = require("../config/transaction");
 const crud = require("../helper/crudquery");
 const EmailModel = require("../models/EmailModel");
+const moment = require("moment");
 
 const SAPGetterChores = {};
 
@@ -12,6 +13,9 @@ SAPGetterChores.LoadingNoteSync = async () => {
     let psqlclient;
     let oraclient;
     try {
+        console.log(
+            "syncing ln_staging " + moment().format("YYYY-MM-DD T HH:mm:ss")
+        );
         psqlclient = await psqlconn.connect();
         oraclient = await ora.getConnection();
         const email_creator = new Map();
@@ -196,18 +200,25 @@ SAPGetterChores.LoadingNoteSync = async () => {
                         );
                         const updateData = await psqlclient.query(queW, valW);
                         const upDataSAP = await oraclient.execute(queO, valO);
+                        console.log(
+                            `Loading Note Staging Pulled : ${rows[0][1]} ${moment().format("YYYY-MM-DD T HH:mm:ss")}`
+                        );
                     } else {
                         continue;
                     }
                 }
-                if (email_creator.size > 0) {
-                    await EmailModel.NotifyEmail(email_creator);
-                }
-                if (email_updater.size > 0) {
-                    await EmailModel.NotifyEmail(email_updater);
-                }
-                if (email_wb.size > 0) {
-                    await EmailModel.NotifyEmail(email_wb);
+                try {
+                    if (email_creator.size > 0) {
+                        await EmailModel.NotifyEmail(email_creator);
+                    }
+                    if (email_updater.size > 0) {
+                        await EmailModel.NotifyEmail(email_updater);
+                    }
+                    if (email_wb.size > 0) {
+                        await EmailModel.NotifyEmail(email_wb);
+                    }
+                } catch (emailError) {
+                    console.error("Error sending emails:", emailError);
                 }
                 await psqlclient.query(TRANS.COMMIT);
                 await oraclient.commit();

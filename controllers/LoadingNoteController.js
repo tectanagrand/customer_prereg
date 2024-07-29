@@ -2,7 +2,7 @@ const LoadNote = require("../models/LoadingNoteModel");
 const CleanUp = require("../helper/Cleanup");
 const db = require("../config/connection");
 const axios = require("axios");
-const q = require("../helper/Q");
+const q = require("../helper/Queue");
 const fs = require("fs");
 const Crud = require("../helper/crudquery");
 const TRANS = require("../config/transaction");
@@ -242,36 +242,74 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
             payload,
             session
         );
-        q.pushJob(
-            new Promise((resolve, reject) => {
-                console.log(
-                    "Start new Job : " +
-                        moment().format("YYYY-MM-DD T HH:mm:ss")
-                );
-                axios
-                    .get(
-                        `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
-                        {
-                            auth: {
-                                username: session.username,
-                                password: password,
-                            },
-                        }
-                    )
-                    .then(result => {
-                        resolve(
-                            "Success Push" +
-                                moment().format("YYYY-MM-DD T HH:mm:ss") +
-                                " " +
-                                insertSAP.data
-                        );
-                    })
-                    .catch(error => {
-                        console.log(error);
-                        reject(error);
-                    });
-            })
-        );
+        const jobQueue = () => {
+            console.log(
+                "Start new Job : " +
+                    moment().format("YYYY-MM-DD T HH:mm:ss") +
+                    " " +
+                    insertSAP.data
+            );
+            return axios
+                .get(
+                    `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
+                    {
+                        auth: {
+                            username: session.username,
+                            password: password,
+                        },
+                    }
+                )
+                .then(result => {
+                    console.log(
+                        "Success Push" +
+                            moment().format("YYYY-MM-DD T HH:mm:ss") +
+                            " " +
+                            insertSAP.data
+                    );
+                })
+                .catch(error => {
+                    console.log(error);
+                });
+        };
+        q.push(jobQueue);
+        // /q.pushJob(
+        //     new Promise((resolve, reject) => {
+        //         console.log(
+        //             "Start new Job : " +
+        //                 moment().format("YYYY-MM-DD T HH:mm:ss") +
+        //                 " " +
+        //                 insertSAP.data
+        //         );
+        //         axios
+        //             .get(
+        //                 `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
+        //                 {
+        //                     auth: {
+        //                         username: session.username,
+        //                         password: password,
+        //                     },
+        //                 }
+        //             )
+        //             .then(result => {
+        //                 console.log(
+        //                     "Success Push" +
+        //                         moment().format("YYYY-MM-DD T HH:mm:ss") +
+        //                         " " +
+        //                         insertSAP.data
+        //                 );
+        //                 resolve(
+        //                     "Success Push" +
+        //                         moment().format("YYYY-MM-DD T HH:mm:ss") +
+        //                         " " +
+        //                         insertSAP.data
+        //                 );
+        //             })
+        //             .catch(error => {
+        //                 console.log(error);
+        //                 reject(error);
+        //             });
+        //     })
+        // );
         res.status(200).send({
             message: "Data Pushed to SAP",
         });
@@ -286,6 +324,7 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
 LoadingNoteController.getAllDataLNbyUser = async (req, res) => {
     try {
         const session = req.cookies;
+        // console.log(session);
         const isallow = req.query.isallow === "true" ? true : false;
         const data = await LoadNote.getAllDataLNbyUser_2(
             session,
@@ -865,10 +904,17 @@ LoadingNoteController.syncDataWBNET = async (req, res) => {
 
 LoadingNoteController.generateExcelV2 = async (req, res) => {
     try {
-        const { filters, customer_id } = req.body;
+        let { filters, customer_id } = req.body;
         const do_number = filters.find(row => row.id === "id_do");
         if (!do_number) {
             throw new Error("Please provide SO Number");
+        }
+        if (
+            req.cookies.role === "ADMIN" ||
+            req.cookies.role === "LOGISTIC" ||
+            req.cookies.role === "COMMERCIAL"
+        ) {
+            customer_id = "";
         }
         const excelData = await LoadNote.generateExcelv2(filters, customer_id);
         res.setHeader(
@@ -883,6 +929,34 @@ LoadingNoteController.generateExcelV2 = async (req, res) => {
         await excelData.xlsx.write(res);
         res.status(200);
         res.end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.LNDataSAP = async (req, res) => {
+    try {
+        const { startdate, enddate, do_num } = req.query;
+        const result = await LoadNote.getLNDataSAP(startdate, enddate, do_num);
+        res.status(200).send(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            messsage: error.message,
+        });
+    }
+};
+
+LoadingNoteController.syncLNSAP = async (req, res) => {
+    try {
+        const result = await LoadNote.syncLNDataSAP();
+        res.status(200).send({
+            message: "LN SAP Synced",
+            data: result,
+        });
     } catch (error) {
         console.error(error);
         res.status(500).send({
