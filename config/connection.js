@@ -22,11 +22,16 @@ const devSettings = {
     database: process.env.PGDATABASE,
     idleTimeoutMillis: 3000,
     connectionTimeoutMillis: 30000,
+    // ssl: {
+    //     rejectUnauthorized: false,
+    // },
     allowExitOnIdle: true,
 };
 
 const pool = new Pool(
-    process.env.NODE_ENV === "production" ? prodSettings : devSettings
+    process.env.NODE_ENV === "production" || process.env.NODE_ENV === "sandbox"
+        ? prodSettings
+        : devSettings
 );
 
 module.exports = pool;

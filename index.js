@@ -92,6 +92,22 @@ if (process.env.NODE_ENV === "production") {
     server1.listen(process.env.PORT, () => {
         console.log(`App running ${process.env.PORT}`);
     });
+} else if (process.env.NODE_ENV === "sandbox") {
+    const server1 = https.createServer(servOption, app);
+    const server2 = https.createServer(servOption, app);
+    const server3 = https.createServer(servOption, app);
+
+    server1.listen(5000, () => {
+        console.log(`App running 5000`);
+    });
+
+    server2.listen(443, () => {
+        console.log(`App running 443`);
+    });
+
+    server3.listen(80, () => {
+        console.log(`App running 80`);
+    });
 } else {
     app.listen(port, "0.0.0.0", () => {
         console.log(`App running on ${port}`);
@@ -100,6 +116,10 @@ if (process.env.NODE_ENV === "production") {
 
 (async () => {
     CleanUpLN.CronLNClean();
+    CleanUpLN.CronLNReminder();
+    const result = await SAPGetterChores.LoadingNoteSync();
+    console.log(result);
+    // CleanUpLN.CronSync();
 })();
 
 setInterval(async () => {
@@ -109,7 +129,7 @@ setInterval(async () => {
     } catch (error) {
         console.log(error);
     }
-}, 60 * 1000);
+}, 60 * 5000);
 // app.listen(port, "0.0.0.0", () => {
 //     console.log(`App running on ${port}`);
 // });

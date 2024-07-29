@@ -7,7 +7,7 @@ module.exports = {
             autorestart: true,
             exp_backoff_restart_delay: 100,
             env: {
-                NODE_ENV: "development",
+                NODE_ENV: "sandbox",
             },
             env_production: {
                 NODE_ENV: "production",
