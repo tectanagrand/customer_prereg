@@ -517,7 +517,11 @@ MasterController.getVehicleDataDB = async (req, res) => {
         }
         try {
             const { rows } = await client.query(
-                `SELECT VHCL_ID, FOTO_STNK, UUID AS ID, ID as UUID, IS_SEND FROM MST_VEHICLE ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY UUID DESC ${limit ? `limit ${limit} offset ${offset}` : ""}`,
+                `SELECT MV.VHCL_ID, MV.FOTO_STNK, MV.UUID AS ID, MV.ID as UUID, MV.IS_SEND,
+                mv.plant, mwc.location_sap
+                FROM MST_VEHICLE MV
+                LEFT JOIN mst_wbnet_conn mwc on MV.plant = mwc.plant
+                ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY UUID DESC ${limit ? `limit ${limit} offset ${offset}` : ""}`,
                 val
             );
             const { rowCount } = await client.query(
@@ -592,16 +596,24 @@ MasterController.getDriverDataDB = async (req, res) => {
         }
         try {
             const { rows } = await client.query(
-                `SELECT DRIVER_ID, DRIVER_NAME, UUID AS ID,
+                `SELECT DRIVER_ID, DRIVER_NAME, drv.UUID AS ID,
                 IS_SEND,
+                concat(ALAMAT, ' ', ALAMAT2, ' ', ALAMAT3) as display_alamat,
                 ALAMAT, 
+                ALAMAT2,
+                ALAMAT3,
                 CT.city AS TEMPAT_LAHIR,
                 TO_CHAR(TANGGAL_LAHIR, 'DD-MM-YYYY') AS TANGGAL_LAHIR,
+                KT.city AS KOTA_TINGGAL,
                 NO_TELP,
                 FOTO_SIM,
-                FOTO_DRIVER
+                FOTO_DRIVER,
+                mwc.plant,
+                mwc.location_sap
                 FROM MST_DRIVER DRV
-                LEFT JOIN MST_CITIES CT ON CT.CODE = DRV.TEMPAT_LAHIR ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""}
+                LEFT JOIN mst_wbnet_conn mwc on mwc.plant = drv.plant
+                LEFT JOIN MST_CITIES CT ON CT.CODE = DRV.TEMPAT_LAHIR
+                LEFT JOIN MST_CITIES KT ON KT.CODE = DRV.KOTA_TINGGAL ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""}
                 ORDER BY DRV.ID DESC
                 ${limit ? `limit ${limit} offset ${offset}` : ""}`,
                 val
@@ -614,8 +626,11 @@ MasterController.getDriverDataDB = async (req, res) => {
                 TO_CHAR(TANGGAL_LAHIR, 'DD-MM-YYYY') AS TANGGAL_LAHIR,
                 NO_TELP,
                 FOTO_SIM,
-                FOTO_DRIVER
+                FOTO_DRIVER,
+                mwc.plant,
+                mwc.location_sap
                 FROM MST_DRIVER DRV
+                LEFT JOIN mst_wbnet_conn mwc on mwc.plant = drv.plant
                 LEFT JOIN MST_CITIES CT ON CT.CODE = DRV.TEMPAT_LAHIR ${where.length > 0 ? `WHERE ${where.join(" AND ")}` : ""}
                 ORDER BY DRV.ID DESC`,
                 val
@@ -1069,7 +1084,7 @@ MasterController.getDoDB = async (req, res) => {
     try {
         const client = await db.connect();
         const { id_user, role } = req.cookies;
-        const { limit, offset } = req.query;
+        const { limit, offset, q } = req.query;
         try {
             if (
                 role !== "LOGISTIC" &&
@@ -1077,13 +1092,17 @@ MasterController.getDoDB = async (req, res) => {
                 role !== "COMMERCIAL" &&
                 role
             ) {
-                const query = `select distinct id_do from loading_note_hd where create_by = $1 and id_do like $2`;
+                const query = `select distinct hd.id_do from loading_note_hd hd
+                left join loading_note_det det on hd.hd_id = det.hd_fk
+                where det.ln_num is not null and hd.create_by = $1 and id_do like $2 `;
                 const { rows } = await client.query(
                     `${query} limit $3 offset $4`,
                     [id_user, `%${q}%`, limit, offset]
                 );
                 const { rowCount } = await client.query(
-                    `select distinct id_do from loading_note_hd where create_by = $1 and id_do like $2`,
+                    `select distinct hd.id_do from loading_note_hd hd
+                    left join loading_note_det det on hd.hd_id = det.hd_fk
+                where det.ln_num is not null and hd.create_by = $1 and id_do like $2`,
                     [id_user, `%${q}%`]
                 );
                 res.status(200).send({
@@ -1091,13 +1110,17 @@ MasterController.getDoDB = async (req, res) => {
                     count: rowCount,
                 });
             } else {
-                const query = `select distinct id_do from loading_note_hd where id_do like $1`;
+                const query = `select distinct hd.id_do from loading_note_hd hd
+                  left join loading_note_det det on hd.hd_id = det.hd_fk
+                where det.ln_num is not null and id_do like $1`;
                 const { rows } = await client.query(
                     `${query} limit $2 offset $3`,
                     [`%${q}%`, limit, offset]
                 );
                 const { rowCount } = await client.query(
-                    `select distinct id_do from loading_note_hd where id_do like $1`,
+                    `select distinct hd.id_do from loading_note_hd hd
+                      left join loading_note_det det on hd.hd_id = det.hd_fk
+                where det.ln_num is not null and id_do like $1`,
                     [`%${q}%`]
                 );
                 res.status(200).send({
@@ -1113,6 +1136,45 @@ MasterController.getDoDB = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.upMstCustbyDate = async (req, res) => {
+    try {
+        const upMstCust = await Master.updateMstCustbyDate(req.query.datefrom);
+        res.status(200).send({
+            message: "Data Synced",
+        });
+    } catch (error) {
+        res.status(200).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.upMstVenbyDate = async (req, res) => {
+    try {
+        const upMstVen = Master.updateMstVenbyDate(req.query.datefrom);
+        res.status(200).send({
+            message: "Data Synced",
+        });
+    } catch (error) {
+        res.status(200).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.upMstIntrbyDate = async (req, res) => {
+    try {
+        const upMstVen = Master.updateMstIntercoByDate(req.query.datefrom);
+        res.status(200).send({
+            message: "Data Synced",
+        });
+    } catch (error) {
+        res.status(200).send({
             message: error.message,
         });
     }
