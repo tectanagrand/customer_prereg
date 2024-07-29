@@ -11,6 +11,9 @@ import {
     KeyboardArrowDown,
     KeyboardArrowUp,
     FileDownload,
+    TableView,
+    Scale,
+    CloudCircle,
 } from "@mui/icons-material";
 
 import {
@@ -23,6 +26,7 @@ import {
     TableFooter,
     IconButton,
     Tooltip,
+    Button,
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AutocompleteFilter from "../input/AutocompleteFilterComp";
@@ -33,10 +37,16 @@ import { debounce } from "lodash";
 import moment from "moment";
 import DatePickerNoComp from "../common/DatePickerNoCont";
 import AutoCompleteDODB from "../input/AutoCompleteDODB";
+import toast from "react-hot-toast";
+import { LoadingButton } from "@mui/lab";
 
 export default function TableReportLN({ onsetFilterData, isLoading }) {
     const formatNumber = (number, uom) => {
-        return `${number.replace(/\B(?=(\d{3})+(?!\d))/g, ",")} ${uom}`;
+        if (number) {
+            return `${number?.replace(/\B(?=(\d{3})+(?!\d))/g, ",")} ${uom}`;
+        } else {
+            return "";
+        }
     };
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
@@ -49,6 +59,8 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
     const [refresh, setRefresh] = useState(false);
     const [isFetch, setIsFetch] = useState(false);
     const [onMount, setOnMount] = useState(false);
+    const [issyncwb, setSyncWB] = useState(false);
+    const [issyncsap, setSyncSAP] = useState(false);
     const [startDate, _setStartDate] = useState(null);
     const rangeDate = useRef(null);
     const setStartDate = value => {
@@ -60,17 +72,26 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
         _setEndDate(moment(value));
         refreshTableData(startDate, moment(value));
     };
-    const [do_number, _setDoNum] = useState(null);
+    const [do_number, _setDoNum] = useState("");
     const setDoNum = value => {
-        console.log(value);
+        _setDoNum(value);
     };
     const [summary, setSum] = useState({
         plan_qty: 0,
+        plan_qty_sap: 0,
+        fac_qty_sap: 0,
+        pending_qty: 0,
         bruto: 0,
         tarra: 0,
         netto: 0,
         receive: 0,
         deduction: 0,
+        postedTotal: 0,
+        unpostedTotal: 0,
+        os_sap: 0,
+        os_web: 0,
+        os_wbpost: 0,
+        os_wbunpost: 0,
     });
     const column = useMemo(
         () => [
@@ -119,33 +140,76 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
                 enableColumnFilter: false,
             },
             {
+                header: "Pending Plan Qty",
+                accessorFn: row =>
+                    `${row.pending_plan_qty?.replace(
+                        /\B(?=(\d{3})+(?!\d))/g,
+                        ","
+                    )}  ${row.uom}`,
+                cell: props => props.getValue(),
+                enableColumnFilter: false,
+            },
+            {
+                header: "Plan Qty SAP",
+                accessorKey: "plan_qty_sap",
+                cell: props =>
+                    formatNumber(props.getValue(), props.row.original.uom),
+                enableColumnFilter: false,
+            },
+            {
+                header: "Fac. Qty SAP",
+                accessorKey: "fac_qty_sap",
+                cell: props =>
+                    formatNumber(props.getValue(), props.row.original.uom),
+                enableColumnFilter: false,
+            },
+            {
                 header: "Bruto",
                 accessorKey: "bruto",
-                cell: props => props.getValue(),
+                cell: props =>
+                    formatNumber(props.getValue(), props.row.original.uom),
                 enableColumnFilter: false,
             },
             {
                 header: "Tarra",
                 accessorKey: "tarra",
-                cell: props => props.getValue(),
+                cell: props =>
+                    formatNumber(props.getValue(), props.row.original.uom),
                 enableColumnFilter: false,
             },
             {
                 header: "Netto",
                 accessorKey: "netto",
-                cell: props => props.getValue(),
+                cell: props =>
+                    formatNumber(props.getValue(), props.row.original.uom),
                 enableColumnFilter: false,
             },
             {
                 header: "Receive",
                 accessorKey: "receive",
-                cell: props => props.getValue(),
+                cell: props =>
+                    formatNumber(props.getValue(), props.row.original.uom),
                 enableColumnFilter: false,
             },
             {
                 header: "Deduction",
                 accessorKey: "deduction",
-                cell: props => props.getValue(),
+                cell: props =>
+                    formatNumber(props.getValue(), props.row.original.uom),
+                enableColumnFilter: false,
+            },
+            {
+                header: "Posted Quantity",
+                accessorKey: "receive_posted",
+                cell: props =>
+                    formatNumber(props.getValue(), props.row.original.uom),
+                enableColumnFilter: false,
+            },
+            {
+                header: "Unposted Quantity",
+                accessorKey: "receive_unposted",
+                cell: props =>
+                    formatNumber(props.getValue(), props.row.original.uom),
                 enableColumnFilter: false,
             },
             {
@@ -216,6 +280,16 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
             if (rangeDate.current != null) {
                 filters = [...filters, ...rangeDate.current];
             }
+            if (do_number !== "") {
+                filters = [
+                    ...filters,
+                    {
+                        id: "id_do",
+                        value: do_number,
+                    },
+                ];
+            }
+
             const { data } = await axiosPrivate.post("/ln/getinfln", {
                 filters: filters,
                 limit: limit,
@@ -223,7 +297,11 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
             });
             paginate.current.max = data.count;
             paginate.current.offset = limit + offset;
-            return { data: data.data, summary: data.sum_data };
+            return {
+                data: data.data,
+                summary: data.sum_data,
+                outstanding: data.outstanding,
+            };
         } catch (error) {
             console.error(error);
             throw error;
@@ -246,18 +324,121 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
             setData(resultData.data);
             const sumData = resultData.summary;
             const uom = sumData.uom;
-            setSum({
+            let dataSummary = {
                 plan_qty: formatNumber(sumData.plan_qty, uom),
+                plan_qty_sap: formatNumber(sumData.plan_qty_sap, uom),
+                fac_qty_sap: formatNumber(sumData.fac_qty_sap, uom),
+                pending_qty: formatNumber(sumData.pending_qty, uom),
                 bruto: formatNumber(sumData.bruto, uom),
                 tarra: formatNumber(sumData.tarra, uom),
                 netto: formatNumber(sumData.netto, uom),
                 deduction: formatNumber(sumData.deduction, uom),
                 receive: formatNumber(sumData.receive, uom),
-            });
+                postedTotal: formatNumber(sumData.postedTotal, uom),
+                unpostedTotal: formatNumber(sumData.unpostedTotal, uom),
+            };
+            if (resultData?.outstanding) {
+                dataSummary = {
+                    ...dataSummary,
+                    os_sap: formatNumber(
+                        resultData.outstanding.os_sap.toString(),
+                        uom
+                    ),
+                    os_web: formatNumber(
+                        resultData.outstanding.osweb.toString(),
+                        uom
+                    ),
+                    os_wbpost: formatNumber(
+                        resultData.outstanding.osposted.toString(),
+                        uom
+                    ),
+                    os_wbunpost: formatNumber(
+                        resultData.outstanding.osunposted.toString(),
+                        uom
+                    ),
+                };
+            }
+            setSum(dataSummary);
         } catch (error) {
             console.error(error);
         }
     }, 500);
+
+    const generateExcel = async () => {
+        try {
+            let filters = dataColFilter;
+            if (rangeDate.current != null) {
+                filters = [...filters, ...rangeDate.current];
+            }
+            if (do_number === "") {
+                throw new Error("Please provide SO Number for exporting excel");
+            } else {
+                filters = [
+                    ...filters,
+                    {
+                        id: "id_do",
+                        value: do_number,
+                    },
+                ];
+            }
+            const response = await axiosPrivate.post(
+                "/ln/genexcelv2",
+                {
+                    filters: filters,
+                },
+                {
+                    responseType: "blob",
+                }
+            );
+            const filename = response.headers
+                .get("Content-Disposition")
+                .split("filename=")[1]
+                .replace(/['"]+/g, "");
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            // Create a link element and simulate a click to trigger the download
+            const link = document.createElement("a");
+            link.setAttribute("download", filename);
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+
+            // Cleanup
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            if (error.response) {
+                toast.error(error.response.data.message);
+            } else {
+                toast.error(error.message);
+            }
+            console.error(error);
+        }
+    };
+
+    const syncWbnet = async () => {
+        setSyncWB(true);
+        try {
+            const { data } = await axiosPrivate.post("/ln/syncwbnet");
+            toast.success(data.message);
+            setRefresh(true);
+        } catch (error) {
+            toast.error(error.response.data.message);
+        } finally {
+            setSyncWB(false);
+        }
+    };
+
+    const syncLnsap = async () => {
+        setSyncSAP(true);
+        try {
+            const { data } = await axiosPrivate.post("/ln/synclnsap");
+            toast.success(data.message);
+            setRefresh(true);
+        } catch (error) {
+            toast.error(error.response.data.message);
+        } finally {
+            setSyncSAP(false);
+        }
+    };
 
     useEffect(() => {
         onsetFilterData({
@@ -268,32 +449,62 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
         (async () => {
             try {
                 const resultData = await fetchData(40, 0);
+                console.log(resultData);
                 setData(resultData.data);
                 const sumData = resultData.summary;
                 const uom = sumData.uom;
-                setSum({
+                let dataSummary = {
                     plan_qty: formatNumber(sumData.plan_qty, uom),
+                    plan_qty_sap: formatNumber(sumData.plan_qty_sap, uom),
+                    fac_qty_sap: formatNumber(sumData.fac_qty_sap, uom),
+                    pending_qty: formatNumber(sumData.pending_qty, uom),
                     bruto: formatNumber(sumData.bruto, uom),
                     tarra: formatNumber(sumData.tarra, uom),
                     netto: formatNumber(sumData.netto, uom),
                     deduction: formatNumber(sumData.deduction, uom),
                     receive: formatNumber(sumData.receive, uom),
-                });
+                    postedTotal: formatNumber(sumData.postedTotal, uom),
+                    unpostedTotal: formatNumber(sumData.unpostedTotal, uom),
+                };
+                if (resultData?.outstanding) {
+                    dataSummary = {
+                        ...dataSummary,
+                        os_sap: formatNumber(
+                            resultData.outstanding.os_sap.toString(),
+                            uom
+                        ),
+                        os_web: formatNumber(
+                            resultData.outstanding.osweb.toString(),
+                            uom
+                        ),
+                        os_wbpost: formatNumber(
+                            resultData.outstanding.osposted.toString(),
+                            uom
+                        ),
+                        os_wbunpost: formatNumber(
+                            resultData.outstanding.osunposted.toString(),
+                            uom
+                        ),
+                    };
+                }
+                setSum(dataSummary);
                 if (rangeDate.current === null) {
                     _setStartDate(moment(sumData.min_tgl_muat));
                     _setEndDate(moment(sumData.max_tgl_muat));
                 }
             } catch (error) {
                 console.error(error);
+            } finally {
+                if (refresh) {
+                    setRefresh(false);
+                }
             }
         })();
-    }, [columnFilter, refresh, isLoading]);
+    }, [columnFilter, refresh, isLoading, do_number]);
 
     const fetchMoreOnBottom = debounce(async containerRef => {
         if (containerRef) {
             const { scrollHeight, scrollTop, clientHeight } = containerRef;
-            console.log("is fetching :", isFetch);
-            console.log(onMount);
             if (
                 scrollHeight - scrollTop - clientHeight < 680 &&
                 data.length < paginate.current.max &&
@@ -301,7 +512,6 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
                 onMount
             ) {
                 setIsFetch(true);
-                console.log("mounted");
                 try {
                     const resultData = await fetchData(
                         paginate.current.limit,
@@ -326,264 +536,426 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
 
     // console.log(rows);
     return (
-        <div
-            style={{
-                minWidth: "100%",
-                minHeight: "100%",
-                width: 0,
-                height: 0,
-            }}
-        >
-            <div style={{ display: "flex", margin: "0 0 1rem 0" }}>
-                <DatePickerNoComp
-                    label={"From"}
-                    value={startDate}
-                    onChange={setStartDate}
-                    format={"DD-MM-YYYY"}
-                />
-                <DatePickerNoComp
-                    label={"To"}
-                    value={endDate}
-                    onChange={setEndDate}
-                    format={"DD-MM-YYYY"}
-                />
-                <AutoCompleteDODB onChangeovr={setDoNum} />
-            </div>
+        <>
             <div
                 style={{
                     display: "flex",
+                    flexDirection: "column",
                     minWidth: "100%",
                     minHeight: "100%",
                     width: 0,
-                    height: 0,
                 }}
             >
-                <TableContainer
-                    sx={{
-                        width: "100%",
-                        height: "600px",
+                <div
+                    style={{
+                        display: "flex",
+                        margin: "0 0 1rem 0",
+                        gap: "1rem",
                     }}
-                    ref={tableContainerRef}
-                    onScroll={e => fetchMoreOnBottom(e.target)}
                 >
-                    <Table stickyHeader>
-                        <TableHead>
-                            {table.getHeaderGroups().map(headerGroup => {
-                                return (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map(header => {
-                                            return (
-                                                <TableCell
-                                                    key={header.id}
-                                                    colSpan={header.colSpan}
-                                                    sx={{
-                                                        width: header.getSize(),
-                                                    }}
-                                                >
-                                                    {header.column.getCanFilter() ? (
-                                                        <div>
-                                                            <AutocompleteFilter
-                                                                column={
-                                                                    header.column
-                                                                }
-                                                                sx={{
-                                                                    width: header.getSize(),
+                    <DatePickerNoComp
+                        label={"From"}
+                        value={startDate}
+                        onChange={setStartDate}
+                        format={"DD-MM-YYYY"}
+                    />
+                    <DatePickerNoComp
+                        label={"To"}
+                        value={endDate}
+                        onChange={setEndDate}
+                        format={"DD-MM-YYYY"}
+                    />
+                    <AutoCompleteDODB
+                        onChangeovr={setDoNum}
+                        label="SO Number"
+                        sx={{ width: "20rem" }}
+                    />
+                    <LoadingButton
+                        onClick={async () => {
+                            await syncWbnet();
+                        }}
+                        variant="contained"
+                        sx={{
+                            minWidth: "12rem",
+                            mb: 1,
+                            color: theme.palette.success.contrastText,
+                            backgroundColor: theme.palette.success.main,
+                            ":hover": {
+                                backgroundColor: theme.palette.success.light,
+                            },
+                        }}
+                        loading={issyncwb}
+                    >
+                        <Scale></Scale> Sync WBNET
+                    </LoadingButton>
+                    <LoadingButton
+                        onClick={async () => {
+                            await syncLnsap();
+                        }}
+                        variant="contained"
+                        sx={{
+                            minWidth: "12rem",
+                            mb: 1,
+                            color: theme.palette.success.contrastText,
+                            backgroundColor: theme.palette.success.main,
+                            ":hover": {
+                                backgroundColor: theme.palette.success.light,
+                            },
+                        }}
+                        loading={issyncsap}
+                    >
+                        <CloudCircle></CloudCircle> Sync LN SAP
+                    </LoadingButton>
+                    <Button
+                        onClick={async () => {
+                            await generateExcel();
+                        }}
+                        variant="contained"
+                        sx={{
+                            minWidth: "12rem",
+                            mb: 1,
+                            color: theme.palette.success.contrastText,
+                            backgroundColor: theme.palette.success.main,
+                            ":hover": {
+                                backgroundColor: theme.palette.success.light,
+                            },
+                        }}
+                    >
+                        <TableView></TableView> Generate Excel
+                    </Button>
+                </div>
+                <div
+                    style={{
+                        display: "flex",
+                        minWidth: "100%",
+                        width: 0,
+                    }}
+                >
+                    <TableContainer
+                        sx={{
+                            width: "100%",
+                            height: "580px",
+                        }}
+                        ref={tableContainerRef}
+                        onScroll={e => fetchMoreOnBottom(e.target)}
+                    >
+                        <Table stickyHeader>
+                            <TableHead>
+                                {table.getHeaderGroups().map(headerGroup => {
+                                    return (
+                                        <TableRow key={headerGroup.id}>
+                                            {headerGroup.headers.map(header => {
+                                                return (
+                                                    <TableCell
+                                                        key={header.id}
+                                                        colSpan={header.colSpan}
+                                                        sx={{
+                                                            width: header.getSize(),
+                                                        }}
+                                                    >
+                                                        {header.column.getCanFilter() ? (
+                                                            <div>
+                                                                <AutocompleteFilter
+                                                                    column={
+                                                                        header.column
+                                                                    }
+                                                                    sx={{
+                                                                        width: header.getSize(),
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <></>
+                                                        )}
+                                                        {header.isPlaceholder ? null : (
+                                                            <div
+                                                                style={{
+                                                                    alignContent:
+                                                                        "center",
+                                                                    cursor: "pointer",
+                                                                    display:
+                                                                        "flex",
                                                                 }}
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        <></>
-                                                    )}
-                                                    {header.isPlaceholder ? null : (
-                                                        <div
-                                                            style={{
-                                                                alignContent:
-                                                                    "center",
-                                                                cursor: "pointer",
-                                                                display: "flex",
-                                                            }}
-                                                            onClick={header.column.getToggleSortingHandler()}
-                                                        >
-                                                            {flexRender(
-                                                                header.column
-                                                                    .columnDef
-                                                                    .header,
-                                                                header.getContext()
-                                                            )}
-                                                            {header.column.getCanSort() ? (
-                                                                header.column.getNextSortingOrder() ===
-                                                                "asc" ? (
-                                                                    <KeyboardArrowDown
-                                                                        sx={{
-                                                                            width: "1.5rem",
-                                                                            height: "1.5rem",
-                                                                        }}
-                                                                    />
-                                                                ) : header.column.getNextSortingOrder() ===
-                                                                  "desc" ? (
-                                                                    <KeyboardArrowUp
-                                                                        sx={{
-                                                                            width: "1.5rem",
-                                                                            height: "1.5rem",
-                                                                        }}
-                                                                    />
+                                                                onClick={header.column.getToggleSortingHandler()}
+                                                            >
+                                                                {flexRender(
+                                                                    header
+                                                                        .column
+                                                                        .columnDef
+                                                                        .header,
+                                                                    header.getContext()
+                                                                )}
+                                                                {header.column.getCanSort() ? (
+                                                                    header.column.getNextSortingOrder() ===
+                                                                    "asc" ? (
+                                                                        <KeyboardArrowDown
+                                                                            sx={{
+                                                                                width: "1.5rem",
+                                                                                height: "1.5rem",
+                                                                            }}
+                                                                        />
+                                                                    ) : header.column.getNextSortingOrder() ===
+                                                                      "desc" ? (
+                                                                        <KeyboardArrowUp
+                                                                            sx={{
+                                                                                width: "1.5rem",
+                                                                                height: "1.5rem",
+                                                                            }}
+                                                                        />
+                                                                    ) : (
+                                                                        ""
+                                                                    )
                                                                 ) : (
                                                                     ""
-                                                                )
-                                                            ) : (
-                                                                ""
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </TableCell>
-                                            );
-                                        })}
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
+                                                );
+                                            })}
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableHead>
+                            <TableBody>
+                                {table.getRowModel().rows.map(row => {
+                                    return (
+                                        <TableRow key={row.id} hover>
+                                            {row.getVisibleCells().map(cell => {
+                                                return (
+                                                    <TableCell
+                                                        key={cell.id}
+                                                        sx={{
+                                                            width: cell.column.getSize(),
+                                                        }}
+                                                    >
+                                                        {flexRender(
+                                                            cell.column
+                                                                .columnDef.cell,
+                                                            cell.getContext()
+                                                        )}
+                                                    </TableCell>
+                                                );
+                                            })}
+                                        </TableRow>
+                                    );
+                                })}
+                                {isFetch && (
+                                    <TableRow rowSpan={2}>
+                                        <TableCell colSpan={column.length}>
+                                            Is Loading...
+                                        </TableCell>
                                     </TableRow>
-                                );
-                            })}
-                        </TableHead>
-                        <TableBody>
-                            {table.getRowModel().rows.map(row => {
-                                return (
-                                    <TableRow key={row.id} hover>
-                                        {row.getVisibleCells().map(cell => {
-                                            return (
-                                                <TableCell
-                                                    key={cell.id}
-                                                    sx={{
-                                                        width: cell.column.getSize(),
-                                                    }}
-                                                >
-                                                    {flexRender(
-                                                        cell.column.columnDef
-                                                            .cell,
-                                                        cell.getContext()
-                                                    )}
-                                                </TableCell>
-                                            );
-                                        })}
-                                    </TableRow>
-                                );
-                            })}
-                            {isFetch && (
-                                <TableRow rowSpan={2}>
-                                    <TableCell colSpan={column.length}>
-                                        Is Loading...
+                                )}
+                            </TableBody>
+                            <TableFooter>
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={7}
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        Total
                                     </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.plan_qty}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.pending_qty}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.plan_qty_sap}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.fac_qty_sap}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.bruto}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.tarra}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.netto}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.receive}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.deduction}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.postedTotal}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    >
+                                        {summary.unpostedTotal}
+                                    </TableCell>
+                                    <TableCell
+                                        colSpan={column.length - 7 - 3}
+                                        sx={{
+                                            left: 0,
+                                            bottom: 0, // <-- KEY
+                                            zIndex: 2,
+                                            position: "sticky",
+                                            backgroundColor:
+                                                theme.palette.primary.main,
+                                            color: "white",
+                                        }}
+                                    ></TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                        <TableFooter>
-                            <TableRow>
-                                <TableCell
-                                    colSpan={7}
-                                    sx={{
-                                        left: 0,
-                                        bottom: 0, // <-- KEY
-                                        zIndex: 2,
-                                        position: "sticky",
-                                        backgroundColor:
-                                            theme.palette.primary.main,
-                                        color: "white",
-                                    }}
-                                >
-                                    Total
-                                </TableCell>
-                                <TableCell
-                                    sx={{
-                                        left: 0,
-                                        bottom: 0, // <-- KEY
-                                        zIndex: 2,
-                                        position: "sticky",
-                                        backgroundColor:
-                                            theme.palette.primary.main,
-                                        color: "white",
-                                    }}
-                                >
-                                    {summary.plan_qty}
-                                </TableCell>
-                                <TableCell
-                                    sx={{
-                                        left: 0,
-                                        bottom: 0, // <-- KEY
-                                        zIndex: 2,
-                                        position: "sticky",
-                                        backgroundColor:
-                                            theme.palette.primary.main,
-                                        color: "white",
-                                    }}
-                                >
-                                    {summary.bruto}
-                                </TableCell>
-                                <TableCell
-                                    sx={{
-                                        left: 0,
-                                        bottom: 0, // <-- KEY
-                                        zIndex: 2,
-                                        position: "sticky",
-                                        backgroundColor:
-                                            theme.palette.primary.main,
-                                        color: "white",
-                                    }}
-                                >
-                                    {summary.tarra}
-                                </TableCell>
-                                <TableCell
-                                    sx={{
-                                        left: 0,
-                                        bottom: 0, // <-- KEY
-                                        zIndex: 2,
-                                        position: "sticky",
-                                        backgroundColor:
-                                            theme.palette.primary.main,
-                                        color: "white",
-                                    }}
-                                >
-                                    {summary.netto}
-                                </TableCell>
-                                <TableCell
-                                    sx={{
-                                        left: 0,
-                                        bottom: 0, // <-- KEY
-                                        zIndex: 2,
-                                        position: "sticky",
-                                        backgroundColor:
-                                            theme.palette.primary.main,
-                                        color: "white",
-                                    }}
-                                >
-                                    {summary.receive}
-                                </TableCell>
-                                <TableCell
-                                    sx={{
-                                        left: 0,
-                                        bottom: 0, // <-- KEY
-                                        zIndex: 2,
-                                        position: "sticky",
-                                        backgroundColor:
-                                            theme.palette.primary.main,
-                                        color: "white",
-                                    }}
-                                >
-                                    {summary.deduction}
-                                </TableCell>
-                                <TableCell
-                                    colSpan={column.length - 7 - 6}
-                                    sx={{
-                                        left: 0,
-                                        bottom: 0, // <-- KEY
-                                        zIndex: 2,
-                                        position: "sticky",
-                                        backgroundColor:
-                                            theme.palette.primary.main,
-                                        color: "white",
-                                    }}
-                                ></TableCell>
-                            </TableRow>
-                        </TableFooter>
-                    </Table>
-                </TableContainer>
+                            </TableFooter>
+                        </Table>
+                    </TableContainer>
+                </div>
+                {do_number !== "" && (
+                    <TableContainer sx={{ width: "40rem" }}>
+                        <Table>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell
+                                        rowSpan={4}
+                                        sx={{
+                                            bgcolor:
+                                                theme.palette.primary.light,
+                                            color: theme.palette.primary
+                                                .contrastText,
+                                        }}
+                                    >
+                                        Outstanding
+                                    </TableCell>
+                                    <TableCell>SAP</TableCell>
+                                    <TableCell>{summary.os_sap}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Web</TableCell>
+                                    <TableCell>{summary.os_web}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>WBNET Posted</TableCell>
+                                    <TableCell>{summary.os_wbpost}</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                )}
             </div>
-        </div>
+        </>
     );
 }

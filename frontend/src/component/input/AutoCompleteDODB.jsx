@@ -24,7 +24,7 @@ export default function AutoCompleteDODB({ onChangeovr, ...props }) {
         try {
             let doData;
             doData = await axiosPrivate.get(
-                `ln/dodb?limit=${limit}&offset=${offset}&q=${q}`
+                `master/dodb?limit=${limit}&offset=${offset}&q=${q}`
             );
 
             const { data: rowData } = doData;
