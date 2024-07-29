@@ -8,14 +8,14 @@ SubmissionLN.checkSubmitValidity = async (req, res, next) => {
     const params = req.body;
     const cookies = req.cookies;
     try {
-        if (params.uuid === "") {
+        if (params.id_header === "") {
             next();
         }
         const client = await db.connect();
         try {
             const { rows: curPos } = await client.query(
-                "SELECT cur_pos, id_loadnote FROM loading_note where uuid = $1",
-                [params.uuid]
+                "SELECT cur_pos, id_loadnote FROM loading_note_hd where hd_id = $1",
+                [params.id_header]
             );
             const id_loadnote = curPos[0]?.id_loadnote;
             if (
