@@ -982,6 +982,9 @@ MasterModel.getDOList = async (cust_id, type) => {
                             },
                         }
                     );
+                    if (!data.d.results.length > 0) {
+                        continue;
+                    }
                     if (data.d.results[0].Inco1 === type) {
                         dolist.push({
                             value: d.Vbeln,
