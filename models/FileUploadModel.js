@@ -587,6 +587,8 @@ FileUploadModel.processDrvVeh = async ({
                                     PREREG_INBOUND: "X",
                                     PREREG_FLAG: "I",
                                     ISRETRIVEDBYSAP: "FALSE",
+                                    FLAG: "I",
+                                    ISACTIVE: "TRUE",
                                 };
                                 plantList.add(d.plant);
                                 const [queOra, valOra] = crud.insertItemOra(
@@ -673,10 +675,11 @@ FileUploadModel.processDrvVeh = async ({
                                 let vehiclePayload = {
                                     CARPLATE: v.vhcl_id,
                                     LOCATION: v.location_sap,
-                                    FLAG: "U",
+                                    FLAG: "I",
                                     PREREG_INBOUND: "X",
                                     PREREG_FLAG: "I",
                                     ISRETRIVEDBYSAP: "FALSE",
+                                    ISACTIVE: "TRUE",
                                 };
                                 plantList.add(v.plant);
                                 const [queOra, valOra] = crud.insertItemOra(
