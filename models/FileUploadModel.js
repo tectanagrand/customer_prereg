@@ -584,6 +584,9 @@ FileUploadModel.processDrvVeh = async ({
                                     SALAMAT2: d.alamat2,
                                     SALAMAT3: d.alamat3,
                                     SKOTA: d.kota_tinggal,
+                                    PREREG_INBOUND: "X",
+                                    PREREG_FLAG: "I",
+                                    ISRETRIVEDBYSAP: "FALSE",
                                 };
                                 plantList.add(d.plant);
                                 const [queOra, valOra] = crud.insertItemOra(
@@ -671,6 +674,9 @@ FileUploadModel.processDrvVeh = async ({
                                     CARPLATE: v.vhcl_id,
                                     LOCATION: v.location_sap,
                                     FLAG: "U",
+                                    PREREG_INBOUND: "X",
+                                    PREREG_FLAG: "I",
+                                    ISRETRIVEDBYSAP: "FALSE",
                                 };
                                 plantList.add(v.plant);
                                 const [queOra, valOra] = crud.insertItemOra(

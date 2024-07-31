@@ -10,14 +10,15 @@ SubmissionLN.checkSubmitValidity = async (req, res, next) => {
     try {
         if (params.id_header === "") {
             next();
+            return;
         }
         const client = await db.connect();
         try {
             const { rows: curPos } = await client.query(
-                "SELECT cur_pos, id_loadnote FROM loading_note_hd where hd_id = $1",
+                "SELECT cur_pos, hd_id FROM loading_note_hd where hd_id = $1",
                 [params.id_header]
             );
-            const id_loadnote = curPos[0]?.id_loadnote;
+            const id_loadnote = curPos[0]?.hd_id;
             if (
                 (id_loadnote !== null || id_loadnote !== "") &&
                 params.cur_pos === "FINA"
@@ -25,6 +26,7 @@ SubmissionLN.checkSubmitValidity = async (req, res, next) => {
                 res.status(400).send({
                     message: "Loading note already created",
                 });
+                return;
             } else if (
                 cookies.role === "CUSTOMER" &&
                 params.cur_pos === "FINA"
@@ -32,6 +34,7 @@ SubmissionLN.checkSubmitValidity = async (req, res, next) => {
                 res.status(400).send({
                     message: "User not authorized",
                 });
+                return;
             } else if (
                 cookies.role === "LOGISTIC" &&
                 params.cur_pos === "INIT"
@@ -39,8 +42,10 @@ SubmissionLN.checkSubmitValidity = async (req, res, next) => {
                 res.status(400).send({
                     message: "User not authorized",
                 });
+                return;
             } else {
                 next();
+                return;
             }
         } catch (error) {
             console.log(error);
@@ -53,6 +58,7 @@ SubmissionLN.checkSubmitValidity = async (req, res, next) => {
         res.status(500).send({
             message: error.message,
         });
+        return;
     }
 };
 
