@@ -106,6 +106,8 @@ const ApprovalReqDelete = () => {
                 remark_reject: "",
             });
             setRefresh(true);
+            const { data: created } = await axiosPrivate.get(`/ln/createdln`);
+            setRows(created.data);
             setModalAuth(false);
             setModalOpen(false);
             _setModalResp({
@@ -241,10 +243,16 @@ const ApprovalReqDelete = () => {
     }, [refresh]);
 
     return (
-        <div>
+        <Box sx={{ width: "100%" }}>
             <Toaster />
             <form onSubmit={handleSubmit(stagedDeleted)}>
-                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        width: "100%",
+                    }}
+                >
                     <div style={{ display: "flex", gap: "1rem" }}>
                         <RefreshButton
                             sx={{
@@ -298,7 +306,7 @@ const ApprovalReqDelete = () => {
                     data={rows}
                     columns={columns}
                     setSelected={setSelectedRows}
-                    sx={{ height: "65vh", overflowX: "scroll", width: "92vw" }}
+                    sx={{ height: "65vh", overflowX: "scroll", width: "100%" }}
                     uniform={uniformRule}
                     notselect={notselectRule}
                     refresh={refresh}
@@ -474,7 +482,7 @@ const ApprovalReqDelete = () => {
                     </DialogActions>
                 </form>
             </Dialog>
-        </div>
+        </Box>
     );
 };
 

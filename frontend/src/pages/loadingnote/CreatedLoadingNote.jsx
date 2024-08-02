@@ -86,6 +86,8 @@ const CreatedLoadingNote = () => {
                 remark_delete: "",
             });
             setRefresh(true);
+            const { data: created } = await axiosPrivate.get(`/ln/createdln`);
+            setRows(created.data);
             setModalOpen(false);
             _setModalResp({
                 open: true,

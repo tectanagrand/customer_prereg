@@ -10,9 +10,6 @@ export default function Button(theme) {
                     "&:hover": {
                         boxShadow: "none",
                     },
-                    minHeight: "4rem",
-                    minWidth: "6rem",
-                    maxWidth: "10rem",
                 },
                 sizeLarge: {
                     minHeight: "4rem",

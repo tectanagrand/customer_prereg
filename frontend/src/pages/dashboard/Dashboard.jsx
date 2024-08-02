@@ -215,7 +215,12 @@ export default function Dashboard() {
             </Drawer>
             <Box
                 component="main"
-                sx={{ flexGrow: 1, p: 3, height: "100%", width: "100%" }}
+                sx={{
+                    flexGrow: 1,
+                    p: 3,
+                    height: "100%",
+                    width: open ? `calc(100% - ${drawerWidth}px)` : "100%",
+                }}
             >
                 <DrawerHeader />
                 {session.menuname && (
