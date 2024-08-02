@@ -45,5 +45,7 @@ router.post("/syncwbnet", LoadNote.syncDataWBNET);
 router.post("/genexcelv2", LoadNote.generateExcelV2);
 router.get("/lndatasap", LoadNote.LNDataSAP);
 router.post("/synclnsap", LoadNote.syncLNSAP);
+router.post("/syncstgwb", LoadNote.syncDataStagingWBNET);
+router.get("/choicesyncwbnet", LoadNote.choicesSyncStagingWBNET);
 
 module.exports = router;

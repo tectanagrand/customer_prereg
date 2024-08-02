@@ -14,6 +14,7 @@ import {
     TableView,
     Scale,
     CloudCircle,
+    RefreshOutlined,
 } from "@mui/icons-material";
 
 import {
@@ -24,7 +25,6 @@ import {
     TableHead,
     TableRow,
     TableFooter,
-    IconButton,
     Tooltip,
     Button,
 } from "@mui/material";
@@ -39,6 +39,7 @@ import DatePickerNoComp from "../common/DatePickerNoCont";
 import AutoCompleteDODB from "../input/AutoCompleteDODB";
 import toast from "react-hot-toast";
 import { LoadingButton } from "@mui/lab";
+import ModalSyncWBNET from "../../pages/recap/ModalSyncWBNET";
 
 export default function TableReportLN({ onsetFilterData, isLoading }) {
     const formatNumber = (number, uom) => {
@@ -50,12 +51,14 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
     };
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
+    const initialDateRange = useRef({ from: moment(), to: moment() });
     const paginate = useRef({
         limit: 20,
         offset: 0,
         max: 0,
     });
     const tableContainerRef = useRef(null);
+    const [modalSync, _setModalSync] = useState(false);
     const [refresh, setRefresh] = useState(false);
     const [isFetch, setIsFetch] = useState(false);
     const [onMount, setOnMount] = useState(false);
@@ -75,6 +78,14 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
     const [do_number, _setDoNum] = useState("");
     const setDoNum = value => {
         _setDoNum(value);
+    };
+
+    const setModalSync = value => {
+        _setModalSync(value);
+    };
+
+    const refreshTable = () => {
+        setRefresh(true);
     };
     const [summary, setSum] = useState({
         plan_qty: 0,
@@ -210,38 +221,6 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
                 accessorKey: "receive_unposted",
                 cell: props =>
                     formatNumber(props.getValue(), props.row.original.uom),
-                enableColumnFilter: false,
-            },
-            {
-                header: "Incoterms",
-                accessorFn: row => `${row.inco_1} - ${row.inco_2}`,
-            },
-            {
-                header: "Company",
-                accessorKey: "company",
-            },
-            {
-                header: "Plant",
-                accessorKey: "plant",
-            },
-            {
-                header: "Customer",
-                accessorFn: row => `${row.kunnr} - ${row.name_1}`,
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Material",
-                accessorKey: "desc_con",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Contract Quantity",
-                accessorFn: row =>
-                    `${row.con_qty?.replace(
-                        /\B(?=(\d{3})+(?!\d))/g,
-                        ","
-                    )}  ${row.uom}`,
-                cell: props => props.getValue(),
                 enableColumnFilter: false,
             },
         ],
@@ -491,6 +470,10 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
                 if (rangeDate.current === null) {
                     _setStartDate(moment(sumData.min_tgl_muat));
                     _setEndDate(moment(sumData.max_tgl_muat));
+                    initialDateRange.current = {
+                        from: moment(sumData.min_tgl_muat),
+                        to: moment(sumData.max_tgl_muat),
+                    };
                 }
             } catch (error) {
                 console.error(error);
@@ -524,6 +507,15 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
             }
         }
     }, 200);
+
+    const resetFilterDate = () => {
+        _setStartDate(initialDateRange.current.from);
+        _setEndDate(initialDateRange.current.to);
+        refreshTableData(
+            initialDateRange.current.from,
+            initialDateRange.current.to
+        );
+    };
 
     useEffect(() => {
         if (isFetch) {
@@ -565,64 +557,83 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
                         onChange={setEndDate}
                         format={"DD-MM-YYYY"}
                     />
+                    <Tooltip title="Reset Date">
+                        <Button
+                            sx={{ width: "4rem", height: "4rem" }}
+                            variant="contained"
+                            onClick={e => {
+                                resetFilterDate();
+                            }}
+                        >
+                            <RefreshOutlined />
+                        </Button>
+                    </Tooltip>
                     <AutoCompleteDODB
                         onChangeovr={setDoNum}
                         label="SO Number"
                         sx={{ width: "20rem" }}
                     />
-                    <LoadingButton
-                        onClick={async () => {
-                            await syncWbnet();
-                        }}
-                        variant="contained"
-                        sx={{
-                            minWidth: "12rem",
-                            mb: 1,
-                            color: theme.palette.success.contrastText,
-                            backgroundColor: theme.palette.success.main,
-                            ":hover": {
-                                backgroundColor: theme.palette.success.light,
-                            },
-                        }}
-                        loading={issyncwb}
-                    >
-                        <Scale></Scale> Sync WBNET
-                    </LoadingButton>
-                    <LoadingButton
-                        onClick={async () => {
-                            await syncLnsap();
-                        }}
-                        variant="contained"
-                        sx={{
-                            minWidth: "12rem",
-                            mb: 1,
-                            color: theme.palette.success.contrastText,
-                            backgroundColor: theme.palette.success.main,
-                            ":hover": {
-                                backgroundColor: theme.palette.success.light,
-                            },
-                        }}
-                        loading={issyncsap}
-                    >
-                        <CloudCircle></CloudCircle> Sync LN SAP
-                    </LoadingButton>
-                    <Button
-                        onClick={async () => {
-                            await generateExcel();
-                        }}
-                        variant="contained"
-                        sx={{
-                            minWidth: "12rem",
-                            mb: 1,
-                            color: theme.palette.success.contrastText,
-                            backgroundColor: theme.palette.success.main,
-                            ":hover": {
-                                backgroundColor: theme.palette.success.light,
-                            },
-                        }}
-                    >
-                        <TableView></TableView> Generate Excel
-                    </Button>
+                    <Tooltip title="Sync WBNET">
+                        <Button
+                            onClick={() => {
+                                setModalSync(true);
+                            }}
+                            variant="contained"
+                            sx={{
+                                minWidth: "4rem",
+                                mb: 1,
+                                color: theme.palette.success.contrastText,
+                                backgroundColor: theme.palette.success.main,
+                                ":hover": {
+                                    backgroundColor:
+                                        theme.palette.success.light,
+                                },
+                            }}
+                        >
+                            <Scale></Scale>
+                        </Button>
+                    </Tooltip>
+                    <Tooltip title="Sync LN SAP">
+                        <LoadingButton
+                            onClick={async () => {
+                                await syncLnsap();
+                            }}
+                            variant="contained"
+                            sx={{
+                                minWidth: "4rem",
+                                mb: 1,
+                                color: theme.palette.success.contrastText,
+                                backgroundColor: theme.palette.success.main,
+                                ":hover": {
+                                    backgroundColor:
+                                        theme.palette.success.light,
+                                },
+                            }}
+                            loading={issyncsap}
+                        >
+                            <CloudCircle></CloudCircle>
+                        </LoadingButton>
+                    </Tooltip>
+                    <Tooltip title="Generate Excel">
+                        <Button
+                            onClick={async () => {
+                                await generateExcel();
+                            }}
+                            variant="contained"
+                            sx={{
+                                minWidth: "4rem",
+                                mb: 1,
+                                color: theme.palette.success.contrastText,
+                                backgroundColor: theme.palette.success.main,
+                                ":hover": {
+                                    backgroundColor:
+                                        theme.palette.success.light,
+                                },
+                            }}
+                        >
+                            <TableView></TableView>
+                        </Button>
+                    </Tooltip>
                 </div>
                 <div
                     style={{
@@ -956,6 +967,11 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
                     </TableContainer>
                 )}
             </div>
+            <ModalSyncWBNET
+                is_open={modalSync}
+                setOpen={setModalSync}
+                refreshTable={refreshTable}
+            />
         </>
     );
 }

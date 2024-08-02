@@ -964,4 +964,33 @@ LoadingNoteController.syncLNSAP = async (req, res) => {
         });
     }
 };
+
+LoadingNoteController.syncDataStagingWBNET = async (req, res) => {
+    const { month, year, comp } = req.body;
+    try {
+        const data = await LoadNote.syncDataStagingWBNET(comp, month, year);
+        res.status(200).send({
+            message: "Sync Data Staging WBNET Success",
+            data: data,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.choicesSyncStagingWBNET = async (req, res) => {
+    try {
+        const { id_user, role } = req.cookies;
+        const dataChoice = await LoadNote.getChoiceSync(id_user, role);
+        res.status(200).send(dataChoice);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
 module.exports = LoadingNoteController;

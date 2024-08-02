@@ -2083,6 +2083,67 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
     }
 };
 
+LoadingNoteModel.getChoiceSync = async (id_user, role) => {
+    try {
+        const client = await db.connect();
+        try {
+            //get years
+            //get by user
+            let whereuser = "";
+            let valuser = [];
+            if (!["CUSTOMER", "ADMIN", "COMMERCIAL"].includes(role)) {
+                whereuser = "and lnd.create_by = $1";
+                valuser = [id_user];
+            }
+            const { rows } = await client.query(
+                `select
+                    distinct lnh.company, to_char(tanggal_surat_jalan,
+                    'YYYY') as year_choice,to_char(tanggal_surat_jalan,
+                    'MM') as month_choice
+                from
+                    loading_note_det lnd
+                left join loading_note_hd lnh on lnd.hd_fk = lnh.hd_id 
+                where
+                    lnd.is_active = true
+                    and tanggal_surat_jalan is not null ${whereuser}
+                order by company asc, year_choice asc, month_choice asc`,
+                valuser
+            );
+            const choices = {};
+            for (const row of rows) {
+                let companyChoices = choices[row.company];
+                if (!companyChoices) {
+                    choices[row.company] = {
+                        [row.year_choice]: [row.month_choice],
+                    };
+                } else {
+                    if (!choices[row.company][row.year_choice]) {
+                        choices[row.company] = {
+                            ...choices[row.company],
+                            [row.year_choice]: [row.month_choice],
+                        };
+                    } else {
+                        choices[row.company] = {
+                            ...choices[row.company],
+                            [row.year_choice]: [
+                                ...choices[row.company][row.year_choice],
+                                row.month_choice,
+                            ],
+                        };
+                    }
+                }
+            }
+            return choices;
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
 LoadingNoteModel.generateExcel = async (filters, customer_id) => {
     try {
         const rowData = await LoadingNoteModel.getSSRecap(
@@ -3082,7 +3143,9 @@ LoadingNoteModel.getOSQtyWB = async (beforeDate, do_num) => {
             );
             const conData = data.d.results[0];
             const con_qty = parseFloat(conData.Kwmeng);
+            console.log(con_qty);
             const qtyposted = parseFloat(postedData[0].receive);
+            console.log(qtyposted);
             const qtyunposted = parseFloat(unpostedData[0].receive);
             return {
                 osposted: con_qty - qtyposted,
@@ -3094,6 +3157,130 @@ LoadingNoteModel.getOSQtyWB = async (beforeDate, do_num) => {
             client.release();
         }
     } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.syncDataStagingWBNET = async (comp, month, year) => {
+    let oraclient;
+    let psqlclient;
+    try {
+        oraclient = await ora.getConnection();
+        psqlclient = await db.connect();
+        let updatedLN = [];
+        try {
+            await psqlclient.query(TRANS.BEGIN);
+            const qGetStaging = `
+                SELECT
+                    INTERNAL_NUMBER AS LOADING_NOTE,
+                    GROSS,
+                    TARE,
+                    RECEIVED,
+                    DEDUCTION,
+                    NET,
+                    POSTED,
+                    LOADING_QTY
+                FROM
+                    WBNET_DATA_TRX wdt
+                WHERE
+                    TO_CHAR(REPORT_DATE, 'MM') = :monthfil
+                    AND to_char(REPORT_DATE, 'YYYY') = :yearfil
+                    AND COY = :compfil
+            `;
+            const { metadata, rows: data_staging } = await oraclient.execute(
+                qGetStaging,
+                {
+                    monthfil: month,
+                    yearfil: year,
+                    compfil: comp,
+                }
+            );
+            const { rows: data_prereg } = await psqlclient.query(
+                `
+                select
+                lnd.ln_num,
+                lnd.netto,
+                lnd.posted,
+                lnd.plan_qty 
+            from
+                loading_note_det lnd
+            left join loading_note_hd lnh on
+                lnd.hd_fk = lnh.hd_id
+            where TO_CHAR(lnd.tanggal_surat_jalan,
+                'MM') = $1
+                and TO_CHAR(lnd.tanggal_surat_jalan,
+                'YYYY') = $2
+                and lnh.company = $3
+                and ln_num is not null`,
+                [month, year, comp]
+            );
+            const prereg_loadnote = new Map();
+
+            for (const row of data_prereg) {
+                prereg_loadnote.set(row.ln_num, {
+                    netto: row.netto,
+                    posted: row.posted,
+                    plan_qty: row.plan_qty,
+                });
+            }
+
+            for (const row of data_staging) {
+                const loadnote = row[0];
+                const preg = prereg_loadnote.get(loadnote);
+                if (preg) {
+                    let payload;
+                    const posted_prereg =
+                        preg.posted === null ? "" : preg.posted ? "Y" : "N";
+                    if (posted_prereg !== row[6]) {
+                        payload = {
+                            bruto: row[1],
+                            tarra: row[2],
+                            netto: row[5],
+                            receive: row[3],
+                            deduction: row[4],
+                            posted: row[6] === "Y" ? true : false,
+                        };
+                        const [queUp, valUp] = crud.updateItem(
+                            "loading_note_det",
+                            payload,
+                            {
+                                ln_num: loadnote,
+                            },
+                            "ln_num"
+                        );
+                        const { rows: upLN } = await psqlclient.query(
+                            queUp,
+                            valUp
+                        );
+                        updatedLN.push(upLN[0].ln_num);
+                    }
+                }
+            }
+            await psqlclient.query(TRANS.COMMIT);
+            /*
+            [0] => LOADING_NOTE
+            [1] => BRUTO
+            [2] => TARE
+            [3] => RECEIVED
+            [4] => DEDUCTION
+            [5] => NET
+            [6] => POSTED
+            [7] => LOADING_QTY
+            */
+            return updatedLN;
+        } catch (error) {
+            await psqlclient.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            if (psqlclient) {
+                psqlclient.release();
+            }
+            if (oraclient) {
+                oraclient.release();
+            }
+        }
+    } catch (error) {
+        console.error(error);
         throw error;
     }
 };
