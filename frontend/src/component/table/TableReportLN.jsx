@@ -61,6 +61,7 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
     const [modalSync, _setModalSync] = useState(false);
     const [refresh, setRefresh] = useState(false);
     const [isFetch, setIsFetch] = useState(false);
+    const fetching = useRef(false);
     const [onMount, setOnMount] = useState(false);
     const [issyncwb, setSyncWB] = useState(false);
     const [issyncsap, setSyncSAP] = useState(false);
@@ -254,6 +255,7 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
     const fetchData = async (limit, offset) => {
         try {
             setIsFetch(true);
+            fetching.current = true;
             console.log("is fetching");
             let filters = dataColFilter;
             if (rangeDate.current != null) {
@@ -284,6 +286,8 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
         } catch (error) {
             console.error(error);
             throw error;
+        } finally {
+            fetching.current = false;
         }
     };
 
@@ -492,6 +496,7 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
                 scrollHeight - scrollTop - clientHeight < 680 &&
                 data.length < paginate.current.max &&
                 !isFetch &&
+                !fetching.current &&
                 onMount
             ) {
                 setIsFetch(true);
@@ -520,6 +525,7 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
     useEffect(() => {
         if (isFetch) {
             setIsFetch(false);
+            fetching.current = false;
         }
         if (data.length > 0) {
             setOnMount(true);
@@ -550,12 +556,14 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
                         value={startDate}
                         onChange={setStartDate}
                         format={"DD-MM-YYYY"}
+                        maxDate={endDate}
                     />
                     <DatePickerNoComp
                         label={"To"}
                         value={endDate}
                         onChange={setEndDate}
                         format={"DD-MM-YYYY"}
+                        minDate={startDate}
                     />
                     <Tooltip title="Reset Date">
                         <Button

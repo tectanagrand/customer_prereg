@@ -966,9 +966,9 @@ LoadingNoteController.syncLNSAP = async (req, res) => {
 };
 
 LoadingNoteController.syncDataStagingWBNET = async (req, res) => {
-    const { month, year, comp } = req.body;
+    const { month, year, company } = req.body;
     try {
-        const data = await LoadNote.syncDataStagingWBNET(comp, month, year);
+        const data = await LoadNote.syncDataStagingWBNET(company, month, year);
         res.status(200).send({
             message: "Sync Data Staging WBNET Success",
             data: data,

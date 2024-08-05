@@ -1977,11 +1977,11 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
             date = true;
         } else if (item.id === "start_tsj") {
             value = `>= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
-            id = "cre_date";
+            id = "tanggal_surat_jalan";
             date = true;
         } else if (item.id === "end_tsj") {
             value = `<= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
-            id = "cre_date";
+            id = "tanggal_surat_jalan";
             date = true;
         }
         if (!date) {
@@ -2010,7 +2010,7 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
     if (where.length != 0) {
         whereQue = `AND ${where.join(" AND ")}`;
     }
-    let que = `${getRecapData} ${whereQue} ORDER BY DET.CRE_DATE ASC ${limit && limit !== "" ? `LIMIT ${limit} OFFSET ${offset}` : ""} `;
+    let que = `${getRecapData} ${whereQue} ORDER BY DET.ln_num ASC ${limit && limit !== "" ? `LIMIT ${limit} OFFSET ${offset}` : ""} `;
     let countData = `${getCountData} ${whereQue}`;
     let postedTotal = `${totalPosted} ${whereQue}`;
     let unpostedTotal = `${totalunPosted} ${whereQue}`;
@@ -2034,6 +2034,7 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
                 count: dataCount[0].count_rows,
                 sum_data: {
                     ...dataCount[0],
+                    con_qty: rows[0].con_qty,
                     uom: rows[0].uom,
                     plan_qty: planQty[0].plan_qty,
                     pending_qty: pendingQty[0].plan_qty,
@@ -2374,8 +2375,6 @@ LoadingNoteModel.generateExcelv2 = async (filters, customer_id) => {
         tableStart = tableStart + 1;
         for (let i = tableStart; i <= dataCount + tableStart - 1; i++) {
             const dataRow = excelData.data[i - tableStart];
-            console.log(i - tableStart);
-            console.log(dataRow);
             for (const [cell, header] of tableHeader) {
                 if (
                     header.value === "cre_date_moment" ||
@@ -3049,63 +3048,57 @@ LoadingNoteModel.syncLNDataSAP = async () => {
 
 LoadingNoteModel.getOSQtySAP = async (beforeDate, do_num) => {
     try {
-        const { data } = await axios.get(
-            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${do_num}')&$format=json
-        `,
-            {
-                auth: {
-                    username: process.env.UNAMESAP,
-                    password: process.env.PWDSAP,
-                },
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(
+                `select con_qty from loading_note_hd where id_do = $1 limit 1`,
+                [do_num]
+            );
+            const con_qty = parseFloat(rows[0].con_qty);
+            const { data: planQty } = await axios.get(
+                `
+                ${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QTYPLANSet?$filter=(Erdat%20le%20datetime%27${beforeDate}T00:00:00%27)and(VbelnRef%20eq%20%27${do_num}%27)&$format=json
+                `,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            let totalQuantity = 0;
+            let totalDeleted = 0;
+            const { data: DOTRXDELETE } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${do_num}%27)&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            if (DOTRXDELETE.d.results.length > 0) {
+                DOTRXDELETE.d.results.map(item => {
+                    totalDeleted += parseFloat(item.PlnLfimg);
+                });
             }
-        );
-        // console.log(beforeDate);
-        const conData = data.d.results[0];
-        const con_qty = parseFloat(conData.Kwmeng);
-        // console.log(
-        //     `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QTYPLANSet?$filter=(Erdat%20le%20datetime%27${beforeDate}T00:00:00%27)and(VbelnRef%20eq%20%27${do_num}%27)&$format=json`
-        // );
-        const { data: planQty } = await axios.get(
-            `
-            ${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/QTYPLANSet?$filter=(Erdat%20le%20datetime%27${beforeDate}T00:00:00%27)and(VbelnRef%20eq%20%27${do_num}%27)&$format=json
-            `,
-            {
-                auth: {
-                    username: process.env.UNAMESAP,
-                    password: process.env.PWDSAP,
-                },
+            for (const d of planQty.d.results) {
+                const planQty = parseFloat(d.PlnLfimg);
+                const actualQty = parseFloat(d.LLfimg);
+                if (actualQty == 0) {
+                    totalQuantity += planQty;
+                } else {
+                    totalQuantity += actualQty;
+                }
             }
-        );
-        let totalQuantity = 0;
-        let totalDeleted = 0;
-        const { data: DOTRXDELETE } = await axios.get(
-            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${do_num}%27)&$format=json`,
-            {
-                auth: {
-                    username: process.env.UNAMESAP,
-                    password: process.env.PWDSAP,
-                },
-            }
-        );
-        if (DOTRXDELETE.d.results.length > 0) {
-            DOTRXDELETE.d.results.map(item => {
-                totalDeleted += parseFloat(item.PlnLfimg);
-            });
+            return {
+                os_sap: con_qty - (totalQuantity - totalDeleted),
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
         }
-        for (const d of planQty.d.results) {
-            const planQty = parseFloat(d.PlnLfimg);
-            const actualQty = parseFloat(d.LLfimg);
-            if (actualQty == 0) {
-                totalQuantity += planQty;
-            } else {
-                totalQuantity += actualQty;
-            }
-        }
-        console.log(totalQuantity);
-        console.log(con_qty);
-        return {
-            os_sap: con_qty - (totalQuantity - totalDeleted),
-        };
     } catch (error) {
         throw error;
     }
@@ -3115,10 +3108,15 @@ LoadingNoteModel.getOSQtyWB = async (beforeDate, do_num) => {
     try {
         const client = await db.connect();
         try {
+            const { rows } = await client.query(
+                `select con_qty from loading_note_hd where id_do = $1 limit 1`,
+                [do_num]
+            );
+            const con_qty = parseFloat(rows[0].con_qty);
             const { rows: postedData } = await client.query(
                 `select coalesce(sum(receive), 0) as receive from loading_note_det det
                 left join loading_note_hd hd on det.hd_fk = hd.hd_id
-                where hd.id_do = $1 and cre_date < TO_DATE('${beforeDate}', 'YYYY-MM-DD')
+                where hd.id_do = $1 and cre_date <= TO_DATE('${beforeDate}', 'YYYY-MM-DD')
                 and posted = true
                 ;`,
                 [do_num]
@@ -3126,26 +3124,12 @@ LoadingNoteModel.getOSQtyWB = async (beforeDate, do_num) => {
             const { rows: unpostedData } = await client.query(
                 `select coalesce(sum(receive), 0) as receive from loading_note_det det
                 left join loading_note_hd hd on det.hd_fk = hd.hd_id 
-                where hd.id_do = $1 and cre_date < TO_DATE('${beforeDate}', 'YYYY-MM-DD')
+                where hd.id_do = $1 and cre_date <= TO_DATE('${beforeDate}', 'YYYY-MM-DD')
                 and (posted = false or posted is null)
                 ;`,
                 [do_num]
             );
-            const { data } = await axios.get(
-                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${do_num}')&$format=json
-            `,
-                {
-                    auth: {
-                        username: process.env.UNAMESAP,
-                        password: process.env.PWDSAP,
-                    },
-                }
-            );
-            const conData = data.d.results[0];
-            const con_qty = parseFloat(conData.Kwmeng);
-            console.log(con_qty);
             const qtyposted = parseFloat(postedData[0].receive);
-            console.log(qtyposted);
             const qtyunposted = parseFloat(unpostedData[0].receive);
             return {
                 osposted: con_qty - qtyposted,
