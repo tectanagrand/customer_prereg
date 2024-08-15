@@ -141,7 +141,7 @@ export default function VehicleDashboard() {
     };
 
     const uploadFile = async values => {
-        setLoading(true);
+        // setLoading(true);
         let form = new FormData();
         form.append("file_atth", file, file.name);
         form.append(
@@ -151,6 +151,8 @@ export default function VehicleDashboard() {
                 .replace(/-/g, " ")
                 .replace(/_/g, "")
                 .toUpperCase()
+                .replace(/\s+/g, " ")
+                .trim()
         );
         form.append("plant", values.plant.value);
         // form.append("plant_name", values.plant.plant_name);
