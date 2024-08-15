@@ -6,6 +6,8 @@ const axios = require("axios");
 const MappingKeys = require("../helper/MappingKeys");
 const ncrypt = require("ncrypt-js");
 const { Pool, sqls } = require("../config/sqlservconn");
+const OSCheck = require("../helper/OSCheck");
+const moment = require("moment");
 // noderfc.setIniFileDirectory(process.env.SAPINIFILE);
 
 const MasterModel = {};
@@ -171,61 +173,8 @@ MasterModel.getSOData = async do_num => {
             });
             return itemTemp;
         });
-        const { rows: tempLoadingNote } = await psqlclient.query(
-            `SELECT SUM(PLAN_QTY) AS plan_qty
-        FROM LOADING_NOTE_DET DET
-        LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
-        WHERE HD.ID_DO = $1
-            AND DET.IS_ACTIVE = TRUE
-            AND DET.LN_NUM IS NULL`,
-            [do_num]
-        );
-        // console.log("temp req:");
-        const qtyTemp = tempLoadingNote[0].plan_qty
-            ? parseFloat(tempLoadingNote[0].plan_qty)
-            : 0;
-        // console.log(qtyTemp);
-        // console.log(
-        //     `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${do_num}%27)&$format=json`
-        // );
-        const { data: I_OUTDELIVERY } = await axios.get(
-            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${do_num}%27)&$format=json`,
-            {
-                auth: {
-                    username: process.env.UNAMESAP,
-                    password: process.env.PWDSAP,
-                },
-            }
-        );
-        // console.log("os sap:");
-        I_OUTDELIVERY.d.results.map((item, index) => {
-            // console.log(item);
-            let planning = parseFloat(item.PlnLfimg);
-            let real = parseFloat(item.LLfimg);
-            // console.log(index);
-            // console.log("planning :", planning);
-            // console.log("real : ", real);
-            totalFromSAP += real === 0 ? planning : real;
-        });
 
-        const { data: DOTRXDELETE } = await axios.get(
-            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${do_num}%27)&$format=json`,
-            {
-                auth: {
-                    username: process.env.UNAMESAP,
-                    password: process.env.PWDSAP,
-                },
-            }
-        );
-        // console.log("deleted sap:");
-        let deletedLN = 0;
-        if (DOTRXDELETE.d.results.length > 0) {
-            DOTRXDELETE.d.results.map(item => {
-                deletedLN += parseFloat(item.PlnLfimg);
-                totalFromSAP -= parseFloat(item.PlnLfimg);
-            });
-        }
-        // console.log(deletedLN);
+        const OSData = await OSCheck.CheckOSCust(do_num);
 
         if (I_ZSLIP.length === 0) {
             throw new Error("SO Not Found");
@@ -251,9 +200,14 @@ MasterModel.getSOData = async do_num => {
             PINO: PINO,
             OS: parseFloat(SLIP.ZTTLPROF) - totalPay,
             IS_PAID: parseFloat(SLIP.ZTTLPROF) - totalPay > 5000 ? false : true,
-            TOTALSPEND: totalFromSAP + qtyTemp,
-            TOTALTEMP: qtyTemp,
-            TOTALSAP: totalFromSAP,
+            TOTALSPEND:
+                OSData.TotalSAP +
+                OSData.TotalTemp -
+                OSData.TotalDeleted +
+                parseInt(OSData.HoldQty),
+            TOTALTEMP: OSData.TotalTemp,
+            TOTALSAP: OSData.TotalSAP - OSData.TotalDeleted,
+            HOLDQTY: parseInt(OSData.HoldQty),
         };
     } catch (error) {
         console.log(error);
@@ -457,6 +411,9 @@ MasterModel.getStoreLoc2 = async (plant, itemrule) => {
 
 MasterModel.getValType = async (plant, material) => {
     try {
+        console.log(`
+        ${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/VALTYPESet?$filter=(Matnr eq '${material}')and(Plant eq '${plant}')&$format=json
+        `);
         const { data: dataValtype } = await axios.get(
             `
         ${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/VALTYPESet?$filter=(Matnr eq '${material}')and(Plant eq '${plant}')&$format=json
@@ -970,9 +927,9 @@ MasterModel.getDOList = async (cust_id, type) => {
                     },
                 }
             );
-            // console.log(data);
+            console.log(data);
             for (const d of data.d.results) {
-                if (type) {
+                if (type && type !== "undefined") {
                     const { data } = await axios.get(
                         `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${d.Vbeln}')&$format=json`,
                         {
@@ -1407,6 +1364,65 @@ MasterModel.getTransporterWB = async (plant, limit, offset, q) => {
                 sqlsclient.close();
             }
         } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+//Master Contract
+MasterModel.createMasterContract = async (payload, id_user) => {
+    try {
+        const client = await db.connect();
+        let dataPayload = {
+            id_do: payload.id_do,
+            hold_qty: payload.hold_qty,
+            cust_id: payload.cust_id,
+        };
+        let method = "";
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows } = await client.query(
+                `select id_do from mst_contract where id_do = $1`,
+                [payload.id_do]
+            );
+            if (rows.length > 0) {
+                dataPayload = {
+                    ...dataPayload,
+                    update_at: moment().format("YYYY-MM-DD T HH:mm:ss UTC"),
+                    update_by: id_user,
+                };
+                const [upQue, upVal] = crud.updateItem(
+                    "mst_contract",
+                    dataPayload,
+                    {
+                        id_do: payload.id_do,
+                    },
+                    "id_do"
+                );
+                await client.query(upQue, upVal);
+                method = "updated";
+            } else {
+                dataPayload = {
+                    ...dataPayload,
+                    create_at: moment().format("YYYY-MM-DD T HH:mm:ss UTC"),
+                    create_by: id_user,
+                };
+                const [upQue, upVal] = crud.insertItem(
+                    "mst_contract",
+                    dataPayload,
+                    "id_do"
+                );
+                await client.query(upQue, upVal);
+                method = "created";
+            }
+            await client.query(TRANS.COMMIT);
+            return method;
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
             throw error;
         } finally {
             client.release();

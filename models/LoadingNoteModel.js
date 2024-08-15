@@ -13,6 +13,7 @@ const moment = require("moment");
 const axios = require("axios");
 const EmailModel = require("../models/EmailModel");
 const { Pool, sqls } = require("../config/sqlservconn");
+const OSCheck = require("../helper/OSCheck");
 
 const LoadingNoteModel = {};
 
@@ -100,6 +101,25 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
         let deleteIdx = [];
         try {
             await client.query(TRANS.BEGIN);
+
+            //check if amount qty not exceeded
+            const dataQty = await OSCheck.CheckOSCust(params.do_num);
+            const OSQty =
+                dataQty.ConQty -
+                (dataQty.TotalSAP - dataQty.TotalDeleted) -
+                dataQty.TotalTemp -
+                dataQty.HoldQty;
+            let totalRequested = 0;
+            params.load_detail.forEach(item => {
+                totalRequested += parseFloat(item.planned_qty);
+            });
+            if (OSQty - totalRequested <= 0) {
+                throw new Error(
+                    "Amount requested is over than current outstanding quantity contract"
+                );
+            }
+            // throw new Error("Test");
+            //
             const is_draft = params.is_draft;
             const today = new Date();
             const details = params.load_detail;
@@ -1123,6 +1143,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     `SELECT * FROM loading_note_det WHERE det_id = $1 and push_sap_date is not null`,
                     [item.id]
                 );
+                //determine method to staging
                 if (rowCount > 0) {
                     method = "update";
                     // throw new Error("Request already pushed");
@@ -1758,6 +1779,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         let value = item.value;
         let id = item.id;
         let date = false;
+        let search = false;
         if (item.id === "Incoterms") {
             value = item.value.split("-")[0].trim();
             id = "inco_1";
@@ -1786,6 +1808,9 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
             value = `<= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
             id = "tanggal_surat_jalan";
             date = true;
+        } else if (item.id === "q") {
+            value = item.value + ":*";
+            id = ["det.search_vector", "hd.search_vector"];
         }
         if (!date) {
             if (item.id === "Customer") {
@@ -1794,6 +1819,12 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
                 );
                 whereVal.push(...[value, value, value]);
                 ltindex += 3;
+            } else if (item.id === "q") {
+                where.push(
+                    `(to_tsquery($${ltindex + 1}) @@ ${id[0]} OR to_tsquery($${ltindex + 2}) @@ ${id[1]})`
+                );
+                whereVal.push(...[value, value]);
+                ltindex += 2;
             } else {
                 where.push(`${id} = $${ltindex + 1}`);
                 whereVal.push(value);
@@ -1983,6 +2014,9 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
             value = `<= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
             id = "tanggal_surat_jalan";
             date = true;
+        } else if (item.id === "q") {
+            value = item.value + ":*";
+            id = ["det.search_vector", "hd.search_vector"];
         }
         if (!date) {
             if (item.id === "Customer") {
@@ -1991,6 +2025,12 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
                 );
                 whereVal.push(...[value, value, value]);
                 ltindex += 3;
+            } else if (item.id === "q") {
+                where.push(
+                    `(to_tsquery($${ltindex + 1}) @@ ${id[0]} OR to_tsquery($${ltindex + 2}) @@ ${id[1]})`
+                );
+                whereVal.push(...[value, value]);
+                ltindex += 2;
             } else {
                 where.push(`${id} = $${ltindex + 1}`);
                 whereVal.push(value);
@@ -2725,15 +2765,14 @@ LoadingNoteModel.requestDelete = async (selected, remark, id_user) => {
         const client = await db.connect();
         const loadNote = [];
         const phase =
-            process.env.NODE_ENV === "production" ||
-            process.env.NODE_ENV === "sandbox"
+            process.env.NODE_ENV === "production"
                 ? "production"
                 : "development";
         try {
             await client.query(TRANS.BEGIN);
             const { rows: hostname } = await client.query(
                 `select hostname from hostname where phase = $1`,
-                [process.env.NODE_ENV]
+                [phase]
             );
             const { rows: userLog } = await client.query(`select
                 string_agg(me.email,

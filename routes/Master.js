@@ -43,4 +43,14 @@ router.get("/transpwbnet", MasterController.getTransporterWBNET);
 router.get("/plantwbnet", MasterController.plantWBNET);
 router.get("/dodb", MasterController.getDoDB);
 
+//Master Types
+router.get("/incoterm", MasterController.getIncoterms);
+//Master Contract
+router.get("/getmstcon", MasterController.getAllMasterContract);
+router.get("/getconbydo", MasterController.getDODBbyID);
+router.post("/savemstcon", MasterController.createMasterContract);
+router.post("/deletemstcon", MasterController.deleteMasterContract);
+router.post("/deactmstcon", MasterController.deactivateMasterContract);
+router.get("/getsap", MasterController.getCodeSAP);
+
 module.exports = router;
