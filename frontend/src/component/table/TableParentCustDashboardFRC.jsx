@@ -348,7 +348,7 @@ export default function TableParentCustDashboardFRC() {
                 </Box>
             )}
 
-            <TableContainer sx={{ height: "38rem" }}>
+            <TableContainer sx={{ height: "80%" }}>
                 <Table stickyHeader>
                     <TableHead>
                         {table.getHeaderGroups().map(headerGroup => {

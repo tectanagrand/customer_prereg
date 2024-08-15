@@ -151,7 +151,7 @@ export default function Dashboard() {
     }
 
     return (
-        <Box sx={{ display: "flex" }}>
+        <Box sx={{ display: "flex", height: "100vh" }}>
             <CssBaseline />
             <AppBar position="fixed" open={open}>
                 <Toolbar>
@@ -218,8 +218,10 @@ export default function Dashboard() {
                 sx={{
                     flexGrow: 1,
                     p: 3,
-                    height: "100%",
-                    width: open ? `calc(100% - ${drawerWidth}px)` : "100%",
+                    height: "85%",
+                    width: open
+                        ? `calc(100% - ${drawerWidth}px)`
+                        : `calc(100% - 88px)`,
                 }}
             >
                 <DrawerHeader />

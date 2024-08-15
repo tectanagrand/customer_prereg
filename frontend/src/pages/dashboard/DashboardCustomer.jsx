@@ -6,12 +6,16 @@ import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import TableCreatedLoadingNote from "../../component/table/TableCreatedLoadingNote";
 import moment from "moment";
+import AutoCompleteDODB from "../../component/input/AutoCompleteDODB";
 
 // function totalEachMonth ()
 
 export default function DashboardCustomer() {
     const axiosPrivate = useAxiosPrivate();
-    const [selected, _setSelected] = useState("");
+    const [do_number, _setDoNum] = useState("");
+    const setDoNum = value => {
+        _setDoNum(value);
+    };
     const [pieData, setPieData] = useState([
         {
             data: [
@@ -33,34 +37,16 @@ export default function DashboardCustomer() {
             ],
         },
     ]);
-    const [OpDo, setOpDo] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [chartDataset, setChart] = useState([]);
-    const getDataDO = async () => {
-        try {
-            setLoading(true);
-            const { data } = await axiosPrivate.get("/master/dolist", {
-                withCredentials: true,
-            });
-            setOpDo(data);
-            // toast.success("Success Load DO");
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response.data.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        getDataDO();
-    }, []);
 
     useEffect(() => {
         (async () => {
+            if (!do_number) {
+                return;
+            }
             try {
                 const { data } = await axiosPrivate.get(
-                    `/master/do?do_num=${selected}`
+                    `/master/do?do_num=${do_number}`
                 );
                 setPieData([
                     {
@@ -90,26 +76,23 @@ export default function DashboardCustomer() {
                 console.error(error);
             }
         })();
-    }, [selected]);
+    }, [do_number]);
 
     useEffect(() => {
-        if (selected !== "") {
-            (async () => {
-                try {
-                    const { data } = await axiosPrivate(
-                        `/ln/chartdash?year=${moment().format("YYYY")}&id_do=${selected}`
-                    );
-                    setChart(data);
-                } catch (error) {
-                    console.error(error);
-                }
-            })();
-        }
-    }, [selected]);
-
-    function setSelected(value) {
-        _setSelected(value);
-    }
+        (async () => {
+            if (!do_number) {
+                return;
+            }
+            try {
+                const { data } = await axiosPrivate(
+                    `/ln/chartdash?year=${moment().format("YYYY")}&id_do=${do_number}`
+                );
+                setChart(data);
+            } catch (error) {
+                console.error(error);
+            }
+        })();
+    }, [do_number]);
 
     return (
         <Box
@@ -126,21 +109,31 @@ export default function DashboardCustomer() {
                     display: "flex",
                     flexDirection: "column",
                     gap: "2rem",
+                    width: "50%",
                 }}
             >
-                <SelectCompNoCont
-                    name="DoSelect"
-                    label="DO Number"
-                    value={selected}
-                    options={OpDo}
-                    onChangeovr={setSelected}
-                    onOpen={getDataDO}
-                    lazy={true}
-                    isLoading={loading}
+                <AutoCompleteDODB
+                    onChangeovr={setDoNum}
+                    label="Do Number"
+                    sx={{ width: "20rem" }}
                 />
-                <PieChart series={pieData} width={800} height={200} />
+                <PieChart
+                    series={pieData}
+                    height={200}
+                    margin={{ left: 300 }}
+                    slotProps={{
+                        legend: {
+                            direction: "column",
+                            position: {
+                                vertical: "middle",
+                                horizontal: "left",
+                            },
+                            padding: 0,
+                        },
+                    }}
+                />
                 <TableCreatedLoadingNote
-                    do_num={selected}
+                    do_num={do_number}
                     sx={{ height: "21rem" }}
                 />
             </div>
@@ -150,6 +143,7 @@ export default function DashboardCustomer() {
                     flexDirection: "column",
                     justifyContent: "flex-start",
                     gap: "2rem",
+                    width: "50%",
                 }}
             >
                 <div>
@@ -166,7 +160,7 @@ export default function DashboardCustomer() {
                             chartDataset.length < 1
                                 ? [
                                       {
-                                          label: "Loading Quantity",
+                                          label: `Loading Quantity ${moment().format("YYYY")}`,
                                           scaleType: "band",
                                           data: [
                                               "Jan",
@@ -186,7 +180,7 @@ export default function DashboardCustomer() {
                                   ]
                                 : [
                                       {
-                                          label: "Loading Quantity",
+                                          label: `Loading Quantity (${moment().format("YYYY")})`,
                                           scaleType: "band",
                                           dataKey: "mth",
                                       },
@@ -203,12 +197,11 @@ export default function DashboardCustomer() {
                                       },
                                       {
                                           dataKey: "actual_qty",
-                                          label: "Actual Quantity",
+                                          label: "Netto Quantity",
                                           valueFormatter: value => value,
                                       },
                                   ]
                         }
-                        width={500}
                         height={300}
                     />
                 </div>
@@ -246,7 +239,7 @@ export default function DashboardCustomer() {
                                   ]
                                 : [
                                       {
-                                          label: "Loading Quantity",
+                                          label: `Loading Quantity (${moment().format("YYYY")})`,
                                           scaleType: "band",
                                           dataKey: "mth",
                                       },
@@ -273,7 +266,6 @@ export default function DashboardCustomer() {
                                       },
                                   ]
                         }
-                        width={500}
                         height={300}
                     />
                 </div>

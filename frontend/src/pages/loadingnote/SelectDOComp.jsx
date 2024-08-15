@@ -15,7 +15,6 @@ export default function SelectDOComp({
     const axiosPrivate = useAxiosPrivate();
     const [isLoading, setLoading] = useState(false);
     const [doOP, setDOOp] = useState([]);
-    console.log(cust_id);
 
     useEffect(() => {
         setDOOp([{ value: preop, label: preop }]);

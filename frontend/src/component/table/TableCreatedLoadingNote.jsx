@@ -8,7 +8,7 @@ import {
     TablePagination,
     TableFooter,
 } from "@mui/material";
-
+import moment from "moment";
 import {
     useReactTable,
     flexRender,
@@ -69,9 +69,11 @@ export default function TableCreatedLoadingNote({ do_num, ...props }) {
                 cell: ({ getValue }) => getValue(),
             },
             {
-                accessorKey: "tanggal_loading",
+                accessorKey: "tanggal_surat_jalan",
                 header: "Tanggal Loading",
-                cell: ({ getValue }) => getValue(),
+                cell: ({ getValue }) => {
+                    return moment(getValue()).format("DD-MM-YYYY");
+                },
             },
             {
                 accessorKey: "vhcl_id",
@@ -81,11 +83,6 @@ export default function TableCreatedLoadingNote({ do_num, ...props }) {
             {
                 accessorKey: "plan_qty",
                 header: "Planning Quantity",
-                cell: ({ getValue }) => getValue(),
-            },
-            {
-                accessorKey: "act_qty",
-                header: "Act.",
                 cell: ({ getValue }) => getValue(),
             },
             {

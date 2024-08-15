@@ -342,7 +342,7 @@ export default function TableParentCustDashboard() {
                 )}
             </Box>
 
-            <TableContainer sx={{ height: "38rem" }}>
+            <TableContainer sx={{ height: "80%" }}>
                 <Table stickyHeader>
                     <TableHead>
                         {table.getHeaderGroups().map(headerGroup => {

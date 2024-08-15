@@ -22,12 +22,12 @@ import {
     TableRow,
     IconButton,
     Tooltip,
+    Box,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AutocompleteFilter from "../input/AutocompleteFilterComp";
-
+import SearchFieldComp from "../input/SearchFieldComp";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
-import moment from "moment/moment";
 
 export default function TableRecapReport({ onsetFilterData, isLoading }) {
     const axiosPrivate = useAxiosPrivate();
@@ -184,23 +184,26 @@ export default function TableRecapReport({ onsetFilterData, isLoading }) {
     );
 
     const [data, setData] = useState([]);
+    const [que, _setQue] = useState("");
     const [sorting, setSorting] = useState([]);
     const dataSorting = useMemo(() => sorting, [sorting]);
     const [columnFilter, setColumnfilter] = useState([]);
     const dataColFilter = useMemo(() => columnFilter, [columnFilter]);
 
-    useEffect(() => {}, [columnFilter]);
+    const setQue = value => {
+        _setQue(value);
+    };
 
     useEffect(() => {
-        onsetFilterData({
-            filters: dataColFilter,
-            customer_id: "",
-        });
         (async () => {
             if (!isLoading) {
+                let filters = dataColFilter.slice();
+                if (que !== "" && que) {
+                    filters.push({ id: "q", value: que });
+                }
                 try {
                     const { data } = await axiosPrivate.post("/ln/recapss", {
-                        filters: dataColFilter,
+                        filters: filters,
                         customer_id: "",
                     });
                     setData(data);
@@ -209,7 +212,7 @@ export default function TableRecapReport({ onsetFilterData, isLoading }) {
                 }
             }
         })();
-    }, [columnFilter, refresh, isLoading]);
+    }, [columnFilter, refresh, isLoading, que]);
 
     const table = useReactTable({
         data: data,
@@ -229,97 +232,119 @@ export default function TableRecapReport({ onsetFilterData, isLoading }) {
     });
 
     return (
-        <TableContainer
+        <Box
             sx={{
-                maxWidth: "96vw",
-                height: "80vh",
+                display: "flex",
+                flexDirection: "column",
+                width: "100%",
+                height: "100%",
             }}
         >
-            <Table stickyHeader>
-                <TableHead>
-                    {table.getHeaderGroups().map(headerGroup => {
-                        return (
-                            <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map(header => {
-                                    return (
-                                        <TableCell
-                                            key={header.id}
-                                            colSpan={header.colSpan}
-                                        >
-                                            {header.column.getCanFilter() ? (
-                                                <div>
-                                                    <AutocompleteFilter
-                                                        column={header.column}
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <></>
-                                            )}
-                                            {header.isPlaceholder ? null : (
-                                                <div
-                                                    style={{
-                                                        display: "flex",
-                                                        alignContent: "center",
-                                                        cursor: "pointer",
-                                                    }}
-                                                    onClick={header.column.getToggleSortingHandler()}
-                                                >
-                                                    {flexRender(
-                                                        header.column.columnDef
-                                                            .header,
-                                                        header.getContext()
-                                                    )}
-                                                    {header.column.getCanSort() ? (
-                                                        header.column.getNextSortingOrder() ===
-                                                        "asc" ? (
-                                                            <KeyboardArrowDown
-                                                                sx={{
-                                                                    width: "1.5rem",
-                                                                    height: "1.5rem",
-                                                                }}
-                                                            />
-                                                        ) : header.column.getNextSortingOrder() ===
-                                                          "desc" ? (
-                                                            <KeyboardArrowUp
-                                                                sx={{
-                                                                    width: "1.5rem",
-                                                                    height: "1.5rem",
-                                                                }}
-                                                            />
+            <Box
+                sx={{
+                    display: "flex",
+                    width: "100%",
+                    justifyContent: "flex-end",
+                }}
+            >
+                <SearchFieldComp setQuery={setQue} />
+            </Box>
+            <TableContainer
+                sx={{
+                    width: "100%",
+                    height: "100%",
+                }}
+            >
+                <Table stickyHeader>
+                    <TableHead>
+                        {table.getHeaderGroups().map(headerGroup => {
+                            return (
+                                <TableRow key={headerGroup.id}>
+                                    {headerGroup.headers.map(header => {
+                                        return (
+                                            <TableCell
+                                                key={header.id}
+                                                colSpan={header.colSpan}
+                                            >
+                                                {header.column.getCanFilter() ? (
+                                                    <div>
+                                                        <AutocompleteFilter
+                                                            column={
+                                                                header.column
+                                                            }
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <></>
+                                                )}
+                                                {header.isPlaceholder ? null : (
+                                                    <div
+                                                        style={{
+                                                            display: "flex",
+                                                            alignContent:
+                                                                "center",
+                                                            cursor: "pointer",
+                                                        }}
+                                                        onClick={header.column.getToggleSortingHandler()}
+                                                    >
+                                                        {flexRender(
+                                                            header.column
+                                                                .columnDef
+                                                                .header,
+                                                            header.getContext()
+                                                        )}
+                                                        {header.column.getCanSort() ? (
+                                                            header.column.getNextSortingOrder() ===
+                                                            "asc" ? (
+                                                                <KeyboardArrowDown
+                                                                    sx={{
+                                                                        width: "1.5rem",
+                                                                        height: "1.5rem",
+                                                                    }}
+                                                                />
+                                                            ) : header.column.getNextSortingOrder() ===
+                                                              "desc" ? (
+                                                                <KeyboardArrowUp
+                                                                    sx={{
+                                                                        width: "1.5rem",
+                                                                        height: "1.5rem",
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                ""
+                                                            )
                                                         ) : (
                                                             ""
-                                                        )
-                                                    ) : (
-                                                        ""
-                                                    )}
-                                                </div>
-                                            )}
-                                        </TableCell>
-                                    );
-                                })}
-                            </TableRow>
-                        );
-                    })}
-                </TableHead>
-                <TableBody>
-                    {table.getRowModel().rows.map(row => {
-                        return (
-                            <TableRow key={row.id} hover>
-                                {row.getVisibleCells().map(cell => {
-                                    return (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </TableCell>
-                                    );
-                                })}
-                            </TableRow>
-                        );
-                    })}
-                </TableBody>
-            </Table>
-        </TableContainer>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                        );
+                                    })}
+                                </TableRow>
+                            );
+                        })}
+                    </TableHead>
+                    <TableBody>
+                        {table.getRowModel().rows.map(row => {
+                            return (
+                                <TableRow key={row.id} hover>
+                                    {row.getVisibleCells().map(cell => {
+                                        return (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </TableCell>
+                                        );
+                                    })}
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Box>
     );
 }
