@@ -495,18 +495,31 @@ LoadingNoteController.LoadingNoteDashboard = async (req, res) => {
         const client = await db.connect();
         try {
             const { rows: dataLn } = await client.query(
-                `SELECT ln_num, plan_qty, actual_qty, bruto, tarra, netto, ffa, moist, dirt, hd.uom, tanggal_surat_jalan, TO_CHAR(TANGGAL_SURAT_JALAN, 'Month') as current_month, hd.id_do from loading_note_det det
+                `SELECT ln_num, plan_qty, vhcl_id,
+                bruto, tarra, netto, ffa, moist, dirt, hd.uom, 
+                tanggal_surat_jalan, TO_CHAR(TANGGAL_SURAT_JALAN, 'Month') as current_month, 
+                hd.id_do
+                from loading_note_det det
             left join loading_note_hd hd on det.hd_fk = hd.hd_id
             where hd.create_by = $1
             and hd.id_do = $2
-            LIMIT ${limit} OFFSET ${offset}`,
+            and hd.cur_pos = 'FINA'
+            ORDER BY tanggal_surat_jalan desc
+            LIMIT ${limit} OFFSET ${offset}
+            `,
                 [id_user, do_num]
             );
             const { rowCount } = await client.query(
-                `SELECT ln_num, plan_qty, actual_qty, bruto, tarra, netto, ffa, moist, dirt, hd.uom, tanggal_surat_jalan, TO_CHAR(TANGGAL_SURAT_JALAN, 'Month') as current_month, hd.id_do from loading_note_det det
+                `SELECT ln_num, plan_qty, vhcl_id,
+                bruto, tarra, netto, 
+                ffa, moist, dirt, hd.uom, 
+                tanggal_surat_jalan, TO_CHAR(TANGGAL_SURAT_JALAN, 'Month') as current_month, 
+                hd.id_do from loading_note_det det
             left join loading_note_hd hd on det.hd_fk = hd.hd_id
             where hd.create_by = $1
-            and hd.id_do = $2`,
+            and hd.id_do = $2
+            and hd.cur_pos = 'FINA'
+            ORDER BY tanggal_surat_jalan desc`,
                 [id_user, do_num]
             );
             res.status(200).send({
@@ -550,7 +563,7 @@ LoadingNoteController.ChartDashboard = async (req, res) => {
                     TO_CHAR(TANGGAL_SURAT_JALAN, 'MM') AS CTR,
                     SUBSTR(TO_CHAR(TANGGAL_SURAT_JALAN, 'Month'), 1, 3) AS MTH,
                     COALESCE(SUM(PLAN_QTY), 0) AS PLAN_QTY,
-                    COALESCE(SUM(ACTUAL_QTY), 0) AS ACTUAL_QTY,
+                    COALESCE(SUM(NETTO), 0) AS ACTUAL_QTY,
                     COALESCE(AVG(FFA), 0) AS FFA,
                     COALESCE(AVG(MOIST), 0) AS MOIST,
                     COALESCE(AVG(DIRT), 0) AS DIRT

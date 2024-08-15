@@ -1,6 +1,8 @@
 const Master = require("../models/MasterModel");
 const db = require("../config/connection");
 const axios = require("axios");
+const TRANS = require("../config/transaction");
+const OSCheck = require("../helper/OSCheck");
 
 const MasterController = {};
 
@@ -197,9 +199,16 @@ MasterController.getDataSLoc = async (req, res) => {
 
 MasterController.getDataDOList = async (req, res) => {
     try {
-        const cust_id = req.cookies.username;
+        let cust = "";
+        const { username: cust_id, role } = req.cookies;
+        const opt_cust_id = req.query.cust;
+        if (role === "LOGISTIC" || role === "ADMIN") {
+            cust = opt_cust_id;
+        } else {
+            cust = cust_id;
+        }
         const type = req.query.type;
-        const dataRFC = await Master.getDOList(cust_id, type);
+        const dataRFC = await Master.getDOList(cust, type);
         if (dataRFC.length === 0) {
             throw new Error("NO DO");
         }
@@ -485,7 +494,10 @@ MasterController.getVehicleDataDB = async (req, res) => {
         let envvar = "";
         if (process.env.NODE_ENV === "local") {
             envvar = "local";
-        } else if (process.env.NODE_ENV === "development") {
+        } else if (
+            process.env.NODE_ENV === "development" ||
+            process.env.NODE_ENV === "sandbox"
+        ) {
             envvar = "server_dev";
         } else {
             envvar = "production";
@@ -563,7 +575,10 @@ MasterController.getDriverDataDB = async (req, res) => {
     let envvar = "";
     if (process.env.NODE_ENV === "local") {
         envvar = "local";
-    } else if (process.env.NODE_ENV === "development") {
+    } else if (
+        process.env.NODE_ENV === "development" ||
+        process.env.NODE_ENV === "sandbox"
+    ) {
         envvar = "server_dev";
     } else {
         envvar = "production";
@@ -1156,7 +1171,7 @@ MasterController.upMstCustbyDate = async (req, res) => {
 
 MasterController.upMstVenbyDate = async (req, res) => {
     try {
-        const upMstVen = Master.updateMstVenbyDate(req.query.datefrom);
+        const upMstVen = await Master.updateMstVenbyDate(req.query.datefrom);
         res.status(200).send({
             message: "Data Synced",
         });
@@ -1169,12 +1184,239 @@ MasterController.upMstVenbyDate = async (req, res) => {
 
 MasterController.upMstIntrbyDate = async (req, res) => {
     try {
-        const upMstVen = Master.updateMstIntercoByDate(req.query.datefrom);
+        const upMstVen = await Master.updateMstIntercoByDate(
+            req.query.datefrom
+        );
         res.status(200).send({
             message: "Data Synced",
         });
     } catch (error) {
         res.status(200).send({
+            message: error.message,
+        });
+    }
+};
+
+//Master Contract
+MasterController.getAllMasterContract = async (req, res) => {
+    try {
+        const { limit, offset, q } = req.query;
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(
+                `
+                select * from mst_contract 
+                where id_do like $1 or cust_id like $2
+                order by id_do asc 
+                limit $3 offset $4 `,
+                [`%${q}%`, `%${q}%`, limit, offset]
+            );
+            const { rows: rowcount } = await client.query(
+                `
+                select count(id_do) as row_count from mst_contract 
+                where id_do like $1 or cust_id like $2 `,
+                [`%${q}%`, `%${q}%`]
+            );
+            res.status(200).send({
+                count: rowcount[0].row_count,
+                data: rows,
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.createMasterContract = async (req, res) => {
+    try {
+        const payload = req.body;
+        const { id_user } = req.cookies;
+        const createMaster = await Master.createMasterContract(
+            payload,
+            id_user
+        );
+        res.status(200).send({
+            message: `${payload.id_do} DO Master has been ${createMaster}`,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.deleteMasterContract = async (req, res) => {
+    try {
+        const { id } = req.body;
+        const client = await db.connect();
+        try {
+            await client.query(TRANS.BEGIN);
+            const queDel = `
+            delete from mst_contract
+            where id_do = $1
+            `;
+            await client.query(queDel, [id]);
+            await client.query(TRANS.COMMIT);
+            res.status(200).send({
+                message: `Master DO Number ${id} deleted`,
+            });
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.deactivateMasterContract = async (req, res) => {
+    try {
+        const { id, action } = req.body;
+        const client = await db.connect();
+        try {
+            await client.query(TRANS.BEGIN);
+            const queDel = `
+            update mst_contract set is_active = $1
+            where id_do = $2
+            `;
+            await client.query(queDel, [action, id]);
+            await client.query(TRANS.COMMIT);
+            res.status(200).send({
+                message: `Master DO Number ${id} ${action ? "activated" : "deactivated"}`,
+            });
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getCodeSAP = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const { limit, offset, q } = req.query;
+        try {
+            const { rows } = await client.query(
+                `
+                select * from
+            (
+                select kunnr as code, name_1 as name from mst_customer mc
+                union 
+                select kunnr as code, name_1 as name from mst_interco mi 
+                union 
+                select lifnr as code, name_1 as name from mst_vendor mv
+            ) code_cust
+            where code like '%000' and code like $1
+            order by code asc
+            limit $2 offset $3
+                `,
+                [`%${q}%`, limit, offset]
+            );
+            const { rows: rowcount } = await client.query(
+                `
+                select count(*) as rowcount from
+            (
+                select kunnr as code, name_1 as name from mst_customer mc
+                union 
+                select kunnr as code, name_1 as name from mst_interco mi 
+                union 
+                select lifnr as code, name_1 as name from mst_vendor mv
+            ) code_cust
+            where code like '%000' and code like $1;
+                `,
+                [`%${q}%`]
+            );
+            res.status(200).send({
+                data: rows,
+                count: rowcount[0].rowcount,
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getDODBbyID = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const { id_do } = req.query;
+        try {
+            const { rows } = await client.query(
+                `
+                select id_do, hold_qty , cust_id, mcd.name  from mst_contract mc
+            left join (
+                select kunnr as code, name_1 as name from mst_customer mc2 
+                union 
+                select lifnr as code, name_1 as name from mst_vendor mv 
+                union 
+                select kunnr as code, name_1 as name from mst_interco mi 
+            )  mcd on mcd.code = mc.cust_id where id_do = $1                  
+                `,
+                [id_do]
+            );
+            if (!rows.length > 0) throw new Error("Data not found");
+            const result = {
+                cust_id: rows[0].cust_id,
+                name: rows[0].name,
+                hold_qty: rows[0].hold_qty,
+                id_do: rows[0].id_do,
+            };
+            res.status(200).send(result);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+//Master Types
+MasterController.getIncoterms = async (req, res) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows } = await client.query(`select * from mst_incoterm`);
+            res.status(200).send(rows);
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
             message: error.message,
         });
     }

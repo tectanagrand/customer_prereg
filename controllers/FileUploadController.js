@@ -483,7 +483,10 @@ FileUploadController.sendToLog = async (req, res) => {
             let envvar;
             if (process.env.NODE_ENV === "local") {
                 envvar = "local_fe";
-            } else if (process.env.node_env === "development") {
+            } else if (
+                process.env.NODE_ENV === "development" ||
+                process.env.NODE_ENV === "sandbox"
+            ) {
                 envvar = "server_dev";
             } else {
                 envvar = "production";
