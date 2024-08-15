@@ -29,7 +29,9 @@ const devSettings = {
 };
 
 const pool = new Pool(
-    process.env.NODE_ENV === "production" || process.env.NODE_ENV === "sandbox"
+    process.env.NODE_ENV === "production" ||
+    process.env.NODE_ENV === "sandbox" ||
+    process.env.NODE_ENV === "development"
         ? prodSettings
         : devSettings
 );
