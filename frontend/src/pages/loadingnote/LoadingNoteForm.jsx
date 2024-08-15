@@ -57,6 +57,7 @@ export default function LoadingNoteForm() {
     const [click, setClick] = useState(false);
     const [slocOP, setSloc] = useState([]);
     const [medtpOP, setMedTPOP] = useState([]);
+    const [hold_qty, setHoldqty] = useState(0);
     const [restData, setRestData] = useState({});
     const [checkedMulti, setCheckedMulti] = useState([]);
     const [uomQty, setUomQty] = useState("Kg");
@@ -86,6 +87,7 @@ export default function LoadingNoteForm() {
             con_num: "",
             material: "",
             con_qty: 0,
+            hold_qty: 0,
             os_qty: 0,
             os_sap_qty: 0,
             plant: "",
@@ -303,6 +305,7 @@ export default function LoadingNoteForm() {
                 oth_plant: slip.WERKS,
                 fac_plant: slip.WERKS,
                 oth_batch: value,
+                hold_qty: data.HOLDQTY,
             };
             setUomQty(slip.VRKME);
             setRemaining(slip.KWMENG - data.TOTALSPEND);
@@ -558,6 +561,20 @@ export default function LoadingNoteForm() {
                                         message: "Minimum value is 0",
                                     },
                                 }}
+                                sx={{
+                                    minWidth: "15rem",
+                                    maxWidth: "16rem",
+                                }}
+                                endAdornment={
+                                    <InputAdornment>{uomQty}</InputAdornment>
+                                }
+                                thousandSeparator
+                                disabled={true}
+                            />
+                            <NumericFieldComp
+                                name="hold_qty"
+                                label="Holding Quantity"
+                                control={control}
                                 sx={{
                                     minWidth: "15rem",
                                     maxWidth: "16rem",

@@ -472,7 +472,14 @@ export default function LoadingNoteFormFRC() {
                         <Typography variant="h5">Detail Order</Typography>
                         <Divider sx={{ my: 3 }} />
                         <div>
-                            <div style={{ display: "flex", gap: "1rem" }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: "1rem",
+                                    marginBottom: "1rem",
+                                    alignItems: "center",
+                                }}
+                            >
                                 <TextFieldComp
                                     control={control}
                                     label={"STO Number"}
@@ -496,7 +503,12 @@ export default function LoadingNoteFormFRC() {
                                     Check STO
                                 </LoadingButton>
                             </div>
-                            <div style={{ display: "flex" }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                }}
+                            >
                                 {/* <SelectComp
                                     name="do_num"
                                     label="DO Number"
@@ -606,6 +618,20 @@ export default function LoadingNoteFormFRC() {
                                         message: "Minimum value is 0",
                                     },
                                 }}
+                                sx={{
+                                    minWidth: "15rem",
+                                    maxWidth: "16rem",
+                                }}
+                                endAdornment={
+                                    <InputAdornment>{uomQty}</InputAdornment>
+                                }
+                                thousandSeparator
+                                disabled={true}
+                            />
+                            <NumericFieldComp
+                                name="hold_qty"
+                                label="Holding Quantity"
+                                control={control}
                                 sx={{
                                     minWidth: "15rem",
                                     maxWidth: "16rem",

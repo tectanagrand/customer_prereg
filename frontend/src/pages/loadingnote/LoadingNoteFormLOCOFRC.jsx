@@ -310,6 +310,7 @@ export default function LoadingNoteFormFRC() {
                 oth_plant: slip.WERKS,
                 fac_plant: slip.WERKS,
                 oth_batch: value,
+                hold_qty: data.HOLDQTY,
             };
             setUomQty(slip.VRKME);
             setRemaining(slip.KWMENG - data.TOTALSPEND);
@@ -508,7 +509,12 @@ export default function LoadingNoteFormFRC() {
                         <Typography variant="h5">Detail Order</Typography>
                         <Divider sx={{ my: 3 }} />
                         <div>
-                            <div style={{ display: "flex" }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    marginBottom: "1rem",
+                                }}
+                            >
                                 {/* <SelectComp
                                     name="do_num"
                                     label="DO Number"
@@ -533,7 +539,13 @@ export default function LoadingNoteFormFRC() {
                                     onChangeOvr={() => handleCheckSTO()}
                                 />
                             </div>
-                            <div style={{ display: "flex", gap: "1rem" }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: "1rem",
+                                    alignItems: "center",
+                                }}
+                            >
                                 <TextFieldComp
                                     control={control}
                                     label={"STO Number"}
@@ -550,16 +562,16 @@ export default function LoadingNoteFormFRC() {
                                     toUpperCase={true}
                                     disabled
                                 />
+                                <LoadingButton
+                                    onClick={() =>
+                                        handleCheckSO(getValues("do_num"))
+                                    }
+                                    loading={isLoading}
+                                    sx={{ height: "2rem" }}
+                                >
+                                    Check Payment
+                                </LoadingButton>
                             </div>
-                            <LoadingButton
-                                onClick={() =>
-                                    handleCheckSO(getValues("do_num"))
-                                }
-                                loading={isLoading}
-                                sx={{ height: "2rem" }}
-                            >
-                                Check Payment
-                            </LoadingButton>
                         </div>
                         <div
                             style={{
@@ -636,6 +648,20 @@ export default function LoadingNoteFormFRC() {
                                         message: "Minimum value is 0",
                                     },
                                 }}
+                                sx={{
+                                    minWidth: "15rem",
+                                    maxWidth: "16rem",
+                                }}
+                                endAdornment={
+                                    <InputAdornment>{uomQty}</InputAdornment>
+                                }
+                                thousandSeparator
+                                disabled={true}
+                            />
+                            <NumericFieldComp
+                                name="hold_qty"
+                                label="Holding Quantity"
+                                control={control}
                                 sx={{
                                     minWidth: "15rem",
                                     maxWidth: "16rem",

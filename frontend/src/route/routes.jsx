@@ -81,6 +81,9 @@ const ApprovalRoutes = lazy(
 const ReportLoadingNote = lazy(
     () => import("../pages/recap/ReportLoadingNote")
 );
+const MasterContractDO = lazy(
+    () => import("../pages/do_contract/MasterContractDO")
+);
 export const routes = createBrowserRouter([
     {
         path: "/",
@@ -221,6 +224,10 @@ export const routes = createBrowserRouter([
                     {
                         path: "report",
                         element: <ReportLoadingNote />,
+                    },
+                    {
+                        path: "contract_do",
+                        element: <MasterContractDO />,
                     },
                 ],
             },

@@ -29,6 +29,8 @@ const getIcon = icon => {
             return lazy(() => import("@mui/icons-material/Bluetooth"));
         case "Lock":
             return lazy(() => import("@mui/icons-material/Lock"));
+        case "Book":
+            return lazy(() => import("@mui/icons-material/Book"));
         default:
             return HelpOutlineIcon;
     }

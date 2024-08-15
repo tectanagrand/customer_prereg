@@ -10,20 +10,27 @@ export default function SelectDOComp({
     preop,
     onChangeOvr,
     type,
+    cust_id,
 }) {
     const axiosPrivate = useAxiosPrivate();
     const [isLoading, setLoading] = useState(false);
     const [doOP, setDOOp] = useState([]);
+    console.log(cust_id);
 
     useEffect(() => {
         setDOOp([{ value: preop, label: preop }]);
     }, [preop]);
 
+    // useEffect(() => {
+    //     (async () => {
+    //         getDataDO();
+    //     })();
+    // }, [cust_id]);
     const getDataDO = async () => {
         try {
             setLoading(true);
             const { data } = await axiosPrivate.get(
-                `/master/dolist?type=${type}`,
+                `/master/dolist?type=${type}&cust=${cust_id}`,
                 {
                     withCredentials: true,
                 }
@@ -47,7 +54,9 @@ export default function SelectDOComp({
                 fullWidth
                 control={control}
                 options={doOP}
-                onOpen={() => getDataDO()}
+                onOpen={() => {
+                    getDataDO();
+                }}
                 sx={{
                     mr: 3,
                     maxWidth: "16rem",

@@ -1,0 +1,131 @@
+import { LazySelectComp } from "../../component/input/LazySelectComp";
+import useAxiosPrivate from "../../hooks/useAxiosPrivate";
+import { useState, useRef, useEffect } from "react";
+import { debounce } from "lodash";
+
+export default function AutoSelectUserSAPAll({
+    name,
+    label,
+    control,
+    rules,
+    onChangeControlOvr,
+    ...props
+}) {
+    const axiosPrivate = useAxiosPrivate();
+    const limit = 10;
+    const [dataRow, setDataRow] = useState([]);
+    let paginationRef = useRef({
+        offset: 0,
+        hasMore: true,
+    });
+
+    const [searchQuery, setQuery] = useState("");
+    const [isLoading, setLoading] = useState(false);
+
+    const fetchData = async (limit, offset, q) => {
+        setLoading(true);
+        try {
+            let query = `/master/getsap?limit=${limit}&offset=${offset}&q=${q}`;
+            if (query !== "") {
+                const { data: rowData } = await axiosPrivate.get(query);
+                console.log({
+                    offset: offset + limit,
+                    hasMore: offset + limit < rowData.count,
+                });
+                return {
+                    list: rowData.data,
+                    pagination: {
+                        offset: offset + limit,
+                        hasMore: offset + limit < rowData.count,
+                    },
+                };
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchMore = async () => {
+        if (!paginationRef.current.hasMore) return;
+        setLoading(true);
+        try {
+            const { list, pagination: resPagination } = await fetchData(
+                limit,
+                paginationRef.current.offset,
+                searchQuery
+            );
+            const dataList = list?.map(item => ({
+                ...item,
+                value: item.code,
+                id: item.code,
+                label: `${item.code} - ${item.name}`,
+            }));
+
+            setDataRow(prev => [
+                ...prev,
+                ...dataList.filter(
+                    x => !prev.map(u => u.value).includes(x.value)
+                ),
+            ]);
+
+            paginationRef.current = resPagination;
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        (async () => {
+            paginationRef.current.offset = 0;
+            try {
+                const { list, pagination: resPagination } = await fetchData(
+                    limit,
+                    paginationRef.current.offset,
+                    searchQuery
+                );
+                const dataList = list?.map(item => ({
+                    ...item,
+                    value: item.code,
+                    id: item.code,
+                    label: `${item.code} - ${item.name}`,
+                }));
+                setDataRow([...dataList]);
+                paginationRef.current = resPagination;
+            } catch (error) {
+                console.error(error);
+            }
+        })();
+    }, [searchQuery]);
+
+    return (
+        <>
+            <LazySelectComp
+                loading={isLoading}
+                options={dataRow}
+                onFetchMore={fetchMore}
+                hasMore={paginationRef.current.hasMore}
+                name={name}
+                label={label}
+                control={control}
+                rules={rules}
+                defaultValue={null}
+                onControlChgOvr={onChangeControlOvr}
+                onChangeovr={debounce(e => {
+                    if (!e.hasOwnProperty("target")) {
+                        setQuery("");
+                    } else {
+                        setQuery(e.target.value);
+                    }
+                }, 1000)}
+                onBlurovr={debounce(e => {
+                    setQuery(e.target.value);
+                }, 1000)}
+                {...props}
+            />
+        </>
+    );
+}
