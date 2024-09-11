@@ -1,6 +1,6 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
-import AutoSelectDriver from "./AutoselectDriver";
+import AutoSelectDriver from "../loadingnote/AutoselectDriver";
 import {
     Typography,
     Divider,
@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { Cancel, Replay } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
-import AutoSelectVehicle from "./AutoselectVehicle";
+import AutoSelectVehicle from "../loadingnote/AutoselectVehicle";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useRef, useState, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
@@ -22,8 +22,8 @@ import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
-import SelectDOComp from "./SelectDOComp";
-import SelectMultiDOComp from "./SelectMultiDoComp";
+import SelectDOFRCComp from "../loadingnote/SelectDOFRCComp";
+import SelectMultiDOComp from "../loadingnote/SelectMultiDoComp";
 import { useTheme } from "@mui/material/styles";
 import CheckBoxComp from "../../component/input/CheckBoxComp";
 
@@ -48,7 +48,7 @@ const ValuationTypeOp = [
     { value: "TR-SALES2", label: "TR-SALES2" },
 ];
 
-export default function LoadingNoteFormFRC() {
+export default function LoadingNoteFormFRCUPS() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
@@ -89,7 +89,7 @@ export default function LoadingNoteFormFRC() {
             material: "",
             con_qty: 0,
             os_qty: 0,
-            os_sap_qty: 0,
+            os_wb_qty: 0,
             plant: "",
             description: "",
             uom: "",
@@ -144,7 +144,7 @@ export default function LoadingNoteFormFRC() {
                     reset({
                         ...data.data,
                         con_qty: data.data.con_qty,
-                        os_sap_qty: data.data.con_qty - data.data.totalSAP,
+                        os_wb_qty: data.data.con_qty - data.data.totalSAP,
                         load_detail: load_detail,
                     });
                     setPreOp(data.data.do_num);
@@ -270,7 +270,7 @@ export default function LoadingNoteFormFRC() {
                 }
             }
             setTimeout(() => {
-                navigate("/dashboard/locofranco");
+                navigate("/dashboard/franco");
             }, 2000);
         } catch (error) {
             console.error(error);
@@ -288,7 +288,7 @@ export default function LoadingNoteFormFRC() {
         setLoading(true);
         try {
             const { data } = await axiosPrivate.get(
-                `/master/do?do_num=${value}`
+                `/master/doups?do_num=${value}`
             );
             const slip = data.SLIP;
             const dataMap = {
@@ -302,7 +302,7 @@ export default function LoadingNoteFormFRC() {
                 material: slip.MATNR,
                 con_qty: slip.KWMENG,
                 os_qty: slip.KWMENG - data.TOTALSPEND,
-                os_sap_qty: slip.KWMENG - data.TOTALSAP,
+                os_wb_qty: slip.KWMENG - data.TOTALWB,
                 plant: slip.WERKS,
                 description: slip.MAKTX,
                 uom: slip.VRKME,
@@ -344,6 +344,8 @@ export default function LoadingNoteFormFRC() {
                     material: "",
                     con_qty: "0",
                     os_qty: "0",
+                    os_sap_qty: "0",
+                    hold_qty: "0",
                     plant: "",
                     description: "",
                     uom: "",
@@ -373,9 +375,13 @@ export default function LoadingNoteFormFRC() {
                 con_num: "",
                 material: "",
                 con_qty: "",
+                os_qty: "0",
+                os_sap_qty: "0",
+                hold_qty: "0",
                 plant: "",
                 batch: "",
                 description: "",
+                uom: "",
             };
             Object.keys(resetData).forEach(item => {
                 setValue(item, resetData[item]);
@@ -387,15 +393,9 @@ export default function LoadingNoteFormFRC() {
     };
 
     const handleCheckSTO = async () => {
-        setLoading(true);
         try {
-            // console.log(getValues("do_num"));
-            const { data: stodata, status: statussto } = await axiosPrivate.get(
-                `/master/checkstobydo?do=${getValues("do_num")}`
-            );
-            setValue("sto_num", stodata.ebeln);
             const { data, status } = await axiosPrivate.get(
-                `/master/checkstolcfrc?sto=${stodata.ebeln})}`
+                `/master/checksto?sto=${getValues("sto_num")}`
             );
             if (status === 200) {
                 toast.success("STO Number Exist");
@@ -404,58 +404,8 @@ export default function LoadingNoteFormFRC() {
                 throw new Error("STO Not Found");
             }
         } catch (error) {
-            reset({
-                do_num: "",
-                sto_num: "",
-                trans_type: "",
-                inv_type: "",
-                inv_type_tol_from: "0 %",
-                inv_type_tol_to: "0 %",
-                incoterms: "",
-                rules: "",
-                con_num: "",
-                material: "",
-                con_qty: 0,
-                os_qty: 0,
-                os_sap_qty: 0,
-                plant: "",
-                description: "",
-                uom: "",
-                load_detail: [],
-                fac_plant: "",
-                fac_store_loc: "",
-                fac_batch: "",
-                fac_val_type: "",
-                oth_plant: "",
-                oth_store_loc: "",
-                oth_batch: "",
-                oth_val_type: "",
-                company: "",
-            });
             console.error(error);
             toast.error(error.response.data.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const checkExistingOsQty = () => {
-        const plansData = getValues("load_detail");
-        let con_os = parseFloat(getValues("con_qty")) - usedQty.current;
-        // console.log(getValues("con_qty"));
-        let currentTotal = 0;
-        plansData.forEach(item => {
-            currentTotal += parseFloat(
-                item.planned_qty !== "" ? item.planned_qty.replace(/,/g, "") : 0
-            );
-        });
-        let newRemaining = con_os - currentTotal;
-        if (newRemaining < 0) {
-            toast.error("Planning Quantity exceed remaining quantity");
-            setExceed(true);
-        } else {
-            setRemaining(newRemaining);
-            setExceed(false);
         }
     };
 
@@ -477,8 +427,8 @@ export default function LoadingNoteFormFRC() {
         <>
             <Toaster />
             <Typography variant="h4">
-                {session.role === "VENDOR" ? "Vendor" : "Customer "}{" "}
-                {"FRANCO → LOCO"} Loading Note Registration Form
+                {session.role === "VENDOR" ? "Vendor" : "Customer "} FRANCO
+                Loading Note Registration Form
             </Typography>
             <br />
             <form
@@ -512,7 +462,38 @@ export default function LoadingNoteFormFRC() {
                             <div
                                 style={{
                                     display: "flex",
+                                    gap: "1rem",
                                     marginBottom: "1rem",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <TextFieldComp
+                                    control={control}
+                                    label={"STO Number"}
+                                    name="sto_num"
+                                    sx={{ maxWidth: "17rem" }}
+                                    toUpperCase={true}
+                                />
+                                <TextFieldComp
+                                    control={control}
+                                    label={"Trans. Type"}
+                                    name="trans_type"
+                                    sx={{ maxWidth: "10rem" }}
+                                    toUpperCase={true}
+                                    disabled
+                                />
+                                <LoadingButton
+                                    onClick={() => handleCheckSTO()}
+                                    loading={isLoading}
+                                    sx={{ height: "2rem" }}
+                                >
+                                    Check STO
+                                </LoadingButton>
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
                                 }}
                             >
                                 {/* <SelectComp
@@ -530,37 +511,13 @@ export default function LoadingNoteFormFRC() {
                                     }}
                                     lazy={true}
                                 /> */}
-                                <SelectDOComp
+                                <SelectDOFRCComp
                                     control={control}
                                     name="do_num"
                                     label="DO Number"
                                     preop={preOp}
-                                    type="FRC"
-                                    onChangeOvr={() => handleCheckSTO()}
-                                />
-                            </div>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: "1rem",
-                                    alignItems: "center",
-                                }}
-                            >
-                                <TextFieldComp
-                                    control={control}
-                                    label={"STO Number"}
-                                    name="sto_num"
-                                    sx={{ maxWidth: "17rem" }}
-                                    toUpperCase={true}
-                                    disabled
-                                />
-                                <TextFieldComp
-                                    control={control}
-                                    label={"Trans. Type"}
-                                    name="trans_type"
-                                    sx={{ maxWidth: "10rem" }}
-                                    toUpperCase={true}
-                                    disabled
+                                    onChangeOvr={setDONum}
+                                    getValue={getValues}
                                 />
                                 <LoadingButton
                                     onClick={() =>
@@ -624,8 +581,8 @@ export default function LoadingNoteFormFRC() {
                                 disabled
                             />
                             <NumericFieldComp
-                                name="os_sap_qty"
-                                label="O/S SAP Quantity"
+                                name="os_wb_qty"
+                                label="O/S WB Quantity"
                                 control={control}
                                 sx={{
                                     minWidth: "15rem",
@@ -754,7 +711,6 @@ export default function LoadingNoteFormFRC() {
                                     vehicle: null,
                                     driver: null,
                                     loading_date: moment().add(1, "day"),
-                                    planned_qty: "",
                                     media_tp: "T",
                                     relate_do: [],
                                     remark: "",
@@ -874,30 +830,6 @@ export default function LoadingNoteFormFRC() {
                                                 }}
                                                 minDate={moment()}
                                             />
-                                            <NumericFieldComp
-                                                name={`load_detail.${index}.planned_qty`}
-                                                label="Planned Loading Qty"
-                                                control={control}
-                                                rules={{
-                                                    required: "Please Insert",
-                                                    min: {
-                                                        value: 1,
-                                                        message:
-                                                            "Minimum value is 0",
-                                                    },
-                                                }}
-                                                sx={{
-                                                    minWidth: "15rem",
-                                                    maxWidth: "16rem",
-                                                }}
-                                                endAdornment={
-                                                    <InputAdornment>
-                                                        {getValues("uom")}
-                                                    </InputAdornment>
-                                                }
-                                                onBlurOvr={checkExistingOsQty}
-                                                thousandSeparator
-                                            />
                                             <CheckBoxComp
                                                 label="Multi Loading Note"
                                                 control={control}
@@ -962,7 +894,6 @@ export default function LoadingNoteFormFRC() {
                                                 }
                                             } else {
                                                 remove(index);
-                                                checkExistingOsQty();
                                                 // console.log(index);
                                                 const newCheckBoxState = [
                                                     ...checkedMulti,
