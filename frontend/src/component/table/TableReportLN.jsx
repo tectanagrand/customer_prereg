@@ -41,7 +41,7 @@ import toast from "react-hot-toast";
 import { LoadingButton } from "@mui/lab";
 import ModalSyncWBNET from "../../pages/recap/ModalSyncWBNET";
 
-export default function TableReportLN({ onsetFilterData, isLoading }) {
+export default function TableReportLN() {
     const formatNumber = (number, uom) => {
         if (number) {
             return `${number?.replace(/\B(?=(\d{3})+(?!\d))/g, ",")} ${uom}`;
@@ -424,10 +424,6 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
     };
 
     useEffect(() => {
-        onsetFilterData({
-            filters: dataColFilter,
-            customer_id: "",
-        });
         setIsFetch(true);
         (async () => {
             try {
@@ -487,7 +483,7 @@ export default function TableReportLN({ onsetFilterData, isLoading }) {
                 }
             }
         })();
-    }, [columnFilter, refresh, isLoading, do_number]);
+    }, [columnFilter, refresh, do_number]);
 
     const fetchMoreOnBottom = debounce(async containerRef => {
         if (containerRef) {

@@ -46,7 +46,8 @@ PDFController.exportSuratJalan = async (req, res) => {
                 AS KUNNR,
                 PLT.ALAMAT,
                 DET.print_count,
-                DET.is_multi
+                DET.is_multi, 
+                DET.remark_req
                 FROM LOADING_NOTE_DET DET
                 LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
                 LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
@@ -166,6 +167,8 @@ PDFController.exportSuratJalan = async (req, res) => {
             doc.fontSize(12).text("Hormat Kami", 100, lastRow + 80);
             doc.fontSize(12).text(dt.name_1, 100, lastRow + 160);
             doc.fontSize(12).text(dt.driver_name, 400, lastRow + 160);
+            doc.fontSize(12).text("Remark :", 100, lastRow + 200);
+            doc.fontSize(12).text(dt.remark_req, 100, lastRow + 220);
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
                 "Content-Disposition",
