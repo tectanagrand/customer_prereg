@@ -48,7 +48,7 @@ const ValuationTypeOp = [
     { value: "TR-SALES2", label: "TR-SALES2" },
 ];
 
-export default function LoadingNoteFormFRC() {
+export default function LoadingNoteFormUPS() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
@@ -57,12 +57,13 @@ export default function LoadingNoteFormFRC() {
     const [click, setClick] = useState(false);
     const [slocOP, setSloc] = useState([]);
     const [medtpOP, setMedTPOP] = useState([]);
+    const [hold_qty, setHoldqty] = useState(0);
+    const [restData, setRestData] = useState({});
     const [checkedMulti, setCheckedMulti] = useState([]);
     const [uomQty, setUomQty] = useState("Kg");
-    const [preOp, setPreOp] = useState(null);
+    const [preOp, setPreOp] = useState("");
     const [pltRule, setPltRule] = useState({ plant: "", material: "" });
     const lastIdx = useRef(0);
-    const [do_num, _setDONum] = useState("");
     const navigate = useNavigate();
     const { session, getPermission } = useSession();
     const curAuth = useRef({});
@@ -78,8 +79,6 @@ export default function LoadingNoteFormFRC() {
     } = useForm({
         defaultValues: {
             do_num: "",
-            sto_num: "",
-            trans_type: "",
             inv_type: "",
             inv_type_tol_from: "0 %",
             inv_type_tol_to: "0 %",
@@ -88,6 +87,7 @@ export default function LoadingNoteFormFRC() {
             con_num: "",
             material: "",
             con_qty: 0,
+            hold_qty: 0,
             os_qty: 0,
             os_sap_qty: 0,
             plant: "",
@@ -202,10 +202,6 @@ export default function LoadingNoteFormFRC() {
         })();
     }, []);
 
-    const setDONum = value => {
-        _setDONum(value);
-    };
-
     const submitItem = async (values, is_draft = false) => {
         if (typeof is_draft !== "boolean") {
             is_draft = false;
@@ -218,7 +214,6 @@ export default function LoadingNoteFormFRC() {
                 : "",
             vehicle: item.vehicle ? item.vehicle.value : "",
             loading_date: moment(item.loading_date).format("YYYY-MM-DD"),
-            planned_qty: item.planned_qty.replace(/,/g, ""),
             media_tp: item.media_tp,
             method: item.method,
             multi_do: item.relate_do,
@@ -270,7 +265,7 @@ export default function LoadingNoteFormFRC() {
                 }
             }
             setTimeout(() => {
-                navigate("/dashboard/locofranco");
+                navigate("/dashboard/loco");
             }, 2000);
         } catch (error) {
             console.error(error);
@@ -281,16 +276,15 @@ export default function LoadingNoteFormFRC() {
     };
 
     const handleCheckSO = async value => {
-        if (getValues("sto_num") === "") {
-            toast.error("Please Provide STO Number");
-            return;
-        }
         setLoading(true);
         try {
             const { data } = await axiosPrivate.get(
                 `/master/do?do_num=${value}`
             );
             const slip = data.SLIP;
+            if (slip.INCO1 === "FRC") {
+                throw new Error("Cannot proceed FRANCO type SO");
+            }
             const dataMap = {
                 do_num: value,
                 inv_type: slip.ZZINVOICETYPE,
@@ -334,7 +328,6 @@ export default function LoadingNoteFormFRC() {
             } else {
                 reset({
                     do_num: "",
-                    sto_num: "",
                     inv_type: "",
                     inv_type_tol_from: "0 %",
                     inv_type_tol_to: "0 %",
@@ -364,7 +357,6 @@ export default function LoadingNoteFormFRC() {
             console.log(error);
             const resetData = {
                 do_num: "",
-                sto_num: "",
                 inv_type: "",
                 inv_type_tol_from: "",
                 inv_type_tol_to: "",
@@ -380,60 +372,11 @@ export default function LoadingNoteFormFRC() {
             Object.keys(resetData).forEach(item => {
                 setValue(item, resetData[item]);
             });
-            toast.error(error.response.data.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCheckSTO = async () => {
-        setLoading(true);
-        try {
-            // console.log(getValues("do_num"));
-            const { data: stodata, status: statussto } = await axiosPrivate.get(
-                `/master/checkstobydo?do=${getValues("do_num")}`
-            );
-            setValue("sto_num", stodata.ebeln);
-            const { data, status } = await axiosPrivate.get(
-                `/master/checkstolcfrc?sto=${stodata.ebeln})}`
-            );
-            if (status === 200) {
-                toast.success("STO Number Exist");
-                setValue("trans_type", data.ttype);
+            if (error.response) {
+                toast.error(error.response.data.message);
             } else {
-                throw new Error("STO Not Found");
+                toast.error(error.message);
             }
-        } catch (error) {
-            reset({
-                do_num: "",
-                sto_num: "",
-                trans_type: "",
-                inv_type: "",
-                inv_type_tol_from: "0 %",
-                inv_type_tol_to: "0 %",
-                incoterms: "",
-                rules: "",
-                con_num: "",
-                material: "",
-                con_qty: 0,
-                os_qty: 0,
-                os_sap_qty: 0,
-                plant: "",
-                description: "",
-                uom: "",
-                load_detail: [],
-                fac_plant: "",
-                fac_store_loc: "",
-                fac_batch: "",
-                fac_val_type: "",
-                oth_plant: "",
-                oth_store_loc: "",
-                oth_batch: "",
-                oth_val_type: "",
-                company: "",
-            });
-            console.error(error);
-            toast.error(error.response.data.message);
         } finally {
             setLoading(false);
         }
@@ -443,6 +386,8 @@ export default function LoadingNoteFormFRC() {
         const plansData = getValues("load_detail");
         let con_os = parseFloat(getValues("con_qty")) - usedQty.current;
         // console.log(getValues("con_qty"));
+        // console.log(usedQty.current);
+        // console.log(con_os);
         let currentTotal = 0;
         plansData.forEach(item => {
             currentTotal += parseFloat(
@@ -477,8 +422,7 @@ export default function LoadingNoteFormFRC() {
         <>
             <Toaster />
             <Typography variant="h4">
-                {session.role === "VENDOR" ? "Vendor" : "Customer "}{" "}
-                {"FRANCO → LOCO"} Loading Note Registration Form
+                Upstream LOCO Loading Note Registration Form
             </Typography>
             <br />
             <form
@@ -508,70 +452,38 @@ export default function LoadingNoteFormFRC() {
                     >
                         <Typography variant="h5">Detail Order</Typography>
                         <Divider sx={{ my: 3 }} />
-                        <div>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    marginBottom: "1rem",
+                        <div style={{ display: "flex" }}>
+                            {/* <SelectComp
+                                name="do_num"
+                                label="DO Number"
+                                fullWidth
+                                control={control}
+                                options={doOP}
+                                onOpen={() => getDataDO()}
+                                sx={{
+                                    mb: 3,
+                                    mr: 3,
+                                    maxWidth: "16rem",
+                                    minWidth: "10rem",
                                 }}
+                                lazy={true}
+                            /> */}
+                            <SelectDOComp
+                                control={control}
+                                name="do_num"
+                                label="DO Number"
+                                preop={preOp}
+                                type="LCO"
+                            />
+                            <LoadingButton
+                                onClick={() =>
+                                    handleCheckSO(getValues("do_num"))
+                                }
+                                loading={isLoading}
+                                sx={{ height: "2rem" }}
                             >
-                                {/* <SelectComp
-                                    name="do_num"
-                                    label="DO Number"
-                                    fullWidth
-                                    control={control}
-                                    options={doOP}
-                                    onOpen={() => getDataDO()}
-                                    sx={{
-                                        mb: 3,
-                                        mr: 3,
-                                        maxWidth: "16rem",
-                                        minWidth: "10rem",
-                                    }}
-                                    lazy={true}
-                                /> */}
-                                <SelectDOComp
-                                    control={control}
-                                    name="do_num"
-                                    label="DO Number"
-                                    preop={preOp}
-                                    type="FRC"
-                                    onChangeOvr={() => handleCheckSTO()}
-                                />
-                            </div>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: "1rem",
-                                    alignItems: "center",
-                                }}
-                            >
-                                <TextFieldComp
-                                    control={control}
-                                    label={"STO Number"}
-                                    name="sto_num"
-                                    sx={{ maxWidth: "17rem" }}
-                                    toUpperCase={true}
-                                    disabled
-                                />
-                                <TextFieldComp
-                                    control={control}
-                                    label={"Trans. Type"}
-                                    name="trans_type"
-                                    sx={{ maxWidth: "10rem" }}
-                                    toUpperCase={true}
-                                    disabled
-                                />
-                                <LoadingButton
-                                    onClick={() =>
-                                        handleCheckSO(getValues("do_num"))
-                                    }
-                                    loading={isLoading}
-                                    sx={{ height: "2rem" }}
-                                >
-                                    Check Payment
-                                </LoadingButton>
-                            </div>
+                                Check Payment
+                            </LoadingButton>
                         </div>
                         <div
                             style={{
