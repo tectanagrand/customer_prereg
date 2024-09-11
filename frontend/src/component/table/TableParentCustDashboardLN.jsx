@@ -41,7 +41,7 @@ import { useEffect, useMemo, useState } from "react";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import TableChildCustLN from "./TableChildCustLN";
-import { useNavigate } from "react-router-dom";
+import { useLoaderData, useNavigate } from "react-router-dom";
 import { Fragment } from "react";
 import PaginationActionButton from "./PaginationActionButton";
 import { FilterTextFieldComp } from "../input/FilterTextFieldComp";
@@ -51,6 +51,8 @@ import { useSession } from "../../provider/sessionProvider";
 import ModalConfirmDelete from "../common/ModalConfirmDelete";
 
 export default function TableParentCustDashboard() {
+    const loader = useLoaderData();
+    const C_GRP = useMemo(() => loader.C_GRP, []);
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
     const [dataCust, setDataCust] = useState([]);
@@ -180,7 +182,8 @@ export default function TableParentCustDashboard() {
                     let buttons = [];
                     if (
                         props.row.original.ctros > 0 &&
-                        getPermission("LOCO Request").fcreate
+                        (getPermission("LOCO Request").fcreate ||
+                            getPermission("LOCO UPS Request").fcreate)
                     ) {
                         buttons.push(
                             <Tooltip
@@ -305,7 +308,9 @@ export default function TableParentCustDashboard() {
 
     useEffect(() => {
         (async () => {
-            const allow = getPermission("LOCO Request").fcreate;
+            const allow =
+                getPermission("LOCO Request").fcreate ||
+                getPermission("LOCO UPS Request").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
                     "/ln/lnuser?isallow=" + allow,
@@ -331,7 +336,8 @@ export default function TableParentCustDashboard() {
 
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <RefreshButton setRefreshbtn={setRefresh} isLoading={refresh} />
-                {getPermission("LOCO Request").fcreate && (
+                {(getPermission("LOCO Request").fcreate ||
+                    getPermission("LOCO UPS Request").fcreate) && (
                     <Button
                         sx={{ width: 200, heigth: 50, margin: 2 }}
                         variant="contained"
@@ -440,6 +446,7 @@ export default function TableParentCustDashboard() {
                                             >
                                                 {
                                                     <TableChildCustLN
+                                                        comp_group={C_GRP}
                                                         dataChild={
                                                             row.original
                                                                 .sub_table
