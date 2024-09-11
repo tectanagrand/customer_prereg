@@ -310,6 +310,7 @@ export default function LoadingNoteFormFRC() {
                 oth_plant: slip.WERKS,
                 fac_plant: slip.WERKS,
                 oth_batch: value,
+                hold_qty: data.HOLDQTY,
             };
             setUomQty(slip.VRKME);
             setRemaining(slip.KWMENG - data.TOTALSPEND);
@@ -727,6 +728,7 @@ export default function LoadingNoteFormFRC() {
                                     planned_qty: "",
                                     media_tp: "T",
                                     relate_do: [],
+                                    remark: "",
                                 });
                                 let newCheckBoxState = [...checkedMulti];
                                 newCheckBoxState.push(false);
@@ -884,6 +886,21 @@ export default function LoadingNoteFormFRC() {
                                                 preop={getValues(
                                                     `load_detail.${index}.relate_do`
                                                 )}
+                                            />
+                                            <TextFieldComp
+                                                name={`load_detail.${index}.remark`}
+                                                label="Remark"
+                                                control={control}
+                                                sx={{
+                                                    minWidth: "20rem",
+                                                }}
+                                                rules={{
+                                                    maxLength: {
+                                                        value: 500,
+                                                        message:
+                                                            "Max 500 Character",
+                                                    },
+                                                }}
                                             />
                                         </div>
                                     </div>

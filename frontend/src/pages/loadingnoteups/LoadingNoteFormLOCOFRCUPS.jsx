@@ -48,7 +48,7 @@ const ValuationTypeOp = [
     { value: "TR-SALES2", label: "TR-SALES2" },
 ];
 
-export default function LoadingNoteFormFRC() {
+export default function LoadingNoteFormLCOFRCUPS() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
