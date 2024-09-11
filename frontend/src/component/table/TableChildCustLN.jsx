@@ -14,7 +14,7 @@ import {
 import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 
-export default function TableChildCustLN({ dataChild }) {
+export default function TableChildCustLN({ dataChild, comp_group }) {
     const theme = useTheme();
     const columns = useMemo(
         () => [
@@ -48,15 +48,17 @@ export default function TableChildCustLN({ dataChild }) {
                 accessorKey: "media_tp",
                 cell: props => props.getValue(),
             },
-            {
-                header: "Planning Quantity",
-                accessorKey: "plan_qty",
-                cell: ({ row }) =>
-                    `${row.original.plan_qty?.replace(
-                        /\B(?=(\d{3})+(?!\d))/g,
-                        ","
-                    )} ${row.original.uom}`,
-            },
+            comp_group === "DOWNSTREAM"
+                ? {
+                      header: "Planning Quantity",
+                      accessorKey: "plan_qty",
+                      cell: ({ row }) =>
+                          `${row.original.plan_qty?.replace(
+                              /\B(?=(\d{3})+(?!\d))/g,
+                              ","
+                          )} ${row.original.uom}`,
+                  }
+                : {},
             {
                 header: "Error Message",
                 accessorKey: "error_msg",
@@ -68,7 +70,7 @@ export default function TableChildCustLN({ dataChild }) {
                 cell: props => props.getValue(),
             },
         ],
-        []
+        [comp_group]
     );
     const table = useReactTable({
         columns,
