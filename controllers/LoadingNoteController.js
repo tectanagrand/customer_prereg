@@ -103,7 +103,6 @@ LoadingNoteController.showAll = async (req, res) => {
 
 LoadingNoteController.getById = async (req, res) => {
     const idloadnote = req.query.idloadnote;
-    const client = await db.connect();
     try {
         const result = await LoadNote.getById2(idloadnote);
         res.status(200).send(result);
@@ -112,8 +111,6 @@ LoadingNoteController.getById = async (req, res) => {
         res.status(500).send({
             message: error.message,
         });
-    } finally {
-        client.release();
     }
 };
 
@@ -242,74 +239,7 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
             payload,
             session
         );
-        const jobQueue = () => {
-            console.log(
-                "Start new Job : " +
-                    moment().format("YYYY-MM-DD T HH:mm:ss") +
-                    " " +
-                    insertSAP.data
-            );
-            return axios
-                .get(
-                    `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
-                    {
-                        auth: {
-                            username: session.username,
-                            password: password,
-                        },
-                    }
-                )
-                .then(result => {
-                    console.log(
-                        "Success Push" +
-                            moment().format("YYYY-MM-DD T HH:mm:ss") +
-                            " " +
-                            insertSAP.data
-                    );
-                })
-                .catch(error => {
-                    console.log(error);
-                });
-        };
-        q.push(jobQueue);
-        // /q.pushJob(
-        //     new Promise((resolve, reject) => {
-        //         console.log(
-        //             "Start new Job : " +
-        //                 moment().format("YYYY-MM-DD T HH:mm:ss") +
-        //                 " " +
-        //                 insertSAP.data
-        //         );
-        //         axios
-        //             .get(
-        //                 `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
-        //                 {
-        //                     auth: {
-        //                         username: session.username,
-        //                         password: password,
-        //                     },
-        //                 }
-        //             )
-        //             .then(result => {
-        //                 console.log(
-        //                     "Success Push" +
-        //                         moment().format("YYYY-MM-DD T HH:mm:ss") +
-        //                         " " +
-        //                         insertSAP.data
-        //                 );
-        //                 resolve(
-        //                     "Success Push" +
-        //                         moment().format("YYYY-MM-DD T HH:mm:ss") +
-        //                         " " +
-        //                         insertSAP.data
-        //                 );
-        //             })
-        //             .catch(error => {
-        //                 console.log(error);
-        //                 reject(error);
-        //             });
-        //     })
-        // );
+        LoadingNoteController.PushJobSAPTrigger();
         res.status(200).send({
             message: "Data Pushed to SAP",
         });
@@ -321,15 +251,51 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
     }
 };
 
+LoadingNoteController.PushJobSAPTrigger = () => {
+    const jobQueue = () => {
+        console.log(
+            "Start new Job : " +
+                moment().format("YYYY-MM-DD T HH:mm:ss") +
+                " " +
+                insertSAP.data
+        );
+        return axios
+            .get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
+                {
+                    auth: {
+                        username: session.username,
+                        password: password,
+                    },
+                }
+            )
+            .then(result => {
+                console.log(
+                    "Success Push" +
+                        moment().format("YYYY-MM-DD T HH:mm:ss") +
+                        " " +
+                        insertSAP.data
+                );
+            })
+            .catch(error => {
+                console.log(error);
+            });
+    };
+    q.push(jobQueue);
+    return;
+};
+
 LoadingNoteController.getAllDataLNbyUser = async (req, res) => {
     try {
         const session = req.cookies;
         // console.log(session);
         const isallow = req.query.isallow === "true" ? true : false;
+        const c_grp = req.query.group;
         const data = await LoadNote.getAllDataLNbyUser_2(
             session,
             isallow,
-            "LCO"
+            "LCO",
+            c_grp
         );
         res.status(200).send(data);
     } catch (error) {
