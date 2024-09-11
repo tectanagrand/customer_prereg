@@ -51,7 +51,7 @@ PageModel.showAll = async role_id => {
                     ],
                 };
             });
-            menuAccess.set(item.menu_id, {
+            menuAccess.set(item.position, {
                 key: item.menu_id,
                 text: item.menu_page,
                 icon: item.icons,
