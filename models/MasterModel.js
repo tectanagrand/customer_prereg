@@ -377,7 +377,7 @@ MasterModel.getStoreLoc2 = async (plant, itemrule) => {
                     },
                 }
             );
-            // console.log(dataIsloc);
+            console.log(dataIsloc.d.results);
             const I_SLOC = dataIsloc.d.results.map(item =>
                 MappingKeys.ToUpperKeys(item)
             );
@@ -388,7 +388,8 @@ MasterModel.getStoreLoc2 = async (plant, itemrule) => {
                         value: item.LGORT,
                         label: item.LGORT + " - " + item.LGOBE,
                     });
-                } else {
+                }
+                if (item.OTPARTYIND === "X") {
                     other.push({
                         value: item.LGORT,
                         label: item.LGORT + " - " + item.LGOBE,

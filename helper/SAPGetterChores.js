@@ -112,6 +112,8 @@ SAPGetterChores.LoadingNoteSync = async () => {
                             orapayload = {
                                 FLAG_WEB_PULL: "T",
                             };
+                        } else {
+                            continue;
                         }
 
                         const payloadEmail = `
@@ -187,12 +189,14 @@ SAPGetterChores.LoadingNoteSync = async () => {
                         }
 
                         const id_db = row.det_id;
+                        // console.log(id_db);
                         const [queW, valW] = crud.updateItem(
                             "loading_note_det",
                             payload,
                             { det_id: id_db },
                             "det_id"
                         );
+                        // console.log(queW);
                         const [queO, valO] = crud.updateItemOra(
                             "PREREG_LOADING_NOTE_SAP",
                             orapayload,

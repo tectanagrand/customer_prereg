@@ -30,7 +30,7 @@ OSCheck.CheckOSCust = async do_number => {
                     I_ZSLIP[item.toUpperCase()] = ZSLIP_get.d.results[0][item];
                 }
             });
-            ConQtySAP = parseFloat(I_ZSLIP.ZTTLPROF);
+            ConQtySAP = parseFloat(I_ZSLIP.KWMENG);
             //get qty sap
             const { data: I_OUTDELIVERY } = await axios.get(
                 `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${do_number}%27)&$format=json`,

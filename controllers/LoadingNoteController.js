@@ -239,7 +239,7 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
             payload,
             session
         );
-        LoadingNoteController.PushJobSAPTrigger();
+        LoadingNoteController.PushJobSAPTrigger(insertSAP, session, password);
         res.status(200).send({
             message: "Data Pushed to SAP",
         });
@@ -251,7 +251,7 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
     }
 };
 
-LoadingNoteController.PushJobSAPTrigger = () => {
+LoadingNoteController.PushJobSAPTrigger = (insertSAP, session, password) => {
     const jobQueue = () => {
         console.log(
             "Start new Job : " +

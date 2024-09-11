@@ -113,7 +113,8 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
             params.load_detail.forEach(item => {
                 totalRequested += parseFloat(item.planned_qty);
             });
-            if (OSQty - totalRequested <= 0) {
+            console.log(dataQty);
+            if (OSQty - totalRequested < 0) {
                 throw new Error(
                     "Amount requested is over than current outstanding quantity contract"
                 );
