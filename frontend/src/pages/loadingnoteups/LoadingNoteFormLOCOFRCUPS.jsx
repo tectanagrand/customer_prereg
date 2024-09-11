@@ -22,7 +22,7 @@ import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
-import SelectDOFRCComp from "./SelectDOFRCComp";
+import SelectDOComp from "./SelectDOComp";
 import SelectMultiDOComp from "./SelectMultiDoComp";
 import { useTheme } from "@mui/material/styles";
 import CheckBoxComp from "../../component/input/CheckBoxComp";
@@ -48,7 +48,7 @@ const ValuationTypeOp = [
     { value: "TR-SALES2", label: "TR-SALES2" },
 ];
 
-export default function LoadingNoteFormFRC() {
+export default function LoadingNoteFormLCOFRCUPS() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
@@ -270,7 +270,7 @@ export default function LoadingNoteFormFRC() {
                 }
             }
             setTimeout(() => {
-                navigate("/dashboard/franco");
+                navigate("/dashboard/locofranco");
             }, 2000);
         } catch (error) {
             console.error(error);
@@ -387,9 +387,15 @@ export default function LoadingNoteFormFRC() {
     };
 
     const handleCheckSTO = async () => {
+        setLoading(true);
         try {
+            // console.log(getValues("do_num"));
+            const { data: stodata, status: statussto } = await axiosPrivate.get(
+                `/master/checkstobydo?do=${getValues("do_num")}`
+            );
+            setValue("sto_num", stodata.ebeln);
             const { data, status } = await axiosPrivate.get(
-                `/master/checksto?sto=${getValues("sto_num")}`
+                `/master/checkstolcfrc?sto=${stodata.ebeln})}`
             );
             if (status === 200) {
                 toast.success("STO Number Exist");
@@ -398,8 +404,38 @@ export default function LoadingNoteFormFRC() {
                 throw new Error("STO Not Found");
             }
         } catch (error) {
+            reset({
+                do_num: "",
+                sto_num: "",
+                trans_type: "",
+                inv_type: "",
+                inv_type_tol_from: "0 %",
+                inv_type_tol_to: "0 %",
+                incoterms: "",
+                rules: "",
+                con_num: "",
+                material: "",
+                con_qty: 0,
+                os_qty: 0,
+                os_sap_qty: 0,
+                plant: "",
+                description: "",
+                uom: "",
+                load_detail: [],
+                fac_plant: "",
+                fac_store_loc: "",
+                fac_batch: "",
+                fac_val_type: "",
+                oth_plant: "",
+                oth_store_loc: "",
+                oth_batch: "",
+                oth_val_type: "",
+                company: "",
+            });
             console.error(error);
             toast.error(error.response.data.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -441,8 +477,8 @@ export default function LoadingNoteFormFRC() {
         <>
             <Toaster />
             <Typography variant="h4">
-                {session.role === "VENDOR" ? "Vendor" : "Customer "} FRANCO
-                Loading Note Registration Form
+                {session.role === "VENDOR" ? "Vendor" : "Customer "}{" "}
+                {"FRANCO → LOCO"} Loading Note Registration Form
             </Typography>
             <br />
             <form
@@ -476,38 +512,7 @@ export default function LoadingNoteFormFRC() {
                             <div
                                 style={{
                                     display: "flex",
-                                    gap: "1rem",
                                     marginBottom: "1rem",
-                                    alignItems: "center",
-                                }}
-                            >
-                                <TextFieldComp
-                                    control={control}
-                                    label={"STO Number"}
-                                    name="sto_num"
-                                    sx={{ maxWidth: "17rem" }}
-                                    toUpperCase={true}
-                                />
-                                <TextFieldComp
-                                    control={control}
-                                    label={"Trans. Type"}
-                                    name="trans_type"
-                                    sx={{ maxWidth: "10rem" }}
-                                    toUpperCase={true}
-                                    disabled
-                                />
-                                <LoadingButton
-                                    onClick={() => handleCheckSTO()}
-                                    loading={isLoading}
-                                    sx={{ height: "2rem" }}
-                                >
-                                    Check STO
-                                </LoadingButton>
-                            </div>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
                                 }}
                             >
                                 {/* <SelectComp
@@ -525,13 +530,37 @@ export default function LoadingNoteFormFRC() {
                                     }}
                                     lazy={true}
                                 /> */}
-                                <SelectDOFRCComp
+                                <SelectDOComp
                                     control={control}
                                     name="do_num"
                                     label="DO Number"
                                     preop={preOp}
-                                    onChangeOvr={setDONum}
-                                    getValue={getValues}
+                                    type="FRC"
+                                    onChangeOvr={() => handleCheckSTO()}
+                                />
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: "1rem",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <TextFieldComp
+                                    control={control}
+                                    label={"STO Number"}
+                                    name="sto_num"
+                                    sx={{ maxWidth: "17rem" }}
+                                    toUpperCase={true}
+                                    disabled
+                                />
+                                <TextFieldComp
+                                    control={control}
+                                    label={"Trans. Type"}
+                                    name="trans_type"
+                                    sx={{ maxWidth: "10rem" }}
+                                    toUpperCase={true}
+                                    disabled
                                 />
                                 <LoadingButton
                                     onClick={() =>
