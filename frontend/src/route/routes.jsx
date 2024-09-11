@@ -1,19 +1,4 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-// import Dashboard from "../pages/dashboard/Dashboard";
-// import LoginPage from "../pages/login/LoginPage";
-// import User from "../pages/usermaster/UserPage";
-// import ListUserGroup from "../pages/menuaccess/ListUserGroup";
-// import MenuAccessPage from "../pages/menuaccess/MenuAccessPage";
-// import LoadingNoteForm from "../pages/loadingnote/LoadingNoteForm";
-// import FormCreateLoadingNote from "../pages/osreq/FormCreateLoadingNote";
-// import TableParentCustDashboard from "../component/table/TableParentCustDashboardLN";
-// import RecapLoadingNote from "../pages/recap/RecapLoadingNote";
-// import NewUserRegFormPage from "../pages/usermaster/NewUserRegFormPage";
-// import NewUserValidateOTP from "../pages/usermaster/NewUserValidateOTP";
-// import NewUserPass from "../pages/usermaster/NewUserPass";
-// import VehicleDashboard from "../pages/vehicle/VehicleDashboard";
-// import DriverDashboard from "../pages/driver/DriverDashboard";
-// import SendEmail from "../pages/sendemail/SendEmail";
 import { lazy } from "react";
 import { ErrorRouter } from "../ErrorRouter";
 import AuthSessionModal from "../pages/approvalreq/AuthSessionModal";
@@ -22,6 +7,9 @@ import AuthDashboard from "../pages/dashboard/AuthDashboard";
 const ApprovalPage = lazy(() => import("../pages/approvalreq/ApprovalPage"));
 import ErrorPage from "../pages/error/ErrorPage";
 import { Axios } from "../api/axios";
+const LoadingNoteFormFRCUPS = lazy(
+    () => import("../pages/loadingnoteups/LoadingNoteFormFRCUPS")
+);
 const OSRequestDrvVeh = lazy(
     () => import("../pages/sendemail/OSRequestDrvVeh")
 );
@@ -156,6 +144,20 @@ export const routes = createBrowserRouter([
                     {
                         path: "loco/",
                         element: <TableParentCustDashboard />,
+                        loader: () => {
+                            return {
+                                C_GRP: "DOWNSTREAM",
+                            };
+                        },
+                    },
+                    {
+                        path: "locoups/",
+                        element: <TableParentCustDashboard />,
+                        loader: () => {
+                            return {
+                                C_GRP: "UPSTREAM",
+                            };
+                        },
                     },
                     {
                         path: "loco/create",
@@ -164,10 +166,28 @@ export const routes = createBrowserRouter([
                     {
                         path: "franco/",
                         element: <TableParentCustDashboardFRC />,
+                        loader: () => {
+                            return {
+                                C_GRP: "DOWNSTREAM",
+                            };
+                        },
+                    },
+                    {
+                        path: "francoups/",
+                        element: <TableParentCustDashboardFRC />,
+                        loader: () => {
+                            return {
+                                C_GRP: "UPSTREAM",
+                            };
+                        },
                     },
                     {
                         path: "franco/create",
                         element: <LoadingNoteFormFRC />,
+                    },
+                    {
+                        path: "francoups/create",
+                        element: <LoadingNoteFormFRCUPS />,
                     },
                     {
                         path: "locofranco/",
