@@ -104,16 +104,17 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
 
             //check if amount qty not exceeded
             const dataQty = await OSCheck.CheckOSCust(params.do_num);
+            // console.log(dataQty);
             const OSQty =
                 dataQty.ConQty -
                 (dataQty.TotalSAP - dataQty.TotalDeleted) -
                 dataQty.TotalTemp -
                 dataQty.HoldQty;
+            // console.log(OSQty);
             let totalRequested = 0;
             params.load_detail.forEach(item => {
                 totalRequested += parseFloat(item.planned_qty);
             });
-            console.log(dataQty);
             if (OSQty - totalRequested < 0) {
                 throw new Error(
                     "Amount requested is over than current outstanding quantity contract"
@@ -192,6 +193,7 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                     is_pushed: false,
                     is_multi: rows.is_multi,
                     multi_do: rows.multi_do,
+                    remark_req: rows.remark,
                 };
                 if (rows.id_detail === "") {
                     [que, val] = crud.insertItem(
@@ -632,6 +634,7 @@ LoadingNoteModel.getById2 = async id_header => {
                     media_tp: item.media_tp,
                     multi_do: item.multi_do,
                     is_multi: item.is_multi,
+                    remark: item.remark_req,
                 };
             });
             const hd_dt = rows[0];
@@ -1271,7 +1274,7 @@ LoadingNoteModel.cancelLoadingNote = async (params, session) => {
             const today = new Date();
             const [queDel, valDel] = crud.updateItem(
                 "loading_note_hd",
-                { cancel_msg: remarks },
+                { cancel_msg: remarks, is_active: false },
                 { hd_id: canceledData[0].hd_id },
                 "hd_id"
             );
@@ -1377,7 +1380,12 @@ LoadingNoteModel.getAllDataLNbyUser = async session => {
     }
 };
 
-LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow, type) => {
+LoadingNoteModel.getAllDataLNbyUser_2 = async (
+    session,
+    isallow,
+    type,
+    comp_group
+) => {
     try {
         const client = await db.connect();
         let finaData = [];
@@ -1414,8 +1422,10 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow, type) => {
                     LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
                     WHERE DET.LN_NUM IS NULL  AND HD.CUR_POS = 'FINA' and DET.CREATE_AT + interval '7' day > now ()
                     GROUP BY HD_FK
-                ) LOG ON HD.HD_ID = LOG.HD_FK`;
-                whereClause = `WHERE HD.CREATE_BY = $1 AND HD.INCO_1 LIKE '%${type}%' AND ( DET.CTROS IS NOT NULL OR LNU.CTRLN IS NOT NULL OR LOG.CTRLOG IS NOT NULL )
+                ) LOG ON HD.HD_ID = LOG.HD_FK
+                 LEFT JOIN MST_COMPANY C ON HD.COMPANY = C.SAP_CODE`;
+                whereClause = `WHERE HD.IS_ACTIVE = true AND HD.CREATE_BY = $1 AND HD.INCO_1 LIKE $2 AND C.group_comp = $3  
+                AND ( DET.CTROS IS NOT NULL OR LNU.CTRLN IS NOT NULL OR LOG.CTRLOG IS NOT NULL )
                 ORDER BY DET.CTROS asc, HD.CREATE_AT desc ;`;
             } else {
                 leftJoin = `LEFT JOIN (
@@ -1429,8 +1439,9 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow, type) => {
                             LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
                             WHERE DET.LN_NUM IS NOT NULL
                             GROUP BY HD_FK
-                ) LNU ON HD.HD_ID = LNU.HD_FK`;
-                whereClause = `WHERE HD.CUR_POS = 'FINA' AND HD.INCO_1 LIKE '%${type}%' AND DET.CTROS IS NOT NULL AND LNU.CTRLN IS NULL`;
+                ) LNU ON HD.HD_ID = LNU.HD_FK
+                 LEFT JOIN MST_COMPANY C ON HD.COMPANY = C.SAP_CODE`;
+                whereClause = `WHERE HD.IS_ACTIVE = true AND HD.CUR_POS = 'FINA' AND HD.INCO_1 LIKE $1 AND C.group_comp = $2 AND DET.CTROS IS NOT NULL AND LNU.CTRLN IS NULL`;
             }
 
             const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
@@ -1439,10 +1450,15 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (session, isallow, type) => {
             if (isallow) {
                 const { rows } = await client.query(getDataSess, [
                     session.id_user,
+                    `%${type}%`,
+                    comp_group,
                 ]);
                 parentRow = rows;
             } else {
-                const { rows } = await client.query(getDataSess);
+                const { rows } = await client.query(getDataSess, [
+                    `%${type}%`,
+                    comp_group,
+                ]);
                 parentRow = rows;
             }
 
@@ -2020,6 +2036,7 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
             id = ["det.search_vector", "hd.search_vector"];
         }
         if (!date) {
+            // console.log(item);
             if (item.id === "Customer") {
                 where.push(
                     `(${id[0]} = $${ltindex + 1} OR ${id[1]} = $${ltindex + 2} OR ${id[2]} = $${ltindex + 3})`
@@ -2041,7 +2058,8 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
             where.push(`${id} ${value}`);
         }
     });
-    if (customer_id !== "") {
+    if (customer_id !== "" && customer_id) {
+        // console.log(customer_id);
         // where.push(`kunnr = $${ltindex + 1}`);
         where.push(
             `(cust.kunnr = $${ltindex + 1} OR ven.lifnr = $${ltindex + 2} OR int.kunnr =  $${ltindex + 3} )`
@@ -2061,6 +2079,8 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
     let val = whereVal;
     try {
         const client = await db.connect();
+        // console.log(que);
+        // console.log(val);
         try {
             const { rows, rowCount } = await client.query(que, val);
             const { rows: dataCount } = await client.query(countData, val);
