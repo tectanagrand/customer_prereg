@@ -81,9 +81,25 @@ MasterController.getSOData = async (req, res) => {
     try {
         const do_num = req.query.do_num;
         const dataComp = await Master.getSOData(do_num);
-        // if (!dataComp.IS_PAID) {
-        //     throw new Error("Order is Not Paid Yet");
-        // }
+        if (!dataComp.IS_PAID) {
+            throw new Error("Order is Not Paid Yet");
+        }
+        res.status(200).send(dataComp);
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getSODataUPS = async (req, res) => {
+    try {
+        const do_num = req.query.do_num;
+        const dataComp = await Master.getSODataUPS(do_num);
+        if (!dataComp.IS_PAID) {
+            throw new Error("Order is Not Paid Yet");
+        }
         res.status(200).send(dataComp);
     } catch (error) {
         console.log(error);
@@ -254,6 +270,24 @@ MasterController.getDataDOFrc = async (req, res) => {
         } else {
             res.status(500).send(error);
         }
+    }
+};
+
+MasterController.getDataDOFRCByCGRP = async (req, res) => {
+    try {
+        const { stonum, comp_group } = req.query;
+        if (!stonum) {
+            throw new Error("Please provide STO Number");
+        }
+        const dataDO = Master.getDataDOFRCByCGRP(stonum, comp_group);
+        res.status(200).send({
+            data: dataDO,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
     }
 };
 

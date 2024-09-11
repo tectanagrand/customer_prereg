@@ -131,10 +131,8 @@ MasterModel.getVehicleData2 = async q => {
 };
 
 MasterModel.getSOData = async do_num => {
-    const psqlclient = await db.connect();
     try {
         let totalPay = 0;
-        let totalFromSAP = 0;
         const param = {
             I_VBELN: do_num,
         };
@@ -212,8 +210,81 @@ MasterModel.getSOData = async do_num => {
     } catch (error) {
         console.log(error);
         throw error;
-    } finally {
-        psqlclient.release();
+    }
+};
+
+MasterModel.getSODataUPS = async do_num => {
+    try {
+        let totalPay = 0;
+        const { data: ZSLIP_get } = await axios.get(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${do_num}')&$format=json
+        `,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        let I_ZSLIP = {};
+        Object.keys(ZSLIP_get.d.results[0]).map(item => {
+            if (item !== "__metadata") {
+                I_ZSLIP[item.toUpperCase()] = ZSLIP_get.d.results[0][item];
+            }
+        });
+        const { data: ZPINO_get } = await axios.get(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZPINOSet?$filter=(Vbeln eq '${do_num}')&$format=json
+        `,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        const I_ZPINO = ZPINO_get.d.results.map(item => {
+            const itemTemp = {};
+            Object.keys(item).map(data => {
+                if (data !== "__metadata") {
+                    itemTemp[data.toUpperCase()] = item[data];
+                }
+            });
+            return itemTemp;
+        });
+        if (I_ZSLIP.length === 0) {
+            throw new Error("SO Not Found");
+        }
+        const PINO = I_ZPINO.map(item => ({
+            ...item,
+            WRBTR: item.WRBTR.trim().replace(/[.,]/g, "").replace(",", "."),
+        }));
+        PINO.forEach(item => {
+            totalPay += parseFloat(item.WRBTR);
+        });
+        const SLIP = {
+            ...I_ZSLIP,
+            KWMENG: parseFloat(I_ZSLIP.KWMENG.split(".")[0]),
+            ZTTLPROF: I_ZSLIP.ZTTLPROF.trim()
+                .replace(/[.,]/g, "")
+                .replace(",", "."),
+        };
+        const OSData = await OSCheck.CheckOSUps(do_num);
+        console.log(OSData);
+        return {
+            SLIP: SLIP,
+            PINO: PINO,
+            OS: parseFloat(SLIP.ZTTLPROF) - totalPay,
+            IS_PAID: parseFloat(SLIP.ZTTLPROF) - totalPay > 5000 ? false : true,
+            TOTALSPEND: parseInt(OSData.TotalWB) + parseInt(OSData.HoldQty),
+            TOTALWB: parseInt(OSData.TotalWB),
+            OS_QTY:
+                parseInt(OSData.ConQty) -
+                (parseInt(OSData.TotalWB) + parseInt(OSData.HoldQty)),
+            HOLDQTY: parseInt(OSData.HoldQty),
+        };
+    } catch (error) {
+        console.log(error);
+        throw error;
     }
 };
 
@@ -377,7 +448,6 @@ MasterModel.getStoreLoc2 = async (plant, itemrule) => {
                     },
                 }
             );
-            console.log(dataIsloc.d.results);
             const I_SLOC = dataIsloc.d.results.map(item =>
                 MappingKeys.ToUpperKeys(item)
             );
@@ -928,7 +998,6 @@ MasterModel.getDOList = async (cust_id, type) => {
                     },
                 }
             );
-            console.log(data);
             for (const d of data.d.results) {
                 if (type && type !== "undefined") {
                     const { data } = await axios.get(
@@ -1424,6 +1493,65 @@ MasterModel.createMasterContract = async (payload, id_user) => {
             return method;
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.getDataDOFRCByCGRP = async (sto_num, comp_group) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { data } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOSTOSet?$filter=(Ebeln eq '${sto_num}')&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            let dataDO = [];
+            for (const dt of data.d.results) {
+                const { data: detaildo } = await axios.get(
+                    `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${dt.ZzvbelnV1}')&$format=json`,
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                if (!detaildo.d.results.length > 0) {
+                    continue;
+                }
+                if (comp_group) {
+                    const comp_code = detaildo.d.results[0].Werks.slice(0, 2);
+                    const { rows: compDt } = await client.query(
+                        `
+                    select group_comp from mst_company where sap_code = $1
+                    `,
+                        [comp_code]
+                    );
+                    if (compDt[0].group_comp === comp_group) {
+                        dataDO.push({
+                            value: dt.ZzvbelnV1,
+                            label: dt.ZzvbelnV1,
+                        });
+                    }
+                } else {
+                    dataDO.push({
+                        value: dt.ZzvbelnV1,
+                        label: dt.ZzvbelnV1,
+                    });
+                }
+            }
+            return dataDO;
+        } catch (error) {
             throw error;
         } finally {
             client.release();
