@@ -41,7 +41,7 @@ import { useEffect, useMemo, useState } from "react";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
 import TableChildCustLN from "./TableChildCustLN";
-import { useNavigate } from "react-router-dom";
+import { useLoaderData, useNavigate } from "react-router-dom";
 import { Fragment } from "react";
 import PaginationActionButton from "./PaginationActionButton";
 import { FilterTextFieldComp } from "../input/FilterTextFieldComp";
@@ -51,6 +51,8 @@ import { useSession } from "../../provider/sessionProvider";
 import ModalConfirmDelete from "../common/ModalConfirmDelete";
 
 export default function TableParentCustDashboardFRC() {
+    const loader = useLoaderData();
+    const C_GRP = useMemo(() => loader.C_GRP, []);
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
     const [dataCust, setDataCust] = useState([]);
@@ -181,7 +183,9 @@ export default function TableParentCustDashboardFRC() {
                     if (
                         props.row.original.ctros > 0 &&
                         (getPermission("FRANCO Req.").fcreate ||
-                            getPermission("FRANCO → LOCO").fcreate)
+                            getPermission("FRANCO UPS Req.").fcreate ||
+                            getPermission("FRANCO → LOCO").fcreate ||
+                            getPermission("FRANCO → LOCO UPS").fcreate)
                     ) {
                         buttons.push(
                             <Tooltip
@@ -308,7 +312,9 @@ export default function TableParentCustDashboardFRC() {
         (async () => {
             const allow =
                 getPermission("FRANCO Req.").fcreate ||
-                getPermission("FRANCO → LOCO").fcreate;
+                getPermission("FRANCO UPS Req.").fcreate ||
+                getPermission("FRANCO → LOCO").fcreate ||
+                getPermission("FRANCO → LOCO UPS").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
                     "/ln/lnuserfrc?isallow=" + allow,
@@ -332,7 +338,9 @@ export default function TableParentCustDashboardFRC() {
         <>
             <Toaster />
             {(getPermission("FRANCO Req.").fcreate ||
-                getPermission("FRANCO → LOCO").fcreate) && (
+                getPermission("FRANCO UPS Req.").fcreate ||
+                getPermission("FRANCO → LOCO").fcreate ||
+                getPermission("FRANCO → LOCO UPS").fcreate) && (
                 <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                     <RefreshButton
                         setRefreshbtn={setRefresh}
@@ -446,6 +454,7 @@ export default function TableParentCustDashboardFRC() {
                                             >
                                                 {
                                                     <TableChildCustLN
+                                                        comp_group={C_GRP}
                                                         dataChild={
                                                             row.original
                                                                 .sub_table
