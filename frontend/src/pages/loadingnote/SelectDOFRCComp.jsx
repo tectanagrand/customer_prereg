@@ -10,6 +10,7 @@ export default function SelectDOFRCComp({
     preop,
     onChangeOvr,
     getValue,
+    comp_group,
 }) {
     const axiosPrivate = useAxiosPrivate();
     const [isLoading, setLoading] = useState(false);
@@ -21,14 +22,15 @@ export default function SelectDOFRCComp({
 
     const getDataDO = async () => {
         try {
+            const comp_grp = comp_group ? `&comp_group=${comp_group}` : "";
             setLoading(true);
             const { data } = await axiosPrivate.get(
-                "/master/frcdolist?sto=" + getValue("sto_num"),
+                "/master/frcdocgrp?sto=" + getValue("sto_num") + comp_grp,
                 {
                     withCredentials: true,
                 }
             );
-            setDOOp(data);
+            setDOOp(data.data);
             // toast.success("Success Load DO");
         } catch (error) {
             console.error(error);
