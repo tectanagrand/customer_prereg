@@ -182,7 +182,7 @@ export default function TableParentCustDashboard() {
                     let buttons = [];
                     if (
                         props.row.original.ctros > 0 &&
-                        (getPermission("LOCO Request").fcreate ||
+                        (getPermission("LOCO DWS Request").fcreate ||
                             getPermission("LOCO UPS Request").fcreate)
                     ) {
                         buttons.push(
@@ -309,7 +309,7 @@ export default function TableParentCustDashboard() {
     useEffect(() => {
         (async () => {
             const allow =
-                getPermission("LOCO Request").fcreate ||
+                getPermission("LOCO DWS Request").fcreate ||
                 getPermission("LOCO UPS Request").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
@@ -336,7 +336,7 @@ export default function TableParentCustDashboard() {
 
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <RefreshButton setRefreshbtn={setRefresh} isLoading={refresh} />
-                {(getPermission("LOCO Request").fcreate ||
+                {(getPermission("LOCO DWS Request").fcreate ||
                     getPermission("LOCO UPS Request").fcreate) && (
                     <Button
                         sx={{ width: 200, heigth: 50, margin: 2 }}
