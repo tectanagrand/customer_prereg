@@ -9,6 +9,7 @@ const TRANS = require("../config/transaction");
 const EmailGen = require("../helper/EmailGen");
 const EmailModel = require("../models/EmailModel");
 const moment = require("moment");
+const TicketGen = require("../helper/TicketGen");
 
 const LoadingNoteController = {};
 
@@ -167,7 +168,11 @@ LoadingNoteController.showOSReqLN2 = async (req, res) => {
     try {
         const filter = req.body.filters;
         const who = req.body.who;
-        const data = await LoadNote.getRequestedLoadNote2(filter, who);
+        const cgrp = req.body.cgrp;
+        if (cgrp && !["DOWNSTREAM", "UPSTREAM"].includes(cgrp)) {
+            throw new Error("Please provide correct Company Group");
+        }
+        const data = await LoadNote.getRequestedLoadNote2(filter, who, cgrp);
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
@@ -251,6 +256,26 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
     }
 };
 
+LoadingNoteController.SubmitLNUPS = async (req, res) => {
+    try {
+        const { lnreq } = req.body;
+        const session = req.cookies;
+        const submitLNUPS = await LoadNote.ApproveUPSLoadingNote(
+            lnreq,
+            session
+        );
+        res.status(200).send({
+            message: "Loading Note Created",
+            LN: submitLNUPS.join(", "),
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 LoadingNoteController.PushJobSAPTrigger = (insertSAP, session, password) => {
     const jobQueue = () => {
         console.log(
@@ -307,11 +332,13 @@ LoadingNoteController.getAllDataLNbyUser = async (req, res) => {
 LoadingNoteController.getAllDataLNbyUserFRC = async (req, res) => {
     try {
         const session = req.cookies;
+        const comp_group = req.query.comp_group;
         const isallow = req.query.isallow === "true" ? true : false;
         const data = await LoadNote.getAllDataLNbyUser_2(
             session,
             isallow,
-            "FRC"
+            "FRC",
+            comp_group
         );
         res.status(200).send(data);
     } catch (error) {
