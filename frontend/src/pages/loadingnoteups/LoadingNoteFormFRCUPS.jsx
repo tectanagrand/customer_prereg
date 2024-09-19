@@ -206,6 +206,26 @@ export default function LoadingNoteFormFRCUPS() {
         _setDONum(value);
     };
 
+    const checkExistingOsQty = () => {
+        const plansData = getValues("load_detail");
+        let con_os = parseFloat(getValues("con_qty")) - usedQty.current;
+        // console.log(getValues("con_qty"));
+        let currentTotal = 0;
+        plansData.forEach(item => {
+            currentTotal += parseFloat(
+                item.planned_qty !== "" ? item.planned_qty.replace(/,/g, "") : 0
+            );
+        });
+        let newRemaining = con_os - currentTotal;
+        if (newRemaining < 0) {
+            toast.error("Planning Quantity exceed remaining quantity");
+            setExceed(true);
+        } else {
+            setRemaining(newRemaining);
+            setExceed(false);
+        }
+    };
+
     const submitItem = async (values, is_draft = false) => {
         if (typeof is_draft !== "boolean") {
             is_draft = false;
@@ -270,7 +290,7 @@ export default function LoadingNoteFormFRCUPS() {
                 }
             }
             setTimeout(() => {
-                navigate("/dashboard/franco");
+                navigate("/dashboard/francoups");
             }, 2000);
         } catch (error) {
             console.error(error);
@@ -283,6 +303,10 @@ export default function LoadingNoteFormFRCUPS() {
     const handleCheckSO = async value => {
         if (getValues("sto_num") === "") {
             toast.error("Please Provide STO Number");
+            return;
+        }
+        if (getValues("do_num") === "") {
+            toast.error("Please Provide DO Number");
             return;
         }
         setLoading(true);
@@ -366,7 +390,6 @@ export default function LoadingNoteFormFRCUPS() {
             console.log(error);
             const resetData = {
                 do_num: "",
-                sto_num: "",
                 inv_type: "",
                 inv_type_tol_from: "",
                 inv_type_tol_to: "",
@@ -518,6 +541,7 @@ export default function LoadingNoteFormFRCUPS() {
                                     preop={preOp}
                                     onChangeOvr={setDONum}
                                     getValue={getValues}
+                                    comp_group="UPSTREAM"
                                 />
                                 <LoadingButton
                                     onClick={() =>
@@ -817,6 +841,30 @@ export default function LoadingNoteFormFRCUPS() {
                                                     required: "Please Insert",
                                                 }}
                                                 options={medtpOP}
+                                            />
+                                            <NumericFieldComp
+                                                name={`load_detail.${index}.planned_qty`}
+                                                label="Planned Loading Qty"
+                                                control={control}
+                                                rules={{
+                                                    required: "Please Insert",
+                                                    min: {
+                                                        value: 1,
+                                                        message:
+                                                            "Minimum value is 0",
+                                                    },
+                                                }}
+                                                sx={{
+                                                    minWidth: "15rem",
+                                                    maxWidth: "16rem",
+                                                }}
+                                                endAdornment={
+                                                    <InputAdornment>
+                                                        {getValues("uom")}
+                                                    </InputAdornment>
+                                                }
+                                                onBlurOvr={checkExistingOsQty}
+                                                thousandSeparator
                                             />
                                             <DatePickerComp
                                                 name={`load_detail.${index}.loading_date`}
