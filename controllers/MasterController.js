@@ -96,6 +96,9 @@ MasterController.getSOData = async (req, res) => {
 MasterController.getSODataUPS = async (req, res) => {
     try {
         const do_num = req.query.do_num;
+        if (!do_num) {
+            throw new Error("Please provide DO Number");
+        }
         const dataComp = await Master.getSODataUPS(do_num);
         if (!dataComp.IS_PAID) {
             throw new Error("Order is Not Paid Yet");
@@ -275,11 +278,11 @@ MasterController.getDataDOFrc = async (req, res) => {
 
 MasterController.getDataDOFRCByCGRP = async (req, res) => {
     try {
-        const { stonum, comp_group } = req.query;
-        if (!stonum) {
+        const { sto, comp_group } = req.query;
+        if (!sto) {
             throw new Error("Please provide STO Number");
         }
-        const dataDO = Master.getDataDOFRCByCGRP(stonum, comp_group);
+        const dataDO = await Master.getDataDOFRCByCGRP(sto, comp_group);
         res.status(200).send({
             data: dataDO,
         });
@@ -444,8 +447,12 @@ MasterController.getOSDataCust = async (req, res) => {
     const q = req.query.q;
     const limit = req.query.limit;
     const offset = req.query.offset;
+    const cgrp = req.query.cgrp;
     try {
-        const data = await Master.getOSDataCust2(limit, offset, q);
+        if (cgrp && !["DOWNSTREAM", "UPSTREAM"].includes(cgrp)) {
+            throw new Error("Please provide correct Company Group");
+        }
+        const data = await Master.getOSDataCust2(limit, offset, q, cgrp);
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
