@@ -12,6 +12,7 @@ router.post(
 );
 router.post("/pushsap", SubmissionLN.checkSubmitValidity, LoadNote.SubmitSAP);
 router.post("/pushmultisap", AuthManager.authSAP, LoadNote.SubmitSAP_3);
+router.post("/pushlnups", LoadNote.SubmitLNUPS);
 router.post("/cancel", LoadNote.cancelReqLN);
 router.get("/", LoadNote.showAll);
 router.get("/id", LoadNote.getById);
