@@ -52,7 +52,7 @@ import ModalConfirmDelete from "../common/ModalConfirmDelete";
 
 export default function TableParentCustDashboardFRC() {
     const loader = useLoaderData();
-    const C_GRP = useMemo(() => loader.C_GRP, []);
+    const C_GRP = loader.C_GRP;
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
     const [dataCust, setDataCust] = useState([]);
@@ -145,6 +145,11 @@ export default function TableParentCustDashboardFRC() {
                         ""
                     );
                 },
+            },
+            {
+                header: "STO Number",
+                accessorKey: "id_sto",
+                cell: props => props.getValue(),
             },
             {
                 header: "DO Number",
@@ -317,7 +322,7 @@ export default function TableParentCustDashboardFRC() {
                 getPermission("FRANCO → LOCO UPS").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
-                    "/ln/lnuserfrc?isallow=" + allow,
+                    "/ln/lnuserfrc?isallow=" + allow + `&comp_group=${C_GRP}`,
                     {
                         withCredentials: true,
                     }
