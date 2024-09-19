@@ -144,6 +144,15 @@ OSCheck.CheckOSUps = async do_number => {
                 totalFromWB += parseFloat(rows[0].TOTAL_NET ?? 0);
             }
             //get qty on web
+            const { rows: qtyWeb } = await client.query(
+                `
+                select coalesce(sum(plan_qty), 0) as totaltemp_plan
+                from loading_note_det lnd
+                left join loading_note_hd lnh on lnh.hd_id = lnd.hd_fk
+                where lnd.ln_num is null and lnh.id_do = $1 and lnd.is_active = true
+                `,
+                [do_number]
+            );
 
             //get qty hold
             const { rows: qtyHold } = await client.query(
@@ -160,7 +169,8 @@ OSCheck.CheckOSUps = async do_number => {
             return {
                 ConQty: ConQtySAP,
                 TotalWB: totalFromWB,
-                HoldQty: hold_qty,
+                HoldQty: parseFloat(hold_qty),
+                QtyWeb: parseFloat(qtyWeb[0].totaltemp_plan),
             };
         } catch (error) {
             throw error;
