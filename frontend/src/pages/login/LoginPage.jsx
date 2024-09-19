@@ -41,7 +41,7 @@ export default function LoginPage() {
                 } else if (userData.role === "CUSTOMER") {
                     navigate("/dashboard/loco");
                 } else if (userData.role === "VENDOR") {
-                    navigate("/dashboard/franco");
+                    navigate("/dashboard/francoups");
                 } else {
                     navigate("/dashboard/loco");
                 }
