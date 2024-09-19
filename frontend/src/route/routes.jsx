@@ -7,6 +7,9 @@ import AuthDashboard from "../pages/dashboard/AuthDashboard";
 const ApprovalPage = lazy(() => import("../pages/approvalreq/ApprovalPage"));
 import ErrorPage from "../pages/error/ErrorPage";
 import { Axios } from "../api/axios";
+const FormApprovalLNUPS = lazy(
+    () => import("../pages/approvalupsln/FormApprovalLNUPS")
+);
 const LoadingNoteFormFRCUPS = lazy(
     () => import("../pages/loadingnoteups/LoadingNoteFormFRCUPS")
 );
@@ -143,7 +146,7 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: "loco/",
-                        element: <TableParentCustDashboard />,
+                        element: <TableParentCustDashboard key="DOWNSTREAM" />,
                         loader: () => {
                             return {
                                 C_GRP: "DOWNSTREAM",
@@ -152,7 +155,7 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: "locoups/",
-                        element: <TableParentCustDashboard />,
+                        element: <TableParentCustDashboard key="UPSTREAM" />,
                         loader: () => {
                             return {
                                 C_GRP: "UPSTREAM",
@@ -165,7 +168,9 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: "franco/",
-                        element: <TableParentCustDashboardFRC />,
+                        element: (
+                            <TableParentCustDashboardFRC key="DOWNSTREAM" />
+                        ),
                         loader: () => {
                             return {
                                 C_GRP: "DOWNSTREAM",
@@ -174,7 +179,7 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: "francoups/",
-                        element: <TableParentCustDashboardFRC />,
+                        element: <TableParentCustDashboardFRC key="UPSTREAM" />,
                         loader: () => {
                             return {
                                 C_GRP: "UPSTREAM",
@@ -192,6 +197,11 @@ export const routes = createBrowserRouter([
                     {
                         path: "locofranco/",
                         element: <TableParentCustDashboardFRC />,
+                        loader: () => {
+                            return {
+                                C_GRP: "DOWNSTREAM",
+                            };
+                        },
                     },
                     {
                         path: "locofranco/create",
@@ -248,6 +258,10 @@ export const routes = createBrowserRouter([
                     {
                         path: "contract_do",
                         element: <MasterContractDO />,
+                    },
+                    {
+                        path: "osrequps",
+                        element: <FormApprovalLNUPS />,
                     },
                 ],
             },
