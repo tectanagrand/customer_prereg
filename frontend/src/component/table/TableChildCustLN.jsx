@@ -16,8 +16,8 @@ import { useTheme } from "@mui/material/styles";
 
 export default function TableChildCustLN({ dataChild, comp_group }) {
     const theme = useTheme();
-    const columns = useMemo(
-        () => [
+    const columns = useMemo(() => {
+        let init_lnreq = [
             {
                 header: "Tanggal Request LN",
                 accessorKey: "cre_date",
@@ -48,30 +48,30 @@ export default function TableChildCustLN({ dataChild, comp_group }) {
                 accessorKey: "media_tp",
                 cell: props => props.getValue(),
             },
-            comp_group === "DOWNSTREAM"
-                ? {
-                      header: "Planning Quantity",
-                      accessorKey: "plan_qty",
-                      cell: ({ row }) =>
-                          `${row.original.plan_qty?.replace(
-                              /\B(?=(\d{3})+(?!\d))/g,
-                              ","
-                          )} ${row.original.uom}`,
-                  }
-                : {},
-            {
-                header: "Error Message",
-                accessorKey: "error_msg",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Current Position",
-                accessorKey: "current_pos",
-                cell: props => props.getValue(),
-            },
-        ],
-        [comp_group]
-    );
+        ];
+
+        init_lnreq.push({
+            header: "Planning Quantity",
+            accessorKey: "plan_qty",
+            cell: ({ row }) =>
+                `${row.original.plan_qty?.replace(
+                    /\B(?=(\d{3})+(?!\d))/g,
+                    ","
+                )} ${row.original.uom}`,
+        });
+        init_lnreq.push({
+            header: "Error Message",
+            accessorKey: "error_msg",
+            cell: props => props.getValue(),
+        });
+        init_lnreq.push({
+            header: "Current Position",
+            accessorKey: "current_pos",
+            cell: props => props.getValue(),
+        });
+        return init_lnreq;
+    }, [comp_group]);
+    console.log(columns);
     const table = useReactTable({
         columns,
         data: dataChild,
