@@ -14,6 +14,7 @@ const axios = require("axios");
 const EmailModel = require("../models/EmailModel");
 const { Pool, sqls } = require("../config/sqlservconn");
 const OSCheck = require("../helper/OSCheck");
+const TicketGen = require("../helper/TicketGen");
 
 const LoadingNoteModel = {};
 
@@ -92,6 +93,65 @@ LoadingNoteModel.saveLoadingNoteDB = async (params, session) => {
     }
 };
 
+LoadingNoteModel.CheckIsExceedOS = async (do_number, load_detail) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { data: ZSLIP_get } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${do_number}')&$format=json
+            `,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            const company = ZSLIP_get.d.results[0].Werks.slice(0, 2);
+            const { rows: compdet } = await client.query(
+                `select group_comp from mst_company where sap_code = $1`,
+                [company]
+            );
+            let OSQty = 0;
+            if (compdet[0].group_comp === "UPSTREAM") {
+                const dataQty = await OSCheck.CheckOSUps(do_number);
+                console.log("Is Upstream");
+                console.log(dataQty);
+                OSQty =
+                    dataQty.ConQty -
+                    dataQty.TotalWB -
+                    dataQty.HoldQty -
+                    dataQty.QtyWeb;
+            } else {
+                const dataQty = await OSCheck.CheckOSCust(do_number);
+                console.log("Is Downstream");
+                console.log(dataQty);
+                OSQty =
+                    dataQty.ConQty -
+                    (dataQty.TotalSAP - dataQty.TotalDeleted) -
+                    dataQty.TotalTemp -
+                    dataQty.HoldQty;
+            }
+            let totalRequested = 0;
+            load_detail.forEach(item => {
+                totalRequested += parseFloat(item.planned_qty);
+            });
+            if (OSQty - totalRequested < 0) {
+                throw new Error(
+                    "Amount requested is over than current outstanding quantity contract"
+                );
+            }
+            return;
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
 LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
     try {
         const client = await db.connect();
@@ -101,25 +161,10 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
         let deleteIdx = [];
         try {
             await client.query(TRANS.BEGIN);
-
-            //check if amount qty not exceeded
-            const dataQty = await OSCheck.CheckOSCust(params.do_num);
-            // console.log(dataQty);
-            const OSQty =
-                dataQty.ConQty -
-                (dataQty.TotalSAP - dataQty.TotalDeleted) -
-                dataQty.TotalTemp -
-                dataQty.HoldQty;
-            // console.log(OSQty);
-            let totalRequested = 0;
-            params.load_detail.forEach(item => {
-                totalRequested += parseFloat(item.planned_qty);
-            });
-            if (OSQty - totalRequested < 0) {
-                throw new Error(
-                    "Amount requested is over than current outstanding quantity contract"
-                );
-            }
+            await LoadingNoteModel.CheckIsExceedOS(
+                params.do_num,
+                params.load_detail
+            );
             // throw new Error("Test");
             //
             const is_draft = params.is_draft;
@@ -638,59 +683,32 @@ LoadingNoteModel.getById2 = async id_header => {
                 };
             });
             const hd_dt = rows[0];
-            const { rows: qtyExcept } = await client.query(
-                `SELECT sum(det.plan_qty) as qty
-            FROM LOADING_NOTE_HD HD
-            LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
-            WHERE HD.hd_id <> $1 AND HD.ID_DO = $2 AND DET.is_active = true AND det.ln_num is null`,
-                [id_header, hd_dt.id_do]
+            const { rows: compdet } = await client.query(
+                `
+                select c.group_comp, lnh.id_do from loading_note_hd lnh 
+                left join mst_company c on lnh.company = c.sap_code
+                where lnh.hd_id = $1
+                `,
+                [id_header]
             );
-            const { data: I_OUTDELIVERY } = await axios.get(
-                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${hd_dt.id_do}%27)&$format=json`,
-                {
-                    auth: {
-                        username: process.env.UNAMESAP,
-                        password: process.env.PWDSAP,
-                    },
-                }
-            );
+            let os_data;
             let totalFromSAP = 0;
-            I_OUTDELIVERY.d.results.map(item => {
-                let planning = parseFloat(item.PlnLfimg);
-                let real = parseFloat(item.LLfimg);
-                totalFromSAP += real === 0 ? planning : real;
-            });
-
-            const { data: DOTRXDELETE } = await axios.get(
-                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${hd_dt.id_do}%27)&$format=json`,
-                {
-                    auth: {
-                        username: process.env.UNAMESAP,
-                        password: process.env.PWDSAP,
-                    },
-                }
-            );
-            // console.log("deleted sap:");
-            let deletedLN = 0;
-            if (DOTRXDELETE.d.results.length > 0) {
-                DOTRXDELETE.d.results.map(item => {
-                    deletedLN += parseFloat(item.PlnLfimg);
-                    totalFromSAP -= parseFloat(item.PlnLfimg);
-                });
+            let deletedQty = 0;
+            let qtyTemp = 0;
+            let hold_qty = 0;
+            if (compdet[0].group_comp === "DOWNSTREAM") {
+                os_data = await OSCheck.CheckOSCust(compdet[0].id_do);
+                totalFromSAP = os_data.TotalSAP;
+                deletedQty = os_data.TotalDeleted;
+                qtyTemp = os_data.TotalTemp;
+                hold_qty = os_data.HoldQty;
+            } else {
+                os_data = await OSCheck.CheckOSUps(compdet[0].id_do);
+                totalFromSAP = os_data.TotalWB;
+                qtyTemp = os_data.QtyWeb;
+                hold_qty = os_data.HoldQty;
             }
-            const { rows: tempLoadingNote } = await client.query(
-                `SELECT SUM(PLAN_QTY) AS plan_qty
-                FROM LOADING_NOTE_DET DET
-                LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
-                WHERE HD.ID_DO = $1
-                AND DET.IS_ACTIVE = TRUE
-                AND DET.LN_NUM IS NULL`,
-                [hd_dt.id_do]
-            );
 
-            const qtyTemp = tempLoadingNote[0].plan_qty
-                ? parseFloat(tempLoadingNote[0].plan_qty)
-                : 0;
             const resp = {
                 do_num: hd_dt.id_do,
                 sto_num: hd_dt.id_sto,
@@ -706,8 +724,7 @@ LoadingNoteModel.getById2 = async id_header => {
                 os_qty: parseFloat(hd_dt.con_qty) - totalFromSAP - qtyTemp,
                 totalspend: totalFromSAP + qtyTemp - plan_qty_con,
                 totalSAP: totalFromSAP,
-                remaining:
-                    parseFloat(hd_dt.con_qty) - totalFromSAP - qtyExcept[0].qty,
+                remaining: parseFloat(hd_dt.con_qty) - totalFromSAP - qtyTemp,
                 plan_qty_con: plan_qty_con,
                 plant: hd_dt.plant,
                 description: hd_dt.desc_con,
@@ -796,7 +813,7 @@ LoadingNoteModel.getRequestedLoadNote = async (
     }
 };
 
-LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
+LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
     try {
         const client = await db.connect();
         try {
@@ -805,9 +822,9 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
             let filterStr = "";
             let whoFilter = "";
             if (who !== "wb") {
-                whoFilter = `WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true`;
+                whoFilter = `WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true ${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`;
             } else {
-                whoFilter = `WHERE DET.PUSH_SAP_DATE IS NOT NULL AND DET.LN_NUM IS NOT NULL AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true`;
+                whoFilter = `WHERE DET.PUSH_SAP_DATE IS NOT NULL AND DET.LN_NUM IS NOT NULL AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true ${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`;
             }
             if (filters.length !== 0) {
                 let idx = 1;
@@ -832,6 +849,8 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
                 HD.company,
                 HD.material,
                 HD.desc_con,
+                HD.con_num,
+                HD.inco_1,
                 DET.fac_plant,
                 DET.oth_plant,
                 DET.fac_sloc,
@@ -867,6 +886,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who) => {
             LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
             LEFT JOIN MST_INTERCO INT ON INT.kunnr = USR.USERNAME
             LEFT JOIN MST_KEY MKY ON MKY.key_item = DET.media_tp
+            LEFT JOIN MST_COMPANY C ON C.SAP_CODE = HD.COMPANY 
             ${whoFilter}
             `;
             const que = `SELECT * FROM (${baseQ}) A ${filterStr} ;`;
@@ -1261,6 +1281,85 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
     }
 };
 
+LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
+    try {
+        const client = await db.connect();
+        const oraclient = await ora.getConnection();
+        const id_user = session.id_user;
+        const username = session.username;
+        const cust_code = lnreq[0].cust_code;
+        let created_tgen = [];
+        const today = new Date();
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows: latestLN } = await client.query(`
+                select lnd.ln_num from loading_note_det lnd 
+                where ln_num like 'P%'
+                order by id desc
+                `);
+            let latestTicketNum = latestLN[0]?.ln_num ?? "";
+            for (const ln of lnreq) {
+                latestTicketNum = TicketGen.genLoadingNoteUPS(
+                    cust_code,
+                    latestTicketNum
+                );
+                const payload = {
+                    ID_SJ: latestTicketNum,
+                    ID_TRANSPORTER: cust_code,
+                    DO_NO: ln.id_do,
+                    STONO: ln.id_sto,
+                    INCO1: ln.inco_1,
+                    ID_CUSTOMER: ln.trg_cust,
+                    SIM_NO: ln.driver_id,
+                    VEHICLE_NO: ln.vhcl_id,
+                    PLANNING_QTY: ln.plan_qty,
+                    UOM: ln.uom,
+                    SJ_DATE: new Date(ln.create_at + "T00:00:00"),
+                    DATE_LOADING: new Date(
+                        ln.tanggal_surat_jalan + "T00:00:00"
+                    ),
+                    CREATE_BY: username,
+                    PLANT: ln.plant,
+                    COMPANY: ln.company,
+                    CTR_NO: ln.con_num,
+                    ISACTIVE: "TRUE",
+                };
+                const [queIns, valIns] = crud.insertItemOra(
+                    "PREREG_LOADING_NOTE_SAP_UPS",
+                    payload
+                );
+                await oraclient.execute(queIns, valIns);
+                const updateLoc = {
+                    ln_num: latestTicketNum,
+                    is_pushed: true,
+                    push_sap_date: today,
+                    plan_qty: ln.plan_qty,
+                };
+                const [queUp, valUp] = crud.updateItem(
+                    "loading_note_det",
+                    updateLoc,
+                    { det_id: ln.det_id },
+                    "det_id"
+                );
+                await client.query(queUp, valUp);
+                created_tgen.push(latestTicketNum);
+            }
+            await client.query(TRANS.COMMIT);
+            await oraclient.commit();
+            return created_tgen;
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            await oraclient.rollback();
+            throw error;
+        } finally {
+            client.release();
+            oraclient.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
 LoadingNoteModel.cancelLoadingNote = async (params, session) => {
     try {
         let client;
@@ -1394,6 +1493,7 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
         let whereClause;
         const que_par = `SELECT HD.HD_ID,
             HD.ID_DO,
+            HD.ID_STO,
             HD.RULES,
             HD.CON_NUM,
             HD.CON_QTY,
@@ -1445,8 +1545,6 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
             }
 
             const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
-            // console.log(getDataSess);
-            // console.log(session);
             if (isallow) {
                 const { rows } = await client.query(getDataSess, [
                     session.id_user,
@@ -1461,7 +1559,6 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
                 ]);
                 parentRow = rows;
             }
-
             for (const row of parentRow) {
                 const que_ch = `SELECT 
                 TO_CHAR(DET.CRE_DATE,
