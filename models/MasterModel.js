@@ -269,13 +269,15 @@ MasterModel.getSODataUPS = async do_num => {
                 .replace(",", "."),
         };
         const OSData = await OSCheck.CheckOSUps(do_num);
-        console.log(OSData);
         return {
             SLIP: SLIP,
             PINO: PINO,
             OS: parseFloat(SLIP.ZTTLPROF) - totalPay,
             IS_PAID: parseFloat(SLIP.ZTTLPROF) - totalPay > 5000 ? false : true,
-            TOTALSPEND: parseInt(OSData.TotalWB) + parseInt(OSData.HoldQty),
+            TOTALSPEND:
+                parseInt(OSData.TotalWB) +
+                parseInt(OSData.HoldQty) +
+                parseInt(OSData.QtyWeb),
             TOTALWB: parseInt(OSData.TotalWB),
             OS_QTY:
                 parseInt(OSData.ConQty) -
@@ -1201,7 +1203,7 @@ MasterModel.getOSDataCust = async (limit, offset, q, do_num) => {
     }
 };
 
-MasterModel.getOSDataCust2 = async (limit, offset, q) => {
+MasterModel.getOSDataCust2 = async (limit, offset, q, cgrp) => {
     try {
         const client = await db.connect();
         try {
@@ -1224,12 +1226,13 @@ MasterModel.getOSDataCust2 = async (limit, offset, q) => {
                                 LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username
                                 left join mst_vendor mv on mv.lifnr = usr.username 
                                 left join mst_interco mi on mi.kunnr = usr.username
+                                LEFT JOIN mst_company c on c.sap_code = HED.company
                                 WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4
                                  or mi.kunnr like $5 or mi.name_1 like $6)
                                 AND DET.ln_num is null
                                 AND DET.push_sap_date is null
                                 AND hed.cur_pos = 'FINA'
-                                AND det.is_active = true 
+                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}
                 LIMIT $7 OFFSET $8`,
                 [
                     `%${q}%`,
@@ -1261,12 +1264,13 @@ MasterModel.getOSDataCust2 = async (limit, offset, q) => {
                                 LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username
                                 left join mst_vendor mv on mv.lifnr = usr.username 
                                 left join mst_interco mi on mi.kunnr = usr.username
+                                LEFT JOIN mst_company c on c.sap_code = HED.company
                                 WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4
                                  or mi.kunnr like $5 or mi.name_1 like $6)
                                 AND DET.ln_num is null
                                 AND DET.push_sap_date is null
                                 AND hed.cur_pos = 'FINA'
-                                AND det.is_active = true `,
+                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`,
                 [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]
             );
             return {
@@ -1529,6 +1533,7 @@ MasterModel.getDataDOFRCByCGRP = async (sto_num, comp_group) => {
                 if (!detaildo.d.results.length > 0) {
                     continue;
                 }
+                console.log(comp_group);
                 if (comp_group) {
                     const comp_code = detaildo.d.results[0].Werks.slice(0, 2);
                     const { rows: compDt } = await client.query(
