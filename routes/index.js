@@ -5,6 +5,7 @@ const Page = require("./Page");
 const Master = require("./Master");
 const LoadNote = require("./LoadingNote");
 const File = require("./File");
+const Tolling = require("./Tolling");
 const SAPGetter = require("../controllers/SAPGetterController");
 const Queue = require("./Queue");
 const ExcelJS = require("exceljs");
@@ -15,6 +16,7 @@ router.use("/api/master", Master);
 router.use("/api/ln", LoadNote);
 router.use("/api/file", File);
 router.use("/api/queue", Queue);
+router.use("/api/tol", Tolling);
 
 router.get("/api/oratest", SAPGetter.LoadingNoteSync);
 

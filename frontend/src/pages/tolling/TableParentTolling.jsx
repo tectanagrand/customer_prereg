@@ -36,23 +36,20 @@ import {
     CheckCircleOutline,
     DeleteOutline,
 } from "@mui/icons-material";
-import RefreshButton from "../common/RefreshButton";
+import RefreshButton from "../../component/common/RefreshButton";
 import { useEffect, useMemo, useState } from "react";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast, { Toaster } from "react-hot-toast";
-import TableChildCustLN from "./TableChildCustLN";
-import { useLoaderData, useNavigate } from "react-router-dom";
+import TableChildTolling from "./TableChildTolling";
+import { useNavigate } from "react-router-dom";
 import { Fragment } from "react";
-import PaginationActionButton from "./PaginationActionButton";
-import { FilterTextFieldComp } from "../input/FilterTextFieldComp";
-import AutocompleteFilter from "../input/AutocompleteFilterComp";
+import PaginationActionButton from "../../component/table/PaginationActionButton";
+import AutocompleteFilter from "../../component/input/AutocompleteFilterComp";
 import { useTheme } from "@mui/material/styles";
 import { useSession } from "../../provider/sessionProvider";
-import ModalConfirmDelete from "../common/ModalConfirmDelete";
+import ModalConfirmDelete from "../../component/common/ModalConfirmDelete";
 
-export default function TableParentCustDashboard() {
-    const loader = useLoaderData();
-    const C_GRP = useMemo(() => loader.C_GRP, []);
+export default function TableParentTolling() {
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
     const [dataCust, setDataCust] = useState([]);
@@ -145,13 +142,13 @@ export default function TableParentCustDashboard() {
                 },
             },
             {
-                header: "DO Number",
-                accessorKey: "id_do",
+                header: "Batch Code",
+                accessorKey: "batch_code",
                 cell: props => props.getValue(),
             },
             {
-                header: "Contract Number",
-                accessorKey: "con_num",
+                header: "STO Number",
+                accessorKey: "id_sto",
                 cell: props => props.getValue(),
             },
             {
@@ -180,8 +177,7 @@ export default function TableParentCustDashboard() {
                     let buttons = [];
                     if (
                         props.row.original.ctros > 0 &&
-                        (getPermission("LOCO DWS Request").fcreate ||
-                            getPermission("LOCO UPS Request").fcreate)
+                        getPermission("Tolling Request").fcreate
                     ) {
                         buttons.push(
                             <Tooltip
@@ -252,20 +248,13 @@ export default function TableParentCustDashboard() {
                                         },
                                         mx: 1,
                                     }}
-                                    onClick={() =>
-                                        // buttonAction("uplog", {
-                                        //     id: props.row.original.hd_id,
-                                        // })
-                                        {
-                                            setDeleteLN(
-                                                props.row.original.sub_table
-                                            );
-                                            setDeleteHd(
-                                                props.row.original.hd_id
-                                            );
-                                            setModalDel(true);
-                                        }
-                                    }
+                                    onClick={() => {
+                                        setDeleteLN(
+                                            props.row.original.sub_table
+                                        );
+                                        setDeleteHd(props.row.original.hd_id);
+                                        setModalDel(true);
+                                    }}
                                 >
                                     <DeleteOutline></DeleteOutline>
                                 </IconButton>
@@ -300,17 +289,15 @@ export default function TableParentCustDashboard() {
 
     useEffect(() => {
         (async () => {
-            const allow =
-                getPermission("LOCO DWS Request").fcreate ||
-                getPermission("LOCO UPS Request").fcreate;
+            const allow = getPermission("Tolling Request").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
-                    "/ln/lnuser?isallow=" + allow + `&group=${C_GRP}`,
+                    "/tol?isallow=" + allow,
                     {
                         withCredentials: true,
                     }
                 );
-                setDataCust(data);
+                setDataCust(data.data);
             } catch (error) {
                 console.error(error);
                 toast.error(error.response.data.message);
@@ -328,8 +315,7 @@ export default function TableParentCustDashboard() {
 
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <RefreshButton setRefreshbtn={setRefresh} isLoading={refresh} />
-                {(getPermission("LOCO DWS Request").fcreate ||
-                    getPermission("LOCO UPS Request").fcreate) && (
+                {getPermission("Tolling Request").fcreate && (
                     <Button
                         sx={{ width: 200, heigth: 50, margin: 2 }}
                         variant="contained"
@@ -436,19 +422,14 @@ export default function TableParentCustDashboard() {
                                                     row.getVisibleCells().length
                                                 }
                                             >
-                                                {
-                                                    <TableChildCustLN
-                                                        comp_group={C_GRP}
+                                                <>
+                                                    <TableChildTolling
                                                         dataChild={
                                                             row.original
-                                                                .sub_table
-                                                        }
-                                                        key={
-                                                            "tablechild" +
-                                                            row.id
+                                                                .sub_rows
                                                         }
                                                     />
-                                                }
+                                                </>
                                             </TableCell>
                                         </TableRow>
                                     )}

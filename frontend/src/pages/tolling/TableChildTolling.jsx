@@ -14,7 +14,7 @@ import {
 import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 
-export default function TableChildCustLN({ dataChild }) {
+export default function TableChildTolling({ dataChild }) {
     const theme = useTheme();
     const columns = useMemo(() => {
         let init_lnreq = [

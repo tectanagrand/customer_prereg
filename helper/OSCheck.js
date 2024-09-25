@@ -136,12 +136,19 @@ OSCheck.CheckOSUps = async do_number => {
             //get qty sap
             const { rows } = await oraclient.execute(
                 `
-                SELECT SUM(NETAG_QTY) AS TOTAL_NET FROM ZWB_PARK WHERE VBELN_1 = :1                
+                SELECT
+                    SUM(COALESCE(zp.NETAG_QTY, plnsu.PLANNING_QTY)) AS TOTAL_NET
+                FROM
+                    PREREG_LOADING_NOTE_SAP_UPS plnsu
+                LEFT JOIN ZWB_PARK zp ON
+                    plnsu.ID_SJ = zp.WB_REF
+                WHERE
+                    PLNSU.DO_NO = :1                
                 `,
                 [do_number]
             );
             if (rows.length > 0) {
-                totalFromWB += parseFloat(rows[0].TOTAL_NET ?? 0);
+                totalFromWB += parseFloat(rows[0][0] ?? 0);
             }
             //get qty on web
             const { rows: qtyWeb } = await client.query(
@@ -157,10 +164,10 @@ OSCheck.CheckOSUps = async do_number => {
             //get qty hold
             const { rows: qtyHold } = await client.query(
                 `
-      select hold_qty 
-      from  mst_contract mc
-      where mc.id_do = $1
-      `,
+                select hold_qty 
+                from  mst_contract mc
+                where mc.id_do = $1
+                `,
                 [do_number]
             );
             if (qtyHold.length > 0) {
@@ -177,6 +184,53 @@ OSCheck.CheckOSUps = async do_number => {
         } finally {
             client.release();
             oraclient.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+OSCheck.CheckOsToll = async sto_number => {
+    try {
+        const client = await db.connect();
+        try {
+            const { data } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}//sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOLANGSIRSet?$filter=(Ebeln eq '${sto_number}')&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            const ContractQTY = parseInt(data.d.results[0].Menge);
+            const { rows } = await client.query(
+                `
+                SELECT lnh.id_sto, SUM(plan_qty) as total_qty from tolling tol 
+                left join loading_note_hd lnh on tol.hd_fk = lnh.hd_id
+                where lnh.id_sto = $1 and tol.is_active = true
+                group by lnh.id_sto`,
+                [sto_number]
+            );
+            const { rows: wb_qty } = await client.query(
+                `
+                SELECT lnh.id_sto, SUM(netto) as total_qty from tolling tol 
+                left join loading_note_hd lnh on tol.hd_fk = lnh.hd_id
+                where lnh.id_sto = $1 and tol.is_active = true
+                group by lnh.id_sto
+                `,
+                [sto_number]
+            );
+            return {
+                ConQTY: ContractQTY,
+                OSTol: ContractQTY - parseInt(rows[0]?.total_qty || 0),
+                UsedQTY: parseInt(rows[0]?.total_qty || 0),
+                UsedQTYWb: parseInt(wb_qty[0]?.total_qty || 0),
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
         }
     } catch (error) {
         throw error;

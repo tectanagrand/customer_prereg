@@ -7,6 +7,8 @@ import AuthDashboard from "../pages/dashboard/AuthDashboard";
 const ApprovalPage = lazy(() => import("../pages/approvalreq/ApprovalPage"));
 import ErrorPage from "../pages/error/ErrorPage";
 import { Axios } from "../api/axios";
+import TollingDashboard from "../pages/tolling/TollingDashboard";
+const TollingRequest = lazy(() => import("../pages/tolling/TollingRequest"));
 const FormApprovalLNUPS = lazy(
     () => import("../pages/approvalupsln/FormApprovalLNUPS")
 );
@@ -262,6 +264,14 @@ export const routes = createBrowserRouter([
                     {
                         path: "osrequps",
                         element: <FormApprovalLNUPS />,
+                    },
+                    {
+                        path: "tolling/create",
+                        element: <TollingRequest />,
+                    },
+                    {
+                        path: "tolling",
+                        element: <TollingDashboard />,
                     },
                 ],
             },

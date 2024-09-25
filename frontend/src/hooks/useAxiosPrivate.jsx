@@ -9,32 +9,28 @@ const notNeeded = ["POST"];
 const useAxiosPrivate = () => {
     const refresh = useRefreshToken();
     const refreshApproval = useRefreshTokenApproval();
-    const { session } = useSession();
+    const { access_token } = useSession();
     const csrfTokenSet = new Set(notNeeded.map(method => method.toUpperCase()));
 
     useEffect(() => {
         const requestIntercept = axiosPrivate.interceptors.request.use(
             async config => {
                 if (!config.headers["Authorization"]) {
-                    config.headers["Authorization"] =
-                        `Bearer ${session?.access_token}`;
+                    config.headers["Authorization"] = `Bearer ${access_token}`;
                 }
-                if (
-                    csrfTokenSet.has(config.method.toUpperCase()) ||
-                    !config.headers["X-CSRF-Token"]
-                ) {
-                    // console.log(config.method);
-                    try {
-                        const response = await axios.get(
-                            `${import.meta.env.VITE_URL_LOC}/getcsrftoken`,
-                            { withCredentials: true }
-                        );
-                        const csrfToken = response.data.csrfToken;
-                        config.headers["X-CSRF-Token"] = csrfToken;
-                    } catch (error) {
-                        console.error(error);
-                    }
-                }
+
+                // console.log(config.method);
+                // try {
+                //     const response = await axios.get(
+                //         `${import.meta.env.VITE_URL_LOC}/getcsrftoken`,
+                //         { withCredentials: true }
+                //     );
+                //     const csrfToken = response.data.csrfToken;
+                //     config.headers["X-CSRF-Token"] = csrfToken;
+                // } catch (error) {
+                //     console.error(error);
+                // }
+
                 return config;
             },
             error => Promise.reject(error)
@@ -63,7 +59,7 @@ const useAxiosPrivate = () => {
             axiosPrivate.interceptors.request.eject(requestIntercept);
             axiosPrivate.interceptors.response.eject(responseIntercept);
         };
-    }, [refresh, session]);
+    }, [refresh, access_token]);
 
     return axiosPrivate;
 };
