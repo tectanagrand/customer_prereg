@@ -9,6 +9,39 @@ TicketGen.genApprovalDrvVhc = serial => {
     );
 };
 
+TicketGen.GenTollingReq = (username, lasttolreq) => {
+    //format TOLUUUMMYYXXX
+    // TOL => identifier
+    // UUU => 3 last digit user code
+    let running_num = 1;
+    const max_num = 999;
+    let month = moment().format("MM");
+    let year = moment().format("YY");
+    let U = username;
+    let prefixU = U.slice(0, 2);
+    if (prefixU == "LN") {
+        U = "V" + U.slice(8, 10);
+    } else if (prefixU == "CU") {
+        U = "C" + U.slice(4, 7);
+    } else {
+        U = "I" + U.slice(4, 7);
+    }
+
+    if (lasttolreq) {
+        let curmth = lasttolreq.slice(7, 9);
+        let curyr = lasttolreq.slice(9, 11);
+        if (year === curyr) {
+            if (month === curmth) {
+                running_num = parseInt(lasttolreq.slice(11, 14)) + 1;
+                if (running_num > max_num) {
+                    running_num = 1;
+                }
+            }
+        }
+    }
+    return "TOL" + U + month + year + running_num.toString().padStart(3, "0");
+};
+
 TicketGen.genLoadingNoteUPS = (username, lastlnnum) => {
     // running number by id_user
     //all dummy ln using prefix P

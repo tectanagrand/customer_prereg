@@ -293,8 +293,20 @@ LoadingNoteModel.sendToLogistic = async id_header => {
         const client = await db.connect();
         try {
             let tabledet = [];
+            let phase = "";
+            switch (process.env.NODE_ENV) {
+                case "development":
+                    phase = "development";
+                    break;
+                case "production":
+                    phase = "production";
+                    break;
+                default:
+                    phase = "development";
+            }
             const { rows: hostname } = await client.query(
-                `SELECT hostname from hostname where phase = 'development'`
+                `SELECT hostname from hostname where phase = $1`,
+                [phase]
             );
             const { rows, rowCount } = await client.query(
                 `SELECT HD.HD_ID,
@@ -1292,6 +1304,13 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
         const today = new Date();
         try {
             await client.query(TRANS.BEGIN);
+            const { rows: materialMst } = await client.query(`
+                select material_code, material_cat from mst_material                 
+                `);
+            let material_mst = new Map();
+            materialMst.forEach((item, index) => {
+                material_mst.set(item.material_code, item.material_cat);
+            });
             const { rows: latestLN } = await client.query(`
                 select lnd.ln_num from loading_note_det lnd 
                 where ln_num like 'P%'
@@ -1315,7 +1334,7 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                     PLANNING_QTY: ln.plan_qty,
                     UOM: ln.uom,
                     SJ_DATE: new Date(ln.create_at + "T00:00:00"),
-                    DATE_LOADING: new Date(
+                    LOADING_DATE: new Date(
                         ln.tanggal_surat_jalan + "T00:00:00"
                     ),
                     CREATE_BY: username,
@@ -1323,6 +1342,9 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                     COMPANY: ln.company,
                     CTR_NO: ln.con_num,
                     ISACTIVE: "TRUE",
+                    MAT_DESC: ln.desc_con,
+                    MAT_CODE: ln.material,
+                    MAT_CAT: material_mst.get(ln.material),
                 };
                 const [queIns, valIns] = crud.insertItemOra(
                     "PREREG_LOADING_NOTE_SAP_UPS",
@@ -1545,6 +1567,8 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
             }
 
             const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
+            console.log(getDataSess);
+            console.log(session.id_user, `%${type}%`, comp_group);
             if (isallow) {
                 const { rows } = await client.query(getDataSess, [
                     session.id_user,

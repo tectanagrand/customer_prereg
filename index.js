@@ -51,7 +51,7 @@ app.use(cors(corsOption));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(myCSRFProtection);
+// app.use(myCSRFProtection);
 app.use("/static", express.static(path.join(__dirname, "public")));
 app.get("/api/getcsrftoken", (req, res) => {
     res.json({ csrfToken: req.csrfToken() });

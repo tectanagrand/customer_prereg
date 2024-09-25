@@ -113,10 +113,10 @@ export default function AutoSelectDriver({
                 rules={rules}
                 defaultValue={null}
                 onChangeovr={debounce(e => {
-                    setQuery(e.target.value);
+                    setQuery(e?.target?.value);
                 }, 1000)}
                 onBlurovr={debounce(e => {
-                    setQuery(e.target.value);
+                    setQuery(e?.target?.value);
                 }, 1000)}
                 {...props}
             />

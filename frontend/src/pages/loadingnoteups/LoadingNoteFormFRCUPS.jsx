@@ -12,7 +12,7 @@ import { Cancel, Replay } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import AutoSelectVehicle from "../loadingnote/AutoselectVehicle";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import SelectComp from "../../component/input/SelectComp";
 import { NumericFormat } from "react-number-format";
@@ -206,7 +206,7 @@ export default function LoadingNoteFormFRCUPS() {
         _setDONum(value);
     };
 
-    const checkExistingOsQty = () => {
+    const checkExistingOsQty = useCallback(() => {
         const plansData = getValues("load_detail");
         let con_os = parseFloat(getValues("con_qty")) - usedQty.current;
         // console.log(getValues("con_qty"));
@@ -224,7 +224,7 @@ export default function LoadingNoteFormFRCUPS() {
             setRemaining(newRemaining);
             setExceed(false);
         }
-    };
+    }, [watch("load_detail")]);
 
     const submitItem = async (values, is_draft = false) => {
         if (typeof is_draft !== "boolean") {

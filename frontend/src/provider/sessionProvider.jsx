@@ -8,7 +8,6 @@ const SessionProvider = ({ children }) => {
     const [session, setSession_] = useState({
         fullname: Cookies.get("fullname") || "",
         username: Cookies.get("username") || "",
-        access_token: Cookies.get("access_token") || "",
         id_user: Cookies.get("id_user") || "",
         role: Cookies.get("role") || "",
         role_id: Cookies.get("role_id") || "",
@@ -17,6 +16,10 @@ const SessionProvider = ({ children }) => {
         menuname: JSON.parse(localStorage.getItem("menuname")) || {},
         auth: JSON.parse(localStorage.getItem("auth")) || {},
     });
+
+    const [access_token, _setAccessToken] = useState(
+        Cookies.get("access_token") || ""
+    );
 
     const setSession = data => {
         Cookies.set("access_token", data.access_token);
@@ -41,7 +44,6 @@ const SessionProvider = ({ children }) => {
         setSession_({
             fullname: data.fullname,
             username: data.username,
-            access_token: data.access_token,
             id_user: data.id_user,
             role: data.role,
             role_id: data.role_id,
@@ -50,13 +52,11 @@ const SessionProvider = ({ children }) => {
             menuname: data.permission.nameMenu ?? data.menuname,
             auth: data.auth,
         });
+        setAccessToken(data.access_token);
     };
 
     const setAccessToken = act => {
-        setSession_({
-            ...session,
-            access_token: act,
-        });
+        _setAccessToken(act);
     };
     const logOut = () => {
         localStorage.clear();
@@ -69,6 +69,7 @@ const SessionProvider = ({ children }) => {
         Cookies.remove("role_id");
         Cookies.remove("plant_code");
         setSession_();
+        _setAccessToken();
     };
 
     const getPermission = page => {
@@ -88,10 +89,10 @@ const SessionProvider = ({ children }) => {
 
     useEffect(() => {
         // console.log(Cookies.get('accessToken'));
-        if (session?.access_token) {
+        if (access_token) {
             axios.defaults.headers.common["Authorization"] =
-                "Bearer " + session.access_token;
-            Cookies.set("access_token", session.access_token);
+                "Bearer " + access_token;
+            Cookies.set("access_token", access_token);
             Cookies.set("fullname", session.fullname);
             Cookies.set("username", session.username);
             Cookies.set("id_user", session.id_user);
@@ -108,7 +109,15 @@ const SessionProvider = ({ children }) => {
     }, [session]);
 
     const contextValue = useMemo(
-        () => ({ session, setSession, logOut, getPermission, setAccessToken }),
+        () => ({
+            session,
+            setSession,
+            logOut,
+            getPermission,
+            setAccessToken,
+            access_token,
+            setAccessToken,
+        }),
         [session]
     );
 
