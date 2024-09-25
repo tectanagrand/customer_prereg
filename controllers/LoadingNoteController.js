@@ -629,11 +629,15 @@ LoadingNoteController.showCreatedLN = async (req, res) => {
 LoadingNoteController.deleteRequest = async (req, res) => {
     try {
         const { selected, remark_delete } = req.body;
-        const requestDel = LoadNote.requestDelete(selected, remark_delete);
+        const requestDel = await LoadNote.requestDelete(
+            selected,
+            remark_delete
+        );
         res.status(200).send({
             message: "Delete Request Successfully Sent",
         });
     } catch (error) {
+        console.error(error);
         res.status(500).send({
             message: error.message,
         });

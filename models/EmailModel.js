@@ -286,7 +286,7 @@ EmailModel.RequestDeleteLN = async (target, cc, reqrow, remark, link) => {
         };
         await tp.sendMail(setup);
     } catch (error) {
-        throw error;
+        console.error(error);
     }
 };
 
