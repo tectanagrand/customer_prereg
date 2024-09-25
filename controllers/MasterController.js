@@ -1462,4 +1462,5 @@ MasterController.getIncoterms = async (req, res) => {
         });
     }
 };
+
 module.exports = MasterController;

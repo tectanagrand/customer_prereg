@@ -31,6 +31,10 @@ const getIcon = icon => {
             return lazy(() => import("@mui/icons-material/Lock"));
         case "Book":
             return lazy(() => import("@mui/icons-material/Book"));
+        case "ReceiptLong":
+            return lazy(() => import("@mui/icons-material/ReceiptLong"));
+        case "Print":
+            return lazy(() => import("@mui/icons-material/Print"));
         default:
             return HelpOutlineIcon;
     }

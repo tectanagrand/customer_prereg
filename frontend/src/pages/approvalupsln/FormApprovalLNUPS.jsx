@@ -10,6 +10,7 @@ import { LoadingButton } from "@mui/lab";
 import ResultDialog from "../../component/common/ResultDialog";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import moment from "moment/moment";
+import toast, { Toaster } from "react-hot-toast";
 
 const ResponseDialogText = (textresult, lnnum) => {
     return (
@@ -127,6 +128,8 @@ export default function FormApprovalLNUPS() {
                     plant: item.plant,
                     company: item.company,
                     con_num: item.con_num,
+                    material: item.material,
+                    desc_con: item.desc_con,
                 };
             });
             setLoading(true);
@@ -138,6 +141,7 @@ export default function FormApprovalLNUPS() {
                 selected_req: [],
             });
         } catch (error) {
+            toast.error(error.response.data.message);
             console.error(error);
         } finally {
             setResetRow(!resetRow);
@@ -148,6 +152,7 @@ export default function FormApprovalLNUPS() {
     return (
         <>
             <div>
+                <Toaster />
                 <Paper
                     sx={{
                         p: 3,
