@@ -12,5 +12,9 @@ router.post(
     AuthManager.authSession,
     TollingController.SaveRequestTolling
 );
+router.post("/osreq", TollingController.GetOSReqTolling);
+router.get("/ossto", TollingController.GetOSSTOTolling);
+router.get("/oscust", TollingController.GetOSCustTolling);
+router.post("/approvetol", TollingController.ApproveTollingReq);
 
 module.exports = router;

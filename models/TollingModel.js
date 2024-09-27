@@ -282,6 +282,87 @@ TollingModel.AllReqToll = async (session, c_grp) => {
     }
 };
 
+TollingModel.GetOSReqTolling = async (filters = []) => {
+    try {
+        const client = await db.connect();
+        try {
+            let filter_que = [];
+            let filter_val = [];
+            let filterStr = "";
+            let whoFilter = `WHERE TOL.ln_num IS NULL AND HD.CUR_POS = 'FINA' AND TOL.IS_ACTIVE = true `;
+            if (filters.length !== 0) {
+                let idx = 1;
+                filters.forEach((item, index) => {
+                    if (item.value !== "") {
+                        filter_que.push(`${item.id} = $${idx}`);
+                        filter_val.push(`${item.value}`);
+                        idx++;
+                    }
+                });
+                if (filter_que.length !== 0) {
+                    filterStr = "WHERE " + filter_que.join(" AND ");
+                }
+            }
+            const baseQ = `SELECT TOL.det_id as id,
+                HD.hd_id,
+                HD.ID_STO,
+                HD.TRANS_TYPE,
+                HD.PLANT,
+                HD.company,
+                HD.material,
+                HD.desc_con,
+                HD.batch_code,
+                TOL.media_tp,
+                TOL.driver_id,
+                TOL.create_by,
+                TOL.ln_num,
+                CUST.KUNNR as cust_code,
+                CUST.name_1 as cust_name,
+                VEN.LIFNR as ven_code,
+                VEN.name_1 as ven_name,
+                INT.kunnr as intr_code,
+                INT.name_1 as intr_name,
+                CONCAT(TOL.DRIVER_ID,
+                    ' - ',
+                    TOL.DRIVER_NAME) AS DRIVER,
+                TOL.VHCL_ID,
+                TO_CHAR(TOL.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN,
+                TOL.cre_date as CREATE_DATE,
+                TOL.PLAN_QTY,
+                HD.UOM
+            FROM LOADING_NOTE_HD HD
+            LEFT JOIN TOLLING TOL ON HD.HD_ID = TOL.HD_FK
+            LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+            LEFT JOIN MST_CUSTOMER CUST ON CUST.kunnr = USR.USERNAME
+            LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+            LEFT JOIN MST_INTERCO INT ON INT.kunnr = USR.USERNAME
+            LEFT JOIN MST_KEY MKY ON MKY.key_item = TOL.media_tp
+            LEFT JOIN MST_COMPANY C ON C.SAP_CODE = HD.COMPANY 
+            ${whoFilter}
+            `;
+            const que = `SELECT * FROM (${baseQ}) A ${filterStr} ;`;
+            const { rows } = await client.query(que, filter_val);
+
+            //get sto os
+            let sto_data = {};
+            let id_sto = filters.find(item => item.id === "id_sto");
+            if (id_sto) {
+                sto_data = await TollingModel.GetSTOTolling(id_sto.value);
+            }
+            return {
+                data: rows,
+                sto: sto_data,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
 TollingModel.GetById = async id => {
     try {
         const client = await db.connect();
@@ -341,6 +422,198 @@ TollingModel.GetById = async id => {
             };
             return result_tolling;
         } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+TollingModel.GetOSCust = async (limit, offset, q) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows: dataComp } = await client.query(
+                `SELECT distinct 
+                case
+                    when CUST.kunnr is not NUll then cust.kunnr
+                    when mv.lifnr is not null then mv.lifnr
+                    when mi.kunnr is not null then mi.kunnr
+                    else ''
+                    end as kunnr, 
+                case
+                    when CUST.name_1 is not null then cust.name_1
+                    when mv.name_1 is not null then mv.name_1
+                    when mi.name_1 is not null then mi.name_1
+                    else ''
+                    end as name_1 FROM tolling TOL
+                                LEFT JOIN mst_user USR ON TOL.create_by = USR.id_user
+                                LEFT JOIN loading_note_hd HED ON TOL.hd_fk = HED.hd_id
+                                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username
+                                left join mst_vendor mv on mv.lifnr = usr.username 
+                                left join mst_interco mi on mi.kunnr = usr.username
+                                LEFT JOIN mst_company c on c.sap_code = HED.company
+                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4
+                                 or mi.kunnr like $5 or mi.name_1 like $6)
+                                AND TOL.ln_num is null
+                                AND TOL.push_sap_date is null
+                                AND hed.cur_pos = 'FINA'
+                                AND TOL.is_active = true
+                LIMIT $7 OFFSET $8`,
+                [
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    `%${q}%`,
+                    limit,
+                    offset,
+                ]
+            );
+            const { rows, rowCount } = await client.query(
+                `SELECT distinct 
+                case
+                    when CUST.kunnr is not NUll then cust.kunnr
+                    when mv.lifnr is not null then mv.lifnr
+                     when mi.kunnr is not null then mi.kunnr
+                    else ''
+                    end as kunnr, 
+                case
+                    when CUST.name_1 is not null then cust.name_1
+                    when mv.name_1 is not null then mv.name_1
+                     when mi.name_1 is not null then mi.name_1
+                    else ''
+                    end as name_1 FROM tolling TOL
+                                LEFT JOIN mst_user USR ON TOL.create_by = USR.id_user
+                                LEFT JOIN loading_note_hd HED ON TOL.hd_fk = HED.hd_id
+                                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username
+                                left join mst_vendor mv on mv.lifnr = usr.username 
+                                left join mst_interco mi on mi.kunnr = usr.username
+                                LEFT JOIN mst_company c on c.sap_code = HED.company
+                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4
+                                 or mi.kunnr like $5 or mi.name_1 like $6)
+                                AND TOL.ln_num is null
+                                AND TOL.push_sap_date is null
+                                AND hed.cur_pos = 'FINA'
+                                AND TOL.is_active = true`,
+                [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]
+            );
+            return {
+                data: dataComp,
+                count: rowCount,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+TollingModel.GetOSSTOReq = async (limit, offset, cust) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows: dataComp } = await client.query(
+                `
+                SELECT distinct hd.id_sto FROM loading_note_hd hd
+                LEFT JOIN tolling tol on hd.hd_id = tol.hd_fk
+				LEFT JOIN mst_user u on u.id_user = hd.create_by
+				LEFT JOIN mst_customer c on c.kunnr = u.username
+                LEFT JOIN mst_vendor mv on mv.lifnr = u.username
+                LEFT JOIN mst_interco mi on mi.kunnr = u.username
+                WHERE tol.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
+                AND( c.kunnr = $1 or mv.lifnr = $2 or mi.kunnr = $3) AND tol.is_active = true
+                LIMIT $4 OFFSET $5
+                `,
+                [cust, cust, cust, limit, offset]
+            );
+            const { rows, rowCount } = await client.query(
+                `SELECT distinct hd.id_sto FROM loading_note_hd hd
+                LEFT JOIN tolling tol on hd.hd_id = tol.hd_fk
+				LEFT JOIN mst_user u on u.id_user = hd.create_by
+				LEFT JOIN mst_customer c on c.kunnr = u.username
+                LEFT JOIN mst_vendor mv on mv.lifnr = u.username
+                LEFT JOIN mst_interco mi on mi.kunnr = u.username
+                WHERE tol.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
+                AND( c.kunnr = $1 or mv.lifnr = $2 or mi.kunnr = $3) AND tol.is_active = true`,
+                [cust, cust, cust]
+            );
+            return {
+                data: dataComp,
+                count: rowCount,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+TollingModel.ApproveTollingReq = async (data_req, session) => {
+    try {
+        const client = await db.connect();
+        try {
+            await client.query(TRANS.BEGIN);
+            let batch_code = new Map();
+            let created_bcode = [];
+            for (const data of data_req) {
+                let count_bcode = batch_code.get(data.batch_code);
+                if (!count_bcode) {
+                    count_bcode = 1;
+                    const { rows: last_bcode } = await client.query(
+                        `
+                        select ln_num from tolling t
+                        left join loading_note_hd lnh on t.hd_fk = lnh.hd_id
+                        where lnh.batch_code = $1 and ln_num is not null
+                        order by ln_num asc
+                        limit 1
+                        `,
+                        [data.batch_code]
+                    );
+                    let last_ln = last_bcode[0]?.ln_num;
+
+                    if (last_ln) {
+                        const last_rnum = parseInt(last_ln.split("/")[1]);
+                        count_bcode = last_rnum + 1;
+                    }
+                    batch_code.set(data.batch_code, count_bcode);
+                } else {
+                    count_bcode += 1;
+                    batch_code.set(data.batch_code, count_bcode);
+                }
+                const new_bcode =
+                    data.batch_code +
+                    "/" +
+                    count_bcode.toString().padStart(2, "0");
+                const payload_up = {
+                    ln_num: new_bcode,
+                    push_sap_date: moment().format("YYYY-MM-DDTHH:mm:ss"),
+                    is_pushed: true,
+                    update_at: moment().format("YYYY-MM-DDTHH:mm:ss"),
+                    update_by: session.id_user,
+                };
+                const [upQue, upVal] = crud.updateItem(
+                    "tolling",
+                    payload_up,
+                    { det_id: data.id },
+                    "ln_num"
+                );
+                await client.query(upQue, upVal);
+                created_bcode.push(new_bcode);
+            }
+            await client.query(TRANS.COMMIT);
+            return created_bcode;
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
             throw error;
         } finally {
             client.release();
