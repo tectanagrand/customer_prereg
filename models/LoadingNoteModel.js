@@ -902,7 +902,6 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
             ${whoFilter}
             `;
             const que = `SELECT * FROM (${baseQ}) A ${filterStr} ;`;
-            // console.log(que);
             const { rows } = await client.query(que, filter_val);
             return {
                 data: rows,
