@@ -114,7 +114,6 @@ const SessionProvider = ({ children }) => {
             setSession,
             logOut,
             getPermission,
-            setAccessToken,
             access_token,
             setAccessToken,
         }),
