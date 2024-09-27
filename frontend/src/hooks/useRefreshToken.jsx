@@ -3,7 +3,7 @@ import { useSession } from "../provider/sessionProvider";
 import { useCallback } from "react";
 import Cookies from "js-cookie";
 
-const useRefreshToken = () => {
+export default function useRefreshToken() {
     const { setAccessToken, logOut } = useSession();
     const refresh = useCallback(async () => {
         try {
@@ -28,6 +28,4 @@ const useRefreshToken = () => {
     }, [setAccessToken]);
 
     return refresh;
-};
-
-export default useRefreshToken;
+}

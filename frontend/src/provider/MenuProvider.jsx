@@ -4,7 +4,7 @@ import Cookies from "js-cookie";
 
 const MenuContext = createContext();
 
-const MenuProvider = ({ children }) => {
+export default function MenuProvider({ children }) {
     const [permission, _setMenu] = useState(
         localStorage.getItem("permission")
             ? new Map(
@@ -73,10 +73,6 @@ const MenuProvider = ({ children }) => {
             {children}
         </MenuContext.Provider>
     );
-};
+}
 
-export const useMenu = () => {
-    return useContext(MenuContext);
-};
-
-export default MenuProvider;
+export const useMenu = () => useContext(MenuContext);
