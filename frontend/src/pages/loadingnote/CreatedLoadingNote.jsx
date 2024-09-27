@@ -339,6 +339,7 @@ const CreatedLoadingNote = () => {
                         <TableSelected
                             rowsData={selectedRows}
                             columns={columns}
+                            sx={{ height: "20rem" }}
                         />
                     </Box>
                     <DialogActions>
