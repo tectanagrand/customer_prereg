@@ -83,4 +83,63 @@ TollingController.GetById = async (req, res) => {
     }
 };
 
+TollingController.GetOSReqTolling = async (req, res) => {
+    try {
+        const { filters } = req.body;
+        const dataosreq = await Tolling.GetOSReqTolling(filters);
+        res.status(200).send(dataosreq);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+TollingController.GetOSCustTolling = async (req, res) => {
+    const { limit, offset, q } = req.query;
+    try {
+        const data = await Tolling.GetOSCust(limit, offset, q);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+TollingController.GetOSSTOTolling = async (req, res) => {
+    const { limit, offset, cust } = req.query;
+    try {
+        if (!cust) {
+            throw new Error("Please Provide Customer Code");
+        }
+        const data = await Tolling.GetOSSTOReq(limit, offset, cust);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+TollingController.ApproveTollingReq = async (req, res) => {
+    const { data_req } = req.body;
+    const session = req.cookies;
+
+    try {
+        const created_ln = await Tolling.ApproveTollingReq(data_req, session);
+        res.status(200).send({
+            created: created_ln,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = TollingController;
