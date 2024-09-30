@@ -16,5 +16,7 @@ router.post("/osreq", TollingController.GetOSReqTolling);
 router.get("/ossto", TollingController.GetOSSTOTolling);
 router.get("/oscust", TollingController.GetOSCustTolling);
 router.post("/approvetol", TollingController.ApproveTollingReq);
+router.post("/getprint", TollingController.GetPrintTolling);
+router.post("/print", TollingController.PrintTolling);
 
 module.exports = router;

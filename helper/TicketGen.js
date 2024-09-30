@@ -39,7 +39,7 @@ TicketGen.GenTollingReq = (username, lasttolreq) => {
             }
         }
     }
-    return "TOL" + U + month + year + running_num.toString().padStart(3, "0");
+    return "TL" + U + month + year + running_num.toString().padStart(3, "0");
 };
 
 TicketGen.genLoadingNoteUPS = (username, lastlnnum) => {
