@@ -142,4 +142,42 @@ TollingController.ApproveTollingReq = async (req, res) => {
     }
 };
 
+TollingController.GetPrintTolling = async (req, res) => {
+    try {
+        const { filters } = req.body;
+        const { id_user, role } = req.cookies;
+        let customer_id = "";
+        if (!["ADMIN", "LOGISTIC", "COMMERCIAL"].includes(role)) {
+            customer_id = id_user;
+        }
+        const result = await Tolling.GetPrintTol(filters, customer_id);
+        res.status(200).send(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+TollingController.PrintTolling = async (req, res) => {
+    try {
+        const { id } = req.body;
+        const { doc, id_sto } = await Tolling.PrintTolling(id);
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="SuratJalan_DO-${id_sto}.pdf"`
+        );
+        doc.pipe(res);
+        res.status(200);
+        doc.end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = TollingController;

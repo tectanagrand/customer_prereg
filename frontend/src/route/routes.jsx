@@ -7,6 +7,7 @@ import AuthDashboard from "../pages/dashboard/AuthDashboard";
 const ApprovalPage = lazy(() => import("../pages/approvalreq/ApprovalPage"));
 import ErrorPage from "../pages/error/ErrorPage";
 import { Axios } from "../api/axios";
+const PrintTolling = lazy(() => import("../pages/recap/PrintTolling"));
 const TollingDashboard = lazy(
     () => import("../pages/tolling/TollingDashboard")
 );
@@ -279,6 +280,10 @@ export const routes = createBrowserRouter([
                     {
                         path: "aprtol",
                         element: <TollingApproval />,
+                    },
+                    {
+                        path: "printtol",
+                        element: <PrintTolling />,
                     },
                 ],
             },
