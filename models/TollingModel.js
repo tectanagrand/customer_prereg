@@ -7,6 +7,7 @@ const TRANS = require("../config/transaction");
 const uuid = require("uuidv4");
 const crud = require("../helper/crudquery");
 const moment = require("moment");
+const PDFDocument = require("pdfkit");
 
 TollingModel.GetSTOTolling = async stonum => {
     try {
@@ -614,6 +615,323 @@ TollingModel.ApproveTollingReq = async (data_req, session) => {
             return created_bcode;
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+TollingModel.GetPrintTol = async (filters, customer_id) => {
+    try {
+        const client = await db.connect();
+        try {
+            const baseq = `
+                    SELECT
+                    TOL.DET_ID AS ID,
+                    TOL.LN_NUM,
+                    HD.ID_DO,
+                    HD.ID_STO,
+                    HD.INCO_1,
+                    HD.INCO_2,
+                    HD.COMPANY,
+                    HD.PLANT,
+                    HD.DESC_CON,
+                    HD.CON_QTY,
+                    CASE 
+                        WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
+                        WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+                        WHEN INT.KUNNR IS NOT NULL THEN INT.KUNNR
+                        ELSE ''
+                        END AS KUNNR,
+                    CASE
+                        WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
+                        WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+                        WHEN INT.NAME_1 IS NOT NULL THEN INT.NAME_1
+                        ELSE ''
+                        END AS NAME_1,
+                    TOL.DRIVER_ID,
+                    TOL.DRIVER_NAME,
+                    TOL.VHCL_ID,
+                    TOL.PLAN_QTY,
+                    TO_CHAR(TOL.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
+                    TO_CHAR(TOL.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN,
+                    TO_CHAR(TOL.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE_MOMENT,
+                    TO_CHAR(TOL.TANGGAL_SURAT_JALAN, 'MM-DD-YYYY') AS TANGGAL_SURAT_JALAN_MOMENT,
+                    HD.UOM,
+                    TOL.BRUTO,
+                    TOL.TARRA,
+                    TOL.NETTO,
+                    TOL.RECEIVE,
+                    TOL.DEDUCTION,
+                    COALESCE(TOL.print_count, 0) as print_count
+                FROM TOLLING TOL
+                LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = TOL.HD_FK
+                LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+                LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+                LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+                LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
+                WHERE TOL.LN_NUM IS NOT NULL
+            `;
+            let where = [];
+            let whereVal = [];
+            let ltindex = 0;
+            filters.forEach(item => {
+                let value = item.value;
+                let id = item.id;
+                let date = false;
+                if (item.id === "Customer") {
+                    value = item.value.split("-")[0].trim();
+                    id = ["cust.kunnr", "ven.lifnr", "int.kunnr"];
+                } else if (item.id === "Contract Quantity") {
+                    value = item.value.split(" ")[0].trim();
+                    id = "con_qty";
+                } else if (item.id === "Planning Quantity") {
+                    value = item.value.split(" ")[0].trim();
+                    id = "plan_qty";
+                } else if (item.id === "cre_date") {
+                    value = `= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+                    id = "cre_date";
+                    date = true;
+                } else if (item.id === "tanggal_surat_jalan") {
+                    value = `= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+                    id = "tanggal_surat_jalan";
+                    date = true;
+                } else if (item.id === "start_tsj") {
+                    value = `>= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+                    id = "tanggal_surat_jalan";
+                    date = true;
+                } else if (item.id === "end_tsj") {
+                    value = `<= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+                    id = "tanggal_surat_jalan";
+                    date = true;
+                } else if (item.id === "q") {
+                    value = item.value;
+                    id = ["tol.search_vector", "hd.search_vector"];
+                }
+                if (!date) {
+                    if (item.id === "Customer") {
+                        where.push(
+                            `(${id[0]} = $${ltindex + 1} OR ${id[1]} = $${ltindex + 2} OR ${id[2]} = $${ltindex + 3})`
+                        );
+                        whereVal.push(...[value, value, value]);
+                        ltindex += 3;
+                    } else if (item.id === "q") {
+                        where.push(
+                            `(to_tsquery($${ltindex + 1}) @@ ${id[0]} OR to_tsquery($${ltindex + 2}) @@ ${id[1]} OR ln_num like $${ltindex + 3}  OR id_sto like $${ltindex + 4}) `
+                        );
+                        whereVal.push(
+                            ...[
+                                value + ":*",
+                                value + ":*",
+                                `%${value}%`,
+                                `%${value}%`,
+                            ]
+                        );
+                        ltindex += 4;
+                    } else {
+                        where.push(`${id} = $${ltindex + 1}`);
+                        whereVal.push(value);
+                        ltindex++;
+                    }
+                } else {
+                    where.push(`${id} ${value}`);
+                }
+            });
+            if (customer_id !== "") {
+                // where.push(`kunnr = $${ltindex + 1}`);
+                where.push(
+                    `(cust.kunnr = $${ltindex + 1} OR ven.lifnr = $${ltindex + 2} OR int.kunnr =  $${ltindex + 3} )`
+                );
+                whereVal.push(...[customer_id, customer_id, customer_id]);
+            }
+            let whereQue = "";
+            if (where.length != 0) {
+                whereQue = `AND ${where.join(" AND ")}`;
+            }
+            let que = `${baseq} ${whereQue} ORDER BY TOL.LN_NUM DESC`;
+            console.log(que);
+            console.log(whereVal);
+            const { rows } = await client.query(que, whereVal);
+            return {
+                data: rows,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+TollingModel.PrintTolling = async id_tol => {
+    try {
+        const client = await db.connect();
+        try {
+            await client.query(TRANS.BEGIN);
+            const doc = new PDFDocument({ size: "A4" });
+            const baseQ = `
+            SELECT  
+                TOL.driver_id,
+                TOL.driver_name,
+                TOL.vhcl_id,
+                HD.plant,
+                TOL.ln_num,
+                TO_CHAR(TOL.tanggal_surat_jalan, 'DD-MM-YYYY') as tanggal_surat_jalan,
+                TO_CHAR(TOL.cre_date, 'DD-MM-YYYY') as cre_date,
+                TOL.plan_qty,
+                HD.UOM,
+                HD.DESC_CON,
+                HD.ID_STO,
+                HD.material,
+                CO.name as comp_name,
+                HD.company,
+                CASE 
+                    WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
+                    WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+                    WHEN INT.NAME_1 IS NOT NULL THEN INT.NAME_1
+                    ELSE ''
+                    END
+                AS NAME_1,
+                CASE 
+                    WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
+                    WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+                    WHEN INT.KUNNR IS NOT NULL THEN INT.KUNNR
+                    ELSE ''
+                    END
+                AS KUNNR,
+                PLT.ALAMAT,
+                TOL.print_count,
+                TOL.is_multi, 
+                TOL.remark_req
+                FROM TOLLING TOL
+                LEFT JOIN LOADING_NOTE_HD HD ON TOL.HD_FK = HD.HD_ID
+                LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+                LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR OR USR.SAP_CODE = CUST.KUNNR
+                LEFT JOIN MST_VENDOR VEN ON USR.USERNAME = VEN.LIFNR OR USR.SAP_CODE = VEN.LIFNR
+                LEFT JOIN MST_COMPANY CO ON CO.SAP_CODE = HD.COMPANY
+                LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME       
+                LEFT JOIN MST_COMPANY_PLANT PLT ON PLT.PLANT_CODE = HD.PLANT         
+                WHERE TOL.DET_ID = $1
+                ORDER BY TOL.ID DESC
+            `;
+            const { rows } = await client.query(baseQ, [id_tol]);
+            let watermark = "";
+            const dt = rows[0];
+            if (!dt.print_count) {
+                watermark = "Original Document";
+            } else {
+                watermark = `Copy of original (${dt.print_count})`;
+            }
+
+            doc.opacity(0.2);
+            doc.rotate(-35);
+            // doc.fontSize(60).text(watermark, -200, 200);
+            // doc.text("KPN CORP", -200, 300);
+            doc.fontSize(60).text(watermark, -200, 400);
+            doc.text("KPN CORP", -200, 500);
+            // doc.fontSize(60).text(watermark, -200, 600);
+            // doc.text("KPN CORP", -200, 700);
+
+            doc.save();
+            doc.rotate(35);
+            doc.opacity(1);
+            doc.fontSize(20).text(`${dt.name_1} (${dt.kunnr})`, 100, 90);
+            doc.fontSize(20).text("Surat Jalan", 400, 50);
+            if (dt.is_multi) {
+                doc.fontSize(10).text("(Multi Con.)", 400, 70);
+            }
+            // doc.fontSize(12).text("No LN :", 380, 120);
+            // doc.fontSize(12).text(dt.ln_num, 420, 120);
+            doc.fontSize(12).text("No LN :", 100, 140);
+            doc.fontSize(12).text(dt.ln_num, 180, 140);
+
+            doc.fontSize(12).text("Tgl. Request LN :", 300, 140);
+            doc.fontSize(12).text(dt.cre_date, 420, 140, {
+                width: 120,
+            });
+            // doc.fontSize(12).text("Tanggal Pengambilan :", 100, 140);
+            // doc.fontSize(12).text(moment().format("MM-DD-YYYY"), 230, 140, {
+            //     width: 120,
+            // });
+            doc.fontSize(12).text("Nama Supir :", 100, 170);
+            doc.fontSize(12).text(dt.driver_name, 180, 170, { width: 120 });
+            doc.fontSize(12).text("No Polisi : ", 100, 240);
+            doc.fontSize(12).text(dt.vhcl_id, 180, 240, { width: 120 });
+            doc.fontSize(12).text("No Do :", 100, 260);
+            doc.fontSize(12).text(dt.id_do, 180, 260, { width: 120 });
+            doc.fontSize(12).text("Tgl. Pengambilan / Muat :", 300, 170, {
+                width: 120,
+            });
+            doc.fontSize(12).text(dt.tanggal_surat_jalan, 420, 170, {
+                width: 120,
+            });
+            doc.fontSize(12).text("Tujuan :", 300, 240);
+            doc.fontSize(12).text(`${dt.comp_name}(${dt.plant})`, 390, 240, {
+                width: 120,
+            });
+            doc.fontSize(12).text("Alamat :", 300, 260);
+            doc.fontSize(12).text(dt.alamat, 355, 260, { width: 120 });
+
+            var xline = 350;
+
+            doc.moveTo(100, xline).lineTo(500, xline).stroke();
+            doc.text("Material", 100, xline + 10);
+            doc.text("Planned Qty", 350, xline + 10);
+            doc.text("UOM", 450, xline + 10);
+            doc.moveTo(100, xline + 30)
+                .lineTo(500, xline + 30)
+                .stroke();
+
+            var lastRow = xline + 30;
+            var col = [100, 350, 450];
+            for (const data of rows) {
+                lastRow += 30;
+                doc.text(
+                    `${data.desc_con}(${data.material})`,
+                    col[0],
+                    lastRow,
+                    { width: 220 }
+                );
+                doc.text(data.plan_qty, col[1], lastRow, { width: 85 });
+                doc.text(data.uom, col[2], lastRow, { width: 80 });
+            }
+            lastRow += 30;
+
+            doc.moveTo(col[1] - 10, xline)
+                .lineTo(col[1] - 10, lastRow)
+                .stroke();
+            doc.moveTo(col[2] - 10, xline)
+                .lineTo(col[2] - 10, lastRow)
+                .stroke();
+
+            doc.fontSize(12).text("Hormat Kami", 100, lastRow + 80);
+            doc.fontSize(12).text(dt.name_1, 100, lastRow + 160);
+            doc.fontSize(12).text(dt.driver_name, 400, lastRow + 160);
+            doc.fontSize(12).text("Remark :", 100, lastRow + 200);
+            doc.fontSize(12).text(dt.remark_req, 100, lastRow + 220);
+
+            const [queUp, insUp] = crud.updateItem(
+                "tolling",
+                {
+                    print_count: dt.print_count
+                        ? parseInt(dt.print_count) + 1
+                        : 1,
+                },
+                { det_id: id_tol },
+                "det_id"
+            );
+            // console.log(queUp);
+            await client.query(queUp, insUp);
+            return {
+                doc: doc,
+                id_sto: dt.id_sto,
+            };
+        } catch (error) {
             throw error;
         } finally {
             client.release();
