@@ -8,7 +8,6 @@ import {
     getFacetedUniqueValues,
 } from "@tanstack/react-table";
 import {
-    KeyboardArrowRight,
     KeyboardArrowDown,
     KeyboardArrowUp,
     FileDownload,
@@ -29,7 +28,7 @@ import AutocompleteFilter from "../input/AutocompleteFilterComp";
 import SearchFieldComp from "../input/SearchFieldComp";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 
-export default function TableRecapReport({ onsetFilterData, isLoading }) {
+export default function TableRecapReport() {
     const axiosPrivate = useAxiosPrivate();
     const exportData = async id_loadnote => {
         try {
@@ -196,23 +195,21 @@ export default function TableRecapReport({ onsetFilterData, isLoading }) {
 
     useEffect(() => {
         (async () => {
-            if (!isLoading) {
-                let filters = dataColFilter.slice();
-                if (que !== "" && que) {
-                    filters.push({ id: "q", value: que });
-                }
-                try {
-                    const { data } = await axiosPrivate.post("/ln/recapss", {
-                        filters: filters,
-                        customer_id: "",
-                    });
-                    setData(data);
-                } catch (error) {
-                    console.error(error);
-                }
+            let filters = dataColFilter.slice();
+            if (que !== "" && que) {
+                filters.push({ id: "q", value: que });
+            }
+            try {
+                const { data } = await axiosPrivate.post("/ln/recapss", {
+                    filters: filters,
+                    customer_id: "",
+                });
+                setData(data);
+            } catch (error) {
+                console.error(error);
             }
         })();
-    }, [columnFilter, refresh, isLoading, que]);
+    }, [columnFilter, refresh, que]);
 
     const table = useReactTable({
         data: data,
