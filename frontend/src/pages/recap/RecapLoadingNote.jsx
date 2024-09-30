@@ -1,9 +1,5 @@
-import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import TableRecapReport from "../../component/table/TableRecapReport";
-import { Box, Button } from "@mui/material";
-import { useState } from "react";
-import { useTheme } from "@mui/material/styles";
-import toast, { Toaster } from "react-hot-toast";
+import { Box } from "@mui/material";
 
 export default function RecapLoadingNote() {
     return (
@@ -13,7 +9,6 @@ export default function RecapLoadingNote() {
                 height: "100%",
             }}
         >
-            <Toaster />
             <TableRecapReport />
         </Box>
     );
