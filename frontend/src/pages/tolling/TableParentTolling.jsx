@@ -104,8 +104,8 @@ export default function TableParentTolling() {
 
     const deleteData = async id => {
         try {
-            const { data } = await axiosPrivate.post("/ln/deletecust", {
-                hd_id: id,
+            const { data } = await axiosPrivate.post("/tol/deletereq", {
+                id: id,
             });
             toast.success("Success Deleted");
         } catch (error) {
@@ -250,7 +250,7 @@ export default function TableParentTolling() {
                                     }}
                                     onClick={() => {
                                         setDeleteLN(
-                                            props.row.original.sub_table
+                                            props.row.original.sub_rows
                                         );
                                         setDeleteHd(props.row.original.hd_id);
                                         setModalDel(true);

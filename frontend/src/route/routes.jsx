@@ -81,6 +81,9 @@ const ReportLoadingNote = lazy(
 const MasterContractDO = lazy(
     () => import("../pages/do_contract/MasterContractDO")
 );
+const ApprovalReqDeleteTol = lazy(
+    () => import("../pages/tolling/ApprovalReqDeleteTol")
+);
 export const routes = createBrowserRouter([
     {
         path: "/",
@@ -284,6 +287,10 @@ export const routes = createBrowserRouter([
                     {
                         path: "printtol",
                         element: <PrintTolling />,
+                    },
+                    {
+                        path: "apprdeltol",
+                        element: <ApprovalReqDeleteTol />,
                     },
                 ],
             },
