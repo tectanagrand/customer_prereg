@@ -8,6 +8,7 @@ const uuid = require("uuidv4");
 const crud = require("../helper/crudquery");
 const moment = require("moment");
 const PDFDocument = require("pdfkit");
+const EmailModel = require("../models/EmailModel");
 
 TollingModel.GetSTOTolling = async stonum => {
     try {
@@ -120,7 +121,14 @@ TollingModel.SaveRequestTolling = async (params, session) => {
                 );
             }
             await client.query(que, val);
-            details.forEach((rows, index) => {
+            let counterTruck = {};
+            let index = 0;
+            for (const rows of details) {
+                if (counterTruck[rows.vehicle]) {
+                    counterTruck[rows.vehicle] = counterTruck[rows.vehicle] + 1;
+                } else {
+                    counterTruck[rows.vehicle] = 1;
+                }
                 const id_detail =
                     rows.id_detail !== "" ? rows.id_detail : uuid.uuid();
                 const payloadDetail = {
@@ -148,15 +156,13 @@ TollingModel.SaveRequestTolling = async (params, session) => {
                         "det_id"
                     );
                     detailId[index] = id_detail;
-                    promises.push(client.query(que, val));
+                    await client.query(que, val);
                 } else {
                     if (rows.method === "delete") {
                         deleteIdx.push(index);
-                        promises.push(
-                            client.query(
-                                "DELETE FROM loading_note_det WHERE det_id = $1",
-                                [rows.id_detail]
-                            )
+                        await client.query(
+                            "DELETE FROM loading_note_det WHERE det_id = $1",
+                            [rows.id_detail]
                         );
                     } else {
                         [que, val] = crud.updateItem(
@@ -165,11 +171,28 @@ TollingModel.SaveRequestTolling = async (params, session) => {
                             { det_id: id_detail },
                             "det_id"
                         );
-                        promises.push(client.query(que, val));
+                        await client.query(que, val);
                     }
                 }
+                index++;
+            }
+            let NumPlate = [];
+            Object.keys(counterTruck).map(key => {
+                if (counterTruck[key] > 1) {
+                    NumPlate.push(key);
+                }
             });
-            await Promise.all(promises);
+            if (NumPlate.length > 0) {
+                throw new Error(
+                    "Request denied, Multiple identical truck not allowed",
+                    {
+                        cause: {
+                            code: "IdenticTruck",
+                            value: NumPlate,
+                        },
+                    }
+                );
+            }
             await client.query(TRANS.COMMIT);
             return {
                 detailId: detailId,
@@ -185,6 +208,25 @@ TollingModel.SaveRequestTolling = async (params, session) => {
         }
     } catch (error) {
         console.error(error);
+        throw error;
+    }
+};
+
+TollingModel.DeleteRequestTolling = async id => {
+    try {
+        const client = await db.connect();
+        try {
+            await client.query(TRANS.BEGIN);
+            const que = `delete from loading_note_hd where hd_id = $1`;
+            await client.query(que, [id]);
+            await client.query(TRANS.COMMIT);
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
         throw error;
     }
 };
@@ -409,6 +451,7 @@ TollingModel.GetById = async id => {
                     uom: tol.uom,
                     cur_pos: tol.cur_pos,
                     create_date: tol.create_at,
+                    loading_date: tol.tanggal_surat_jalan,
                     os_qty: OSTol.OSTol,
                     os_wb: OSTol.ConQTY - OSTol.UsedQTYWb,
                 },
@@ -752,11 +795,188 @@ TollingModel.GetPrintTol = async (filters, customer_id) => {
                 whereQue = `AND ${where.join(" AND ")}`;
             }
             let que = `${baseq} ${whereQue} ORDER BY TOL.LN_NUM DESC`;
-            console.log(que);
-            console.log(whereVal);
             const { rows } = await client.query(que, whereVal);
             return {
                 data: rows,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+TollingModel.GetPrintTolv2 = async (filters, customer_id) => {
+    try {
+        const client = await db.connect();
+        try {
+            const baseq = `
+                    SELECT
+                    TOL.DET_ID AS ID,
+                    TOL.LN_NUM,
+                    HD.ID_STO,
+                    HD.BATCH_CODE,
+                    HD.COMPANY,
+                    HD.PLANT,
+                    HD.DESC_CON,
+                    HD.CON_QTY,
+                    CASE 
+                        WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
+                        WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+                        WHEN INT.KUNNR IS NOT NULL THEN INT.KUNNR
+                        ELSE ''
+                        END AS KUNNR,
+                    CASE
+                        WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
+                        WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+                        WHEN INT.NAME_1 IS NOT NULL THEN INT.NAME_1
+                        ELSE ''
+                        END AS NAME_1,
+                    TOL.DRIVER_ID,
+                    TOL.DRIVER_NAME,
+                    TOL.VHCL_ID,
+                    TOL.PLAN_QTY,
+                    TOL.DELETE_REQ,
+                    TO_CHAR(TOL.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
+                    TO_CHAR(TOL.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN,
+                    TO_CHAR(TOL.CRE_DATE, 'MM-DD-YYYY') AS CRE_DATE_MOMENT,
+                    TO_CHAR(TOL.TANGGAL_SURAT_JALAN, 'MM-DD-YYYY') AS TANGGAL_SURAT_JALAN_MOMENT,
+                    HD.UOM,
+                    COALESCE(TOL.print_count, 0) as print_count
+                FROM TOLLING TOL
+                LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = TOL.HD_FK
+                LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+                LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
+                LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+                LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
+                WHERE TOL.LN_NUM IS NOT NULL AND TOL.IS_ACTIVE = true
+            `;
+            let where = [];
+            let whereVal = [];
+            let ltindex = 0;
+            filters.forEach(item => {
+                let value = item.value;
+                let id = item.id;
+                let date = false;
+                if (item.id === "Customer") {
+                    value = item.value.split("-")[0].trim();
+                    id = ["cust.kunnr", "ven.lifnr", "int.kunnr"];
+                } else if (item.id === "Contract Quantity") {
+                    value = item.value.split(" ")[0].trim();
+                    id = "con_qty";
+                } else if (item.id === "Planning Quantity") {
+                    value = item.value.split(" ")[0].trim();
+                    id = "plan_qty";
+                } else if (item.id === "cre_date") {
+                    value = `= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+                    id = "cre_date";
+                    date = true;
+                } else if (item.id === "tanggal_surat_jalan") {
+                    value = `= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+                    id = "tanggal_surat_jalan";
+                    date = true;
+                } else if (item.id === "start_tsj") {
+                    value = `>= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+                    id = "tanggal_surat_jalan";
+                    date = true;
+                } else if (item.id === "end_tsj") {
+                    value = `<= TO_DATE('${item.value}', 'DD-MM-YYYY')`;
+                    id = "tanggal_surat_jalan";
+                    date = true;
+                } else if (item.id === "q") {
+                    value = item.value;
+                    id = ["tol.search_vector", "hd.search_vector"];
+                }
+                if (!date) {
+                    if (item.id === "Customer") {
+                        where.push(
+                            `(${id[0]} = $${ltindex + 1} OR ${id[1]} = $${ltindex + 2} OR ${id[2]} = $${ltindex + 3})`
+                        );
+                        whereVal.push(...[value, value, value]);
+                        ltindex += 3;
+                    } else if (item.id === "q") {
+                        where.push(
+                            `(to_tsquery($${ltindex + 1}) @@ ${id[0]} OR to_tsquery($${ltindex + 2}) @@ ${id[1]} OR ln_num like $${ltindex + 3}  OR id_sto like $${ltindex + 4}) `
+                        );
+                        whereVal.push(
+                            ...[
+                                value + ":*",
+                                value + ":*",
+                                `%${value}%`,
+                                `%${value}%`,
+                            ]
+                        );
+                        ltindex += 4;
+                    } else {
+                        where.push(`${id} = $${ltindex + 1}`);
+                        whereVal.push(value);
+                        ltindex++;
+                    }
+                } else {
+                    where.push(`${id} ${value}`);
+                }
+            });
+            if (customer_id !== "") {
+                // where.push(`kunnr = $${ltindex + 1}`);
+                where.push(
+                    `(cust.kunnr = $${ltindex + 1} OR ven.lifnr = $${ltindex + 2} OR int.kunnr =  $${ltindex + 3} )`
+                );
+                whereVal.push(...[customer_id, customer_id, customer_id]);
+            }
+            let whereQue = "";
+            if (where.length != 0) {
+                whereQue = `AND ${where.join(" AND ")}`;
+            }
+            let que = `${baseq} ${whereQue} ORDER BY HD.BATCH_CODE DESC`;
+            const { rows } = await client.query(que, whereVal);
+
+            //merging data
+            let merged_code = "batch_code";
+            let idx_merge = 0;
+            let count_span = 1;
+            let can_print = true;
+            let merged = [];
+            let idx = 0;
+            let mod_rows = [...rows];
+            for (let i = 0; i < rows.length; i++) {
+                merged.push(rows[i].id);
+                if (rows[i].delete_req) {
+                    can_print = false;
+                }
+                if (rows[i + 1]) {
+                    if (rows[i][merged_code] !== rows[i + 1][merged_code]) {
+                        mod_rows[idx_merge] = {
+                            ...rows[idx_merge],
+                            span: count_span,
+                            merged: merged,
+                            can_print: can_print,
+                        };
+                        idx_merge = i + 1;
+                        count_span = 1;
+                        can_print = true;
+                        merged = [];
+                        continue;
+                    }
+                    count_span += 1;
+                    mod_rows[i + 1] = { ...rows[i + 1], [merged_code]: "" };
+                } else {
+                    mod_rows[idx_merge] = {
+                        ...rows[idx_merge],
+                        span: count_span,
+                        merged: merged,
+                        can_print: can_print,
+                    };
+                    idx_merge = i + 1;
+                    count_span = 1;
+                    can_print = true;
+                }
+            }
+            return {
+                merged_code,
+                data: mod_rows,
             };
         } catch (error) {
             throw error;
@@ -937,6 +1157,348 @@ TollingModel.PrintTolling = async id_tol => {
             client.release();
         }
     } catch (error) {
+        throw error;
+    }
+};
+
+TollingModel.PrintTollingv2 = async id_tol => {
+    try {
+        const client = await db.connect();
+        if (!id_tol.length > 0) {
+            throw new Error("Please provide Array<id_tol>");
+        }
+        try {
+            await client.query(TRANS.BEGIN);
+            const whereParam = id_tol.map((_, index) => `$${index + 1}`);
+            const { rows } = await client.query(
+                `
+                SELECT  
+                TOL.driver_id,
+                TOL.driver_name,
+                TOL.vhcl_id,
+                HD.plant,
+                TOL.ln_num,
+                hd.batch_code,
+                TO_CHAR(TOL.tanggal_surat_jalan, 'DD-MM-YYYY') as tanggal_surat_jalan,
+                TO_CHAR(TOL.cre_date, 'DD-MM-YYYY') as cre_date,
+                TOL.plan_qty,
+                HD.UOM,
+                HD.DESC_CON,
+                HD.ID_STO,
+                HD.material,
+                CO.name as comp_name,
+                HD.company,
+                CASE 
+                    WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
+                    WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+                    WHEN INT.NAME_1 IS NOT NULL THEN INT.NAME_1
+                    ELSE ''
+                    END
+                AS NAME_1,
+                CASE 
+                    WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
+                    WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+                    WHEN INT.KUNNR IS NOT NULL THEN INT.KUNNR
+                    ELSE ''
+                    END
+                AS KUNNR,
+                PLT.ALAMAT,
+                TOL.print_count,
+                TOL.is_multi, 
+                TOL.remark_req
+                FROM TOLLING TOL
+                LEFT JOIN LOADING_NOTE_HD HD ON TOL.HD_FK = HD.HD_ID
+                LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+                LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR OR USR.SAP_CODE = CUST.KUNNR
+                LEFT JOIN MST_VENDOR VEN ON USR.USERNAME = VEN.LIFNR OR USR.SAP_CODE = VEN.LIFNR
+                LEFT JOIN MST_COMPANY CO ON CO.SAP_CODE = HD.COMPANY
+                LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME       
+                LEFT JOIN MST_COMPANY_PLANT PLT ON PLT.PLANT_CODE = HD.PLANT         
+                WHERE TOL.DET_ID in (${whereParam.join(", ")})
+                ORDER BY TOL.ID DESC
+                `,
+                id_tol
+            );
+            const doc = new PDFDocument({ size: "A4" });
+            let pageIndex = 0;
+            let last_print_count = rows[0].print_count ?? 0;
+
+            for (const dt of rows) {
+                let watermark = "";
+                if (!dt.print_count) {
+                    watermark = "Original Document";
+                } else {
+                    watermark = `Copy of original (${dt.print_count})`;
+                }
+
+                doc.opacity(0.2);
+                doc.rotate(-35);
+
+                doc.fontSize(60).text(watermark, -200, 400);
+                doc.text("KPN CORP", -200, 500);
+
+                doc.save();
+                doc.rotate(35);
+                doc.opacity(1);
+                doc.fontSize(20).text(`${dt.name_1} (${dt.kunnr})`, 100, 90);
+                doc.fontSize(20).text("Surat Jalan", 400, 50);
+                if (dt.is_multi) {
+                    doc.fontSize(10).text("(Multi Con.)", 400, 70);
+                }
+
+                doc.fontSize(12).text("No Batch :", 100, 140);
+                doc.fontSize(12).text(dt.batch_code, 180, 140);
+
+                doc.fontSize(12).text("No LN :", 100, 160);
+                doc.fontSize(12).text(dt.ln_num, 180, 160);
+
+                doc.fontSize(12).text("Tgl. Request LN :", 300, 160);
+                doc.fontSize(12).text(dt.cre_date, 420, 160, {
+                    width: 120,
+                });
+
+                doc.fontSize(12).text("Nama Supir :", 100, 190);
+                doc.fontSize(12).text(dt.driver_name, 180, 190, { width: 120 });
+                doc.fontSize(12).text("No Polisi : ", 100, 240);
+                doc.fontSize(12).text(dt.vhcl_id, 180, 240, { width: 120 });
+                doc.fontSize(12).text("No STO :", 100, 260);
+                doc.fontSize(12).text(dt.id_sto, 180, 260, { width: 120 });
+                doc.fontSize(12).text("Tgl. Pengambilan / Muat :", 300, 190, {
+                    width: 120,
+                });
+                doc.fontSize(12).text(dt.tanggal_surat_jalan, 420, 190, {
+                    width: 120,
+                });
+                doc.fontSize(12).text("Tujuan :", 300, 240);
+                doc.fontSize(12).text(
+                    `${dt.comp_name}(${dt.plant})`,
+                    390,
+                    240,
+                    {
+                        width: 120,
+                    }
+                );
+                doc.fontSize(12).text("Alamat :", 300, 260);
+                doc.fontSize(12).text(dt.alamat, 355, 260, { width: 120 });
+
+                let xline = 350;
+
+                doc.moveTo(100, xline).lineTo(500, xline).stroke();
+                doc.text("Material", 100, xline + 10);
+                doc.text("Planned Qty", 350, xline + 10);
+                doc.text("UOM", 450, xline + 10);
+                doc.moveTo(100, xline + 30)
+                    .lineTo(500, xline + 30)
+                    .stroke();
+
+                let lastRow = xline + 30;
+                let col = [100, 350, 450];
+                lastRow += 30;
+                doc.text(`${dt.desc_con}(${dt.material})`, col[0], lastRow, {
+                    width: 220,
+                });
+                doc.text(dt.plan_qty, col[1], lastRow, { width: 85 });
+                doc.text(dt.uom, col[2], lastRow, { width: 80 });
+                lastRow += 30;
+
+                doc.moveTo(col[1] - 10, xline)
+                    .lineTo(col[1] - 10, lastRow)
+                    .stroke();
+                doc.moveTo(col[2] - 10, xline)
+                    .lineTo(col[2] - 10, lastRow)
+                    .stroke();
+
+                doc.fontSize(12).text("Hormat Kami", 100, lastRow + 80);
+                doc.fontSize(12).text(dt.name_1, 100, lastRow + 160);
+                doc.fontSize(12).text(dt.driver_name, 400, lastRow + 160);
+                doc.fontSize(12).text("Remark :", 100, lastRow + 200);
+                doc.fontSize(12).text(dt.remark_req, 100, lastRow + 220);
+                pageIndex++;
+                if (pageIndex < rows.length) {
+                    doc.addPage();
+                    doc.switchToPage(pageIndex);
+                }
+            }
+            await client.query(
+                `
+                UPDATE TOLLING set print_count = ${parseInt(last_print_count) + 1} where det_id in (${whereParam.join(", ")})
+                `,
+                id_tol
+            );
+            await client.query(TRANS.COMMIT);
+            return {
+                doc: doc,
+                batch_code: rows[0].batch_code,
+            };
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+TollingModel.requestDelete = async (selected, remark, id_user) => {
+    try {
+        const client = await db.connect();
+        const loadNote = [];
+        const phase =
+            process.env.NODE_ENV === "production"
+                ? "production"
+                : "development";
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows: hostname } = await client.query(
+                `select hostname from hostname where phase = $1`,
+                [phase]
+            );
+            const { rows: userLog } = await client.query(`select
+                string_agg(me.email,
+                ',') as email
+            from
+                mst_email me
+            left join mst_user mu on
+                me.id_user = mu.id_user
+            left join mst_role mr on mr.role_id = mu."role" 
+            where mr.role_name = 'LOGISTIC'`);
+            const { rows: emailuser } = await client.query(
+                `
+                select
+                    string_agg(me.email,
+                    ',') as email
+                from
+                    mst_email me
+                left join mst_user mu on
+                    me.id_user = mu.id_user
+                where mu.id_user = $1
+                `,
+                [id_user]
+            );
+            let link = hostname[0].hostname + `/dashboard/tolapprovedel`;
+            for (const d of selected) {
+                payload = {
+                    delete_req: true,
+                    remark_delete: remark,
+                };
+                loadNote.push(
+                    `
+                    <tr>
+                     <td>${d.ln_num}</td>
+                     <td>${d.tanggal_surat_jalan}</td>
+                     <td>${d.plant}</td>
+                     <td>${d.driver_id} - ${d.driver_name}</td>
+                     <td>${d.vhcl_id}</td>
+                     <td>${d.plan_qty.replace(/\B(?=(\d{3})+(?!\d))/g, ",")} ${d.uom}</td>
+                    </tr>
+                    `
+                );
+                const [upQue, upVal] = crud.updateItem(
+                    "tolling",
+                    payload,
+                    {
+                        ln_num: d.ln_num,
+                    },
+                    "ln_num"
+                );
+                await client.query(upQue, upVal);
+            }
+            await EmailModel.RequestDeleteLN(
+                userLog[0].email,
+                emailuser[0].email,
+                loadNote,
+                remark,
+                link
+            );
+            await client.query(TRANS.COMMIT);
+            return;
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+TollingModel.ShowCreatedLN = async (q, limit, offset, id_user, role) => {
+    let whereVal = [];
+    let whereQ = [];
+    let index = 1;
+    // console.log(role);
+    if (role !== "ADMIN" && role !== "LOGISTIC") {
+        whereVal.push(id_user);
+        whereQ.push(`tol.create_by = $${index}`);
+        index++;
+    } else {
+        whereVal.push(true);
+        whereQ.push(
+            `tol.delete_req = $${index} and tol.respon_del is null and tol.is_active = true `
+        );
+        index++;
+    }
+    if (q !== "" && q) {
+        let que = "";
+        whereVal.push(`${q}:*`);
+        que += `( tol.search_vector @@ to_tsquery('english', $${index})`;
+        index++;
+        whereVal.push(`${q}:*`);
+        que += ` or lnh.search_vector @@ to_tsquery('english', $${index}) )`;
+        index++;
+        whereQ.push(que);
+    }
+    try {
+        const client = await db.connect();
+        try {
+            const quer = `
+            select
+            tol.det_id as id,
+            TO_CHAR(tol.cre_date, 'DD-MM-YYYY') AS cre_date,
+            TO_CHAR(tanggal_surat_jalan, 'DD-MM-YYYY') as tanggal_surat_jalan,
+            driver_id,
+            driver_name,
+            vhcl_id,
+            mtp.tp_desc as media_tp,
+            plan_qty,
+            lnh.uom,
+            lnh.plant,
+            lnh.company,
+            ln_num,
+            lnh.batch_code, 
+            lnh.desc_con,
+            tol.is_active,
+            tol.create_by,
+            tol.delete_req,
+            tol.remark_delete
+                from
+                    tolling tol
+                left join loading_note_hd lnh on
+                    lnh.hd_id = tol.hd_fk
+                left join (select distinct tp, tp_desc from master_tp) mtp on mtp.tp = tol.media_tp
+                where tol.tanggal_surat_jalan + interval '7' day > now() and tol.ln_num is not null ${whereQ.length > 0 && " and " + whereQ.join(" and ")}
+                order by lnh.plant asc, tol.cre_date desc 
+            `;
+            // console.log(quer);
+            const { rows } = await client.query(
+                quer + (limit ? ` limit ${limit} offset ${offset} ;` : ";"),
+                whereVal
+            );
+            const { rowCount } = await client.query(quer, whereVal);
+            return {
+                data: rows,
+                count: rowCount,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
         throw error;
     }
 };

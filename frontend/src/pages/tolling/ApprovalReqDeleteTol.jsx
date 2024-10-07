@@ -45,29 +45,15 @@ const ApprovalReqDelete = () => {
             action: "",
         },
     });
-
-    const {
-        control: controlAuth,
-        handleSubmit: handleAuth,
-        getValues: authValue,
-        reset: resetAuth,
-    } = useForm({
-        defaultValues: {
-            password: "",
-        },
-    });
     const [selectedRows, _setSelectedRows] = useState([]);
     const [modalResp, _setModalResp] = useState({
         open: false,
         message: "",
     });
-    const theme = useTheme();
     const [rows, setRows] = useState([]);
     const [refresh, setRefresh] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [modalAuth, setModalAuth] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
-    const [loadingPush, setLoadingPush] = useState(false);
     const axiosPrivate = useAxiosPrivate();
     const { session } = useSession();
     const setSelectedRows = value => {
@@ -90,13 +76,15 @@ const ApprovalReqDelete = () => {
         let payload = {
             selected: getValues().selected,
             remark_reject: remarkValue().remark_reject,
-            password: authValue().password,
             action: remarkValue().action,
         };
         try {
             let message;
             setLoading(true);
-            const { data } = await axiosPrivate.post(`/ln/processdel`, payload);
+            const { data } = await axiosPrivate.post(
+                `/tol/apprreqdel`,
+                payload
+            );
             message = data.message;
             setSelectedRows([]);
             resetSelected({
@@ -106,26 +94,10 @@ const ApprovalReqDelete = () => {
                 remark_reject: "",
             });
             setRefresh(true);
-            const { data: created } = await axiosPrivate.get(`/ln/createdln`);
-            setRows(created.data);
-            setModalAuth(false);
             setModalOpen(false);
-            _setModalResp({
-                open: true,
-                message: message,
-            });
+            toast.success(message);
         } catch (error) {
             console.error(error);
-            if (
-                [
-                    "Role Not Authorized",
-                    "Provide password",
-                    "SAP Credential Not Valid",
-                    "Session Expired",
-                ].includes(error.response?.data.message)
-            ) {
-                setModalAuth(true);
-            }
             toast.error(error.response.data.message ?? error.message);
         } finally {
             setLoading(false);
@@ -135,30 +107,30 @@ const ApprovalReqDelete = () => {
         return row.plant === x.plant;
     };
     const notselectRule = row => {
-        if (!["LOGISTIC"].includes(session.role)) {
+        if (!["LOGISTIC", "ADMIN"].includes(session.role)) {
             return false;
         }
         return true;
     };
     const columns = [
         {
+            header: "Batch Code",
+            accessorKey: "batch_code",
+            cell: props => props.getValue(),
+        },
+        {
             header: "Loading Note Num",
             accessorKey: "ln_num",
             cell: props => props.getValue(),
         },
         {
-            header: "SO Num.",
-            accessorKey: "id_do",
+            header: "STO Num",
+            accessorKey: "id_sto",
             cell: props => props.getValue(),
         },
         {
             header: "Plant",
             accessorKey: "plant",
-            cell: props => props.getValue(),
-        },
-        {
-            header: "Inco.",
-            accessorKey: "inco_1",
             cell: props => props.getValue(),
         },
         {
@@ -192,33 +164,8 @@ const ApprovalReqDelete = () => {
                 )} ${row.original.uom}`,
         },
         {
-            header: "Fac. Plant",
-            accessorKey: "fac_plant",
-            cell: props => props.getValue(),
-        },
-        {
-            header: "Oth. Plant",
-            accessorKey: "oth_plant",
-            cell: props => props.getValue(),
-        },
-        {
-            header: "Fac. Batch",
-            accessorKey: "fac_batch",
-            cell: props => props.getValue(),
-        },
-        {
-            header: "Oth. Batch",
-            accessorKey: "oth_batch",
-            cell: props => props.getValue(),
-        },
-        {
-            header: "Fac. Val. Type",
-            accessorKey: "fac_valtype",
-            cell: props => props.getValue(),
-        },
-        {
-            header: "Oth. Val. Type",
-            accessorKey: "oth_valtype",
+            header: "Material",
+            accessorKey: "desc_con",
             cell: props => props.getValue(),
         },
         {
@@ -231,7 +178,7 @@ const ApprovalReqDelete = () => {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await axiosPrivate.get(`/ln/createdln`);
+                const { data } = await axiosPrivate.get(`/tol/createdtol`);
                 setRows(data.data);
             } catch (error) {
                 console.error(error);
@@ -406,83 +353,6 @@ const ApprovalReqDelete = () => {
                     />
                     <Typography variant="h4">{modalResp.message}</Typography>
                 </Box>
-            </Dialog>
-            <Dialog open={modalAuth} maxWidth="m">
-                <DialogTitle>Authorize SAP Credentials</DialogTitle>
-
-                <form onSubmit={handleAuth(processLoadingNote)}>
-                    <Box
-                        sx={{
-                            width: "40rem",
-                            height: "15rem",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 5,
-                            p: 2,
-                            mb: 3,
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: "3rem",
-                                paddingLeft: "1rem",
-                            }}
-                        >
-                            <div>
-                                <div>
-                                    <Alert
-                                        variant="filled"
-                                        severity="warning"
-                                        sx={{ width: "96%" }}
-                                    >
-                                        <strong>
-                                            Currently you're not authorized to
-                                            push data to SAP, please insert
-                                            registered SAP Password according to
-                                            username displayed
-                                        </strong>{" "}
-                                    </Alert>
-                                </div>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: "1rem",
-                                        margin: "1rem 0 0 0",
-                                    }}
-                                >
-                                    <strong>Username :</strong>{" "}
-                                    <em>
-                                        <strong>{session.username}</strong>
-                                    </em>
-                                </div>
-                            </div>
-                        </div>
-                        <PasswordWithEyes
-                            control={controlAuth}
-                            label="SAP Password"
-                            name="password"
-                            rules={{ required: "Please insert this field" }}
-                        />
-                    </Box>
-                    <DialogActions>
-                        <LoadingButton
-                            type="submit"
-                            color="primary"
-                            variant="contained"
-                            loading={loadingPush}
-                        >
-                            Continue
-                        </LoadingButton>
-                        <Button
-                            variant="contained"
-                            color="error"
-                            onClick={() => setModalAuth(false)}
-                        >
-                            Cancel
-                        </Button>
-                    </DialogActions>
-                </form>
             </Dialog>
         </Box>
     );
