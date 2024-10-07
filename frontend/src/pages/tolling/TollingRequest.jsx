@@ -1,4 +1,4 @@
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import AutoSelectDriver from "../loadingnote/AutoselectDriver";
 import AutoSelectVehicle from "../loadingnote/AutoselectVehicle";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
@@ -53,6 +53,7 @@ export default function TollingRequest() {
         reset,
         register,
         setValue,
+        setError,
         handleSubmit,
         watch,
         formState: { errors },
@@ -68,6 +69,8 @@ export default function TollingRequest() {
             plant: "",
             company: "",
             uom: "",
+            create_date: null,
+            loading_date: null,
             load_detail: [],
         },
     });
@@ -135,6 +138,7 @@ export default function TollingRequest() {
                     os_qty: data.os_qty,
                     uom: data.uom,
                     create_date: data.create_date,
+                    loading_date: data.loading_date,
                     load_detail: result.data.load_detail.map(item => ({
                         id_detail: item.det_id,
                         vehicle: {
@@ -145,7 +149,6 @@ export default function TollingRequest() {
                             value: item.driver_id,
                             label: item.driver_id + " - " + item.driver_name,
                         },
-                        loading_date: moment(item.tanggal_surat_jalan),
                         planned_qty: item.plan_qty,
                         media_tp: item.media_tp,
                         relate_do: item.multi_do,
@@ -188,6 +191,7 @@ export default function TollingRequest() {
                 plant: sto_data.Plant,
                 company: sto_data.Company,
                 create_date: moment(),
+                loading_date: moment().add("days", 1),
             };
             Object.keys(dataMap).map(item => {
                 setValue(item, dataMap[item]);
@@ -215,8 +219,8 @@ export default function TollingRequest() {
                 driver_name: item.driver.label.split("-")[1].trim(),
                 vehicle: item.vehicle.value,
                 media_tp: item.media_tp,
-                loading_date: item.loading_date.format("YYYY-MM-DD"),
                 planned_qty: parseInt(item.planned_qty.replace(/,/g, "")),
+                loading_date: value.loading_date.format("YYYY-MM-DD"),
                 is_multi: item.is_multi,
                 multi_do: item.relate_do,
                 remark: item.remark,
@@ -238,6 +242,20 @@ export default function TollingRequest() {
         } catch (error) {
             console.error(error);
             toast.error(error.response?.data?.message);
+            const cause = error.response?.data?.cause;
+
+            if (cause && cause.code === "IdenticTruck") {
+                const value = getValues("load_detail");
+                value.forEach((item, index) => {
+                    console.log(item.vehicle.value);
+                    if (cause.value.includes(item.vehicle.value)) {
+                        setError(`load_detail.${index}.vehicle`, {
+                            type: "identical",
+                            message: "Truck Identical",
+                        });
+                    }
+                });
+            }
         } finally {
             setLoading(false);
         }
@@ -421,7 +439,6 @@ export default function TollingRequest() {
                                     id_detail: "",
                                     vehicle: null,
                                     driver: null,
-                                    loading_date: moment().add(1, "day"),
                                     media_tp: "T",
                                     remark: "",
                                     is_multi: false,
@@ -442,6 +459,18 @@ export default function TollingRequest() {
                         />
                     </Box>
                     <Divider sx={{ my: 3 }} variant="middle" />
+                    <Box sx={{ mb: 3 }}>
+                        <DatePickerComp
+                            name="loading_date"
+                            label="Tanggal Pengambilan / Muat"
+                            control={control}
+                            sx={{
+                                minWidth: "15rem",
+                            }}
+                            rules={{ required: "Please insert this field" }}
+                            minDate={moment()}
+                        />
+                    </Box>
                     {fields.map((field, index) => {
                         return (
                             <div
@@ -546,18 +575,6 @@ export default function TollingRequest() {
                                                 }
                                                 onBlurOvr={checkExistingOsQty}
                                                 thousandSeparator
-                                            />
-                                            <DatePickerComp
-                                                name={`load_detail.${index}.loading_date`}
-                                                label="Tanggal Pengambilan / Muat"
-                                                control={control}
-                                                rules={{
-                                                    required: "Please Insert",
-                                                }}
-                                                sx={{
-                                                    minWidth: "15rem",
-                                                }}
-                                                minDate={moment()}
                                             />
                                             <CheckBoxComp
                                                 label="Multi Loading Note"
