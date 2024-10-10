@@ -460,11 +460,59 @@ MasterController.getDataSLocDB = async (req, res) => {
 MasterController.getDataValTypeDB = async (req, res) => {
     try {
         const client = await db.connect();
+        const { plant, material } = req.query;
         try {
             const { rows } = await client.query(
-                `SELECT valtype_id as value, valtype_desc as label FROM mst_valtype`
+                `SELECT valtype, facoth FROM mst_valtype_plant where plant = $1 and material = $2`,
+                [plant, material]
             );
-            res.status(200).send(rows);
+            const FacVtype = rows.filter(item => item.facoth === "FAC");
+            const OthVType = rows.filter(item => item.facoth === "OTH");
+            res.status(200).send({
+                data: {
+                    FAC: FacVtype[0],
+                    OTH: OthVType[0],
+                },
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.SlocDB = async (req, res) => {
+    try {
+        const client = await db.connect();
+        const { plant, material } = req.query;
+        try {
+            const { rows } = await client.query(
+                `select
+                    msp.sloc ,
+                    ms.description ,
+                    msp.facoth
+                from
+                    mst_sloc_plant msp
+                left join mst_sloc ms on
+                    msp.sloc = ms.sloc
+                where msp.plant = $1
+                and msp.material = $2`,
+                [plant, material]
+            );
+            const SlocFac = rows.filter(item => item.facoth == "FAC");
+            const SlocOth = rows.filter(item => item.facoth === "OTH");
+            res.status(200).send({
+                data: {
+                    FAC: SlocFac[0],
+                    OTH: SlocOth[0],
+                },
+            });
         } catch (error) {
             throw error;
         } finally {

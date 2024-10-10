@@ -149,14 +149,16 @@ export default function FormCreateLoadingNote() {
             (async () => {
                 try {
                     const { data: getSloc } = await axiosPrivate.get(
-                        `/master/sloc?plant=${firstRow.plant}&itemrule=${firstRow.rules}`
+                        `/master/slocdb?plant=${firstRow.plant}&material=${firstRow.material}`
                     );
-                    const slocfac = getSloc.factory;
-                    const slocoth = getSloc.other;
+                    const slocfac = getSloc.data.FAC;
+                    const slocoth = getSloc.data.OTH;
                     const { data: getValtype } = await axiosPrivate.get(
-                        `/master/valtype?plant=${firstRow.plant}&material=${firstRow.material}`
+                        `/master/valtypedb?plant=${firstRow.plant}&material=${firstRow.material}`
                     );
-                    const valType = getValtype;
+                    const valType = getValtype.data;
+                    const valfac = valType.FAC;
+                    const valoth = valType.OTH;
                     const { data: getBatch } = await axiosPrivate.get(
                         `/master/batchdb?company=${firstRow.company}`
                     );
@@ -194,10 +196,10 @@ export default function FormCreateLoadingNote() {
                                 " - " +
                                 firstRow.fac_sloc_desc,
                         });
-                    } else {
+                    } else if (slocfac) {
                         setValue("fac_sloc", {
-                            value: slocfac[0].value,
-                            label: slocfac[0].value + " - " + slocfac[0].label,
+                            value: slocfac.sloc,
+                            label: slocfac.sloc + " - " + slocfac.description,
                         });
                     }
                     if (firstRow.oth_sloc !== "" && firstRow.oth_sloc) {
@@ -208,10 +210,10 @@ export default function FormCreateLoadingNote() {
                                 " - " +
                                 firstRow.oth_sloc_desc,
                         });
-                    } else {
+                    } else if (slocoth) {
                         setValue("oth_sloc", {
-                            value: slocoth[0].value,
-                            label: slocoth[0].value + " - " + slocoth[0].label,
+                            value: slocoth.sloc,
+                            label: slocoth.sloc + " - " + slocoth.description,
                         });
                     }
                     if (firstRow.fac_valtype !== "" && firstRow.fac_valtype) {
@@ -219,10 +221,10 @@ export default function FormCreateLoadingNote() {
                             value: firstRow.fac_valtype,
                             label: firstRow.fac_valtype,
                         });
-                    } else {
+                    } else if (valfac) {
                         setValue("fac_valtype", {
-                            value: getValtype[0].value,
-                            label: getValtype[0].label,
+                            value: valfac.valtype,
+                            label: valfac.valtype,
                         });
                     }
                     if (firstRow.oth_valtype !== "" && firstRow.oth_valtype) {
@@ -230,15 +232,42 @@ export default function FormCreateLoadingNote() {
                             value: firstRow.oth_valtype,
                             label: firstRow.oth_valtype,
                         });
-                    } else {
+                    } else if (valoth) {
                         setValue("oth_valtype", {
-                            value: getValtype[0].value,
-                            label: getValtype[0].label,
+                            value: valoth.valtype,
+                            label: valoth.valtype,
                         });
                     }
-                    setSlocopfac(slocfac);
-                    setSlocopoth(slocoth);
-                    setvpOp(valType);
+                    if (slocfac) {
+                        setSlocopfac([
+                            {
+                                value: slocfac.sloc,
+                                label:
+                                    slocfac.sloc + " - " + slocfac.description,
+                            },
+                        ]);
+                    }
+                    if (slocoth) {
+                        setSlocopoth([
+                            {
+                                value: slocoth.sloc,
+                                label:
+                                    slocoth.sloc + " - " + slocoth.description,
+                            },
+                        ]);
+                    }
+                    if (valoth && valfac) {
+                        setvpOp([
+                            {
+                                value: valoth.valtype,
+                                label: valoth.valtype,
+                            },
+                            {
+                                value: valfac.valtype,
+                                label: valfac.valtype,
+                            },
+                        ]);
+                    }
                     clearErrors();
                 } catch (error) {
                     console.error(error);
