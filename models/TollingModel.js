@@ -1541,7 +1541,7 @@ TollingModel.SyncTollingWBNET = async () => {
             `;
             const { rows: WBNetDt } = await oraclient.execute(queGetWBNET);
             if (!WBNetDt.length > 0) {
-                return;
+                return [];
             }
             const DataWBNet = {};
             WBNetDt.forEach(item => {
