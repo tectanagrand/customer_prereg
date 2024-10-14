@@ -386,8 +386,15 @@ TollingController.ShowCreatedLN = async (req, res) => {
 TollingController.SyncTollingWBNET = async (req, res) => {
     try {
         const data = await Tolling.SyncTollingWBNET();
+        let message = "";
+        if (!data.length > 0) {
+            message = "Sync clear";
+        } else {
+            message = "Data synced";
+        }
         res.status(200).send({
             data: data,
+            message: message,
         });
     } catch (error) {
         console.error(error);
