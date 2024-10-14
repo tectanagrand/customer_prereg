@@ -9,6 +9,7 @@ const crud = require("../helper/crudquery");
 const moment = require("moment");
 const PDFDocument = require("pdfkit");
 const EmailModel = require("../models/EmailModel");
+const { ora } = require("../config/oracleconnection");
 
 TollingModel.GetSTOTolling = async stonum => {
     try {
@@ -1499,6 +1500,128 @@ TollingModel.ShowCreatedLN = async (q, limit, offset, id_user, role) => {
         }
     } catch (error) {
         console.error(error);
+        throw error;
+    }
+};
+TollingModel.SyncTollingWBNET = async () => {
+    try {
+        const oraclient = await ora.getConnection();
+        const client = await db.connect();
+        const ColWBNET = Object.freeze({
+            BATCH_CODE: 0,
+            NET: 1,
+            GROSS: 2,
+            TARRA: 3,
+            RECEIVED: 4,
+            DEDUCTION: 5,
+            TRUCK_NUMBER: 6,
+            LICENSE_NO: 7,
+            NAME: 8,
+            NO_STO: 9,
+            MAT_DOC: 10,
+        });
+        try {
+            await client.query(TRANS.BEGIN);
+            const queGetWBNET = `
+                SELECT 
+                    BATCH_CODE, 
+                    NET, 
+                    GROSS, 
+                    TARE,
+                    RECEIVED,
+                    DEDUCTION,
+                    TRUCK_NUMBER,
+                    LICENSE_NO,
+                    NAME, 
+                    NO_STO,
+                    MAT_DOC
+                FROM
+                WBNET_TOLLING
+                WHERE TRANSACTION_CODE = 'LSK' AND IS_PULL_WEB = 0 
+            `;
+            const { rows: WBNetDt } = await oraclient.execute(queGetWBNET);
+            if (!WBNetDt.length > 0) {
+                return;
+            }
+            const DataWBNet = {};
+            WBNetDt.forEach(item => {
+                if (!DataWBNet[item[ColWBNET.BATCH_CODE]]) {
+                    DataWBNet[item[ColWBNET.BATCH_CODE]] = {
+                        data: [item],
+                        total: item[ColWBNET.NET],
+                    };
+                    return;
+                }
+                DataWBNet[item[ColWBNET.BATCH_CODE]].data.push(item);
+                DataWBNet[item[ColWBNET.BATCH_CODE]].total +=
+                    item[ColWBNET.NET];
+                return;
+            });
+            const today = new Date();
+            let created_matdoc = [];
+            for (const keys of Object.keys(DataWBNet)) {
+                const sto_num = DataWBNet[keys].data[0][ColWBNET.NO_STO];
+                // console.log(sto_num);
+                const { data } = await axios.get(
+                    `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOCRTSet?$filter=(Sto eq '${sto_num}')and(Line eq '1')and(Qty eq ${DataWBNet[keys].total})&$format=json`,
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                const matdoc = data.d.results[0].Deliv;
+                if (!matdoc) {
+                    throw new Error("Failed to create matdoc");
+                }
+                created_matdoc.push(matdoc);
+                const [queryora, valora] = crud.updateItemOra(
+                    "WBNET_TOLLING",
+                    {
+                        MAT_DOC: matdoc,
+                        IS_PULL_WEB: 1,
+                        PULL_DATETIME: today,
+                    },
+                    { BATCH_CODE: keys }
+                );
+                await oraclient.execute(queryora, valora);
+                for (const dt of DataWBNet[keys].data) {
+                    await client.query(
+                        `
+                        update tolling set bruto = $1, tarra = $2, netto = $3, deduction = $4, receive = $5,
+                        matdoc_code = $6
+                        where ln_num like $7 and vhcl_id = $8                        
+                        `,
+                        [
+                            dt[ColWBNET.GROSS],
+                            dt[ColWBNET.TARRA],
+                            dt[ColWBNET.NET],
+                            dt[ColWBNET.DEDUCTION],
+                            dt[ColWBNET.RECEIVED],
+                            matdoc,
+                            `${keys}%`,
+                            dt[ColWBNET.TRUCK_NUMBER],
+                        ]
+                    );
+                }
+            }
+            await client.query(TRANS.COMMIT);
+            await oraclient.commit();
+            return created_matdoc;
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            await oraclient.rollback();
+            throw error;
+        } finally {
+            if (oraclient) {
+                oraclient.release();
+            }
+            if (client) {
+                client.release();
+            }
+        }
+    } catch (error) {
         throw error;
     }
 };
