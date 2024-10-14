@@ -24,5 +24,6 @@ router.post("/printv2", TollingController.PrintTollingv2);
 router.post("/reqdeltol", TollingController.ReqDeleteLNTol);
 router.post("/apprreqdel", TollingController.ProcessDeleteReq);
 router.get("/createdtol", TollingController.ShowCreatedLN);
+router.get("/synctolwbnet", TollingController.SyncTollingWBNET);
 
 module.exports = router;

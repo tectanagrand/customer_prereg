@@ -383,4 +383,18 @@ TollingController.ShowCreatedLN = async (req, res) => {
     }
 };
 
+TollingController.SyncTollingWBNET = async (req, res) => {
+    try {
+        const data = await Tolling.SyncTollingWBNET();
+        res.status(200).send({
+            data: data,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = TollingController;
