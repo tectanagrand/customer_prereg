@@ -9,7 +9,7 @@ const crud = require("../helper/crudquery");
 const moment = require("moment");
 const PDFDocument = require("pdfkit");
 const EmailModel = require("../models/EmailModel");
-const { ora } = require("../config/oracleconnection");
+const { PoolOra, ora } = require("../config/oracleconnection");
 
 TollingModel.GetSTOTolling = async stonum => {
     try {
