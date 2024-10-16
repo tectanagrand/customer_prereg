@@ -15,3 +15,4 @@ _noderfc.log
 public
 ssl
 *.sh
+*.env
