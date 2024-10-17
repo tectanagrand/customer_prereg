@@ -15,3 +15,4 @@ public/stnk/*
 node_modules
 nwrfcsdk*
 *.sh
+*.env
