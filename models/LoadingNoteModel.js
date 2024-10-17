@@ -192,6 +192,7 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                     is_pushed: false,
                     is_multi: rows.is_multi,
                     multi_do: rows.multi_do,
+                    remark_req: rows.remark,
                 };
                 if (rows.id_detail === "") {
                     [que, val] = crud.insertItem(
