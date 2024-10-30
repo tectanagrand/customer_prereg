@@ -1,5 +1,6 @@
 const db = require("../config/connection");
 const { PoolOra, ora } = require("../config/oracleconnection");
+const { getConnection, ora: ora2 } = require("../config/oracleconnectionv2");
 const TRANS = require("../config/transaction");
 const ExcelJS = require("exceljs");
 const crud = require("../helper/crudquery");
@@ -334,9 +335,30 @@ LoadingNoteModel.sendToLogistic = async id_header => {
                 [id_header]
             );
             const { rows: dataDetail } = await client.query(
-                `SELECT DRIVER_NAME, DRIVER_ID, VHCL_ID, 
-                TO_CHAR(CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE, PLAN_QTY FROM LOADING_NOTE_DET
-                WHERE HD_FK = $1`,
+                `select * from (
+            select
+                hd_fk,
+                DRIVER_NAME,
+                DRIVER_ID,
+                VHCL_ID,
+                TO_CHAR(CRE_DATE,
+                'DD-MM-YYYY') as CRE_DATE,
+                PLAN_QTY
+            from
+                LOADING_NOTE_DET
+            union 
+            select
+                hd_fk,
+                driver_name ,
+                driver_id,
+                vhcl_id,
+                TO_CHAR(CRE_DATE,
+                'DD-MM-YYYY') as CRE_DATE,
+                PLAN_QTY
+            from
+                TOLLING
+            ) SJ where hd_fk = $1
+            `,
                 [id_header]
             );
             const dataEmail = rows[0];
@@ -1157,7 +1179,7 @@ LoadingNoteModel.getOSLoadingNoteNumWB = async (limit, offset, cust) => {
 LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
     try {
         const client = await db.connect();
-        const oraclient = await ora.getConnection();
+        const oraclient = await getConnection();
         const today = new Date();
         const uploadData = params.selected_req;
         const fac_sloc = params.fac_sloc;
@@ -1185,6 +1207,10 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                 } else {
                     method = "insert";
                 }
+                let itemrule = item.rules;
+                if (item.id_sto && item?.trans_type == "M") {
+                    itemrule = "6A";
+                }
                 const splitdt = item.tanggal_surat_jalan.split("-");
                 const param = {
                     HEAD_ID: item.hd_id,
@@ -1192,7 +1218,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     BUKRS: item.company,
                     UPLOADID: "1",
                     DOTYPE: item?.trans_type === "M" ? "T" : "S",
-                    ITEMRULE: item.rules,
+                    ITEMRULE: itemrule,
                     VBELN_REF: item.id_do,
                     EBELN_REF: item.id_sto,
                     POSNR: "000010",
@@ -1295,7 +1321,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
 LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
     try {
         const client = await db.connect();
-        const oraclient = await ora.getConnection();
+        const oraclient = await getConnection();
         const id_user = session.id_user;
         const username = session.username;
         const cust_code = lnreq[0].cust_code;
@@ -3329,7 +3355,7 @@ LoadingNoteModel.syncDataStagingWBNET = async (comp, month, year) => {
     let oraclient;
     let psqlclient;
     try {
-        oraclient = await ora.getConnection();
+        oraclient = await getConnection();
         psqlclient = await db.connect();
         let updatedLN = [];
         try {

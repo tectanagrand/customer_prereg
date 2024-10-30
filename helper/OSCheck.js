@@ -1,6 +1,6 @@
 const db = require("../config/connection");
 const axios = require("axios");
-const { ora } = require("../config/oracleconnection");
+const { getConnection } = require("../config/oracleconnectionv2");
 
 const OSCheck = {};
 
@@ -110,7 +110,7 @@ OSCheck.CheckOSCust = async do_number => {
 OSCheck.CheckOSUps = async do_number => {
     try {
         const client = await db.connect();
-        const oraclient = await ora.getConnection();
+        const oraclient = await getConnection();
         try {
             let ConQtySAP = 0;
             let totalFromWB = 0;

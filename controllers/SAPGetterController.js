@@ -1,5 +1,5 @@
 const psqlconn = require("../config/connection");
-const { PoolOra, ora } = require("../config/oracleconnection");
+const { getConnection } = require("../config/oracleconnectionv2");
 const TRANS = require("../config/transaction");
 const crud = require("../helper/crudquery");
 const EmailModel = require("../models/EmailModel");
@@ -9,7 +9,7 @@ const SAPGetterChores = {};
 SAPGetterChores.LoadingNoteSync = async (req, res) => {
     try {
         const psqlclient = await psqlconn.connect();
-        const oraclient = await ora.getConnection();
+        const oraclient = await getConnection();
         const email_creator = new Map();
         const email_updater = new Map();
         const email_wb = new Map();
