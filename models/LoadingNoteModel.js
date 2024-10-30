@@ -910,9 +910,12 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
                     DET.DRIVER_NAME) AS DRIVER,
                 DET.VHCL_ID,
                 TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'DD-MM-YYYY') AS TANGGAL_SURAT_JALAN,
+                TO_CHAR(DET.TANGGAL_SURAT_JALAN, 'YYYY-MM-DD') AS TANGGAL_SURAT_JALAN_ORA,
                 DET.cre_date as CREATE_DATE,
+                TO_CHAR(DET.cre_date, 'YYYY-MM-DD') as CREATE_DATE_ORA,
                 DET.PLAN_QTY,
-                HD.UOM
+                HD.UOM,
+                C.group_comp as cgrp
             FROM LOADING_NOTE_HD HD
             LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
             LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
@@ -1318,6 +1321,84 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
     }
 };
 
+LoadingNoteModel.ApproveUPSLoadingNoteSAP = async (lnreq, session) => {
+    try {
+        const client = await db.connect();
+        const oraclient = await getConnection();
+        const id_user = session.id_user;
+        const username = session.username;
+        let cust_code;
+        if (lnreq[0].cust_code) {
+            cust_code = lnreq[0].cust_code;
+        } else if (lnreq[0].ven_code) {
+            cust_code = lnreq[0].ven_code;
+        } else if (lnreq[0].intr_code) {
+            cust_code = lnreq[0].intr_code;
+        }
+        const today = new Date();
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows: materialMst } = await client.query(`
+                select material_code, material_cat from mst_material                 
+                `);
+            let material_mst = new Map();
+            materialMst.forEach((item, index) => {
+                material_mst.set(item.material_code, item.material_cat);
+            });
+            for (const ln of lnreq) {
+                const { rows: lnnum_data } = await oraclient.execute(
+                    `
+                    SELECT LOADING_NOTE_NUM FROM PREREG_LOADING_NOTE_SAP WHERE DET_ID = :0
+                    `,
+                    [ln.id]
+                );
+                const NUMLN = lnnum_data[0][0];
+                const payload = {
+                    ID_SJ: NUMLN,
+                    ID_TRANSPORTER: cust_code,
+                    DO_NO: ln.id_do,
+                    STONO: ln.id_sto,
+                    INCO1: ln.inco_1,
+                    ID_CUSTOMER: ln?.trg_cust,
+                    SIM_NO: ln.driver_id,
+                    VEHICLE_NO: ln.vhcl_id,
+                    PLANNING_QTY: ln.plan_qty,
+                    UOM: ln.uom,
+                    SJ_DATE: new Date(ln.create_date_ora + "T00:00:00"),
+                    LOADING_DATE: new Date(
+                        ln.tanggal_surat_jalan_ora + "T00:00:00"
+                    ),
+                    CREATE_BY: username,
+                    PLANT: ln.plant,
+                    COMPANY: ln.company,
+                    CTR_NO: ln.con_num,
+                    ISACTIVE: "TRUE",
+                    MAT_DESC: ln.desc_con,
+                    MAT_CODE: ln.material,
+                    MAT_CAT: material_mst.get(ln.material),
+                };
+                const [queIns, valIns] = crud.insertItemOra(
+                    "PREREG_LOADING_NOTE_SAP_UPS",
+                    payload
+                );
+                await oraclient.execute(queIns, valIns);
+            }
+            await client.query(TRANS.COMMIT);
+            await oraclient.commit();
+            return true;
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            await oraclient.rollback();
+            throw error;
+        } finally {
+            client.release();
+            oraclient.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
 LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
     try {
         const client = await db.connect();
@@ -1343,17 +1424,20 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                 `);
             let latestTicketNum = latestLN[0]?.ln_num ?? "";
             for (const ln of lnreq) {
-                latestTicketNum = TicketGen.genLoadingNoteUPS(
-                    cust_code,
-                    latestTicketNum
+                const { rows: lnnum_data } = await oraclient.execute(
+                    `
+                    SELECT LOADING_NOTE_NUM FROM PREREG_LOADING_NOTE_SAP WHERE DET_ID = :0
+                    `,
+                    [ln.id]
                 );
+                const NUMLN = lnnum_data[0][0];
                 const payload = {
                     ID_SJ: latestTicketNum,
                     ID_TRANSPORTER: cust_code,
                     DO_NO: ln.id_do,
                     STONO: ln.id_sto,
                     INCO1: ln.inco_1,
-                    ID_CUSTOMER: ln.trg_cust,
+                    ID_CUSTOMER: ln?.trg_cust,
                     SIM_NO: ln.driver_id,
                     VEHICLE_NO: ln.vhcl_id,
                     PLANNING_QTY: ln.plan_qty,

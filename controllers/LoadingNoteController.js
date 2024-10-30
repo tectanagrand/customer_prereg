@@ -244,7 +244,42 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
             payload,
             session
         );
-        LoadingNoteController.PushJobSAPTrigger(insertSAP, session, password);
+        if (payload.selected_req[0].cgrp === "UPSTREAM") {
+            LoadingNoteController.PushJobSAPUPSTrigger(
+                payload.selected_req,
+                session,
+                password
+            );
+        } else {
+            LoadingNoteController.PushJobSAPTrigger(
+                insertSAP,
+                session,
+                password
+            );
+        }
+        res.status(200).send({
+            message: "Data Pushed to SAP",
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.SubmitSAPUPS = async (req, res) => {
+    try {
+        const payload = req.body;
+        const session = req.cookies;
+        const password = req.body.password;
+        const insertSAP = await LoadNote.finalizeLoadingNote_3(
+            payload,
+            session
+        );
+
+        LoadingNoteController.PushJobSAPUPSTrigger(payload, session, password);
+
         res.status(200).send({
             message: "Data Pushed to SAP",
         });
@@ -305,6 +340,38 @@ LoadingNoteController.PushJobSAPTrigger = (insertSAP, session, password) => {
             .catch(error => {
                 console.log(error);
             });
+    };
+    q.push(jobQueue);
+    return;
+};
+
+LoadingNoteController.PushJobSAPUPSTrigger = (payload, session, password) => {
+    const promiseJob = new Promise(async (resolve, reject) => {
+        try {
+            await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
+                {
+                    auth: {
+                        username: session.username,
+                        password: password,
+                    },
+                }
+            );
+            await LoadNote.ApproveUPSLoadingNoteSAP(payload, session);
+            resolve(
+                "Success Push" + moment().format("YYYY-MM-DD T HH:mm:ss") + " "
+            );
+        } catch (error) {
+            reject(error);
+        }
+    });
+    const jobQueue = () => {
+        console.log(
+            "Start new Job : " + moment().format("YYYY-MM-DD T HH:mm:ss") + " "
+        );
+        return promiseJob
+            .then(result => console.log(result))
+            .catch(error => console.log(error));
     };
     q.push(jobQueue);
     return;
