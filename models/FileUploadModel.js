@@ -5,7 +5,7 @@ const os = require("os");
 const path = require("path");
 const fs = require("fs");
 const db = require("../config/connection");
-const { PoolOra, ora } = require("../config/oracleconnection");
+const { getConnection } = require("../config/oracleconnectionv2");
 const crud = require("../helper/crudquery");
 const uuid = require("uuidv4");
 const TRANS = require("../config/transaction");
@@ -58,7 +58,7 @@ FileUploadModel.uploadFile = async (req, pathtarget) => {
 
 FileUploadModel.uploadSIM = async (req, pathtarget) => {
     try {
-        const oraclient = await ora.getConnection();
+        const oraclient = await getConnection();
         try {
             //allowed extensions
             const extensions = ["jpg", "jpeg", "png", "pneg"];
@@ -532,7 +532,7 @@ FileUploadModel.processDrvVeh = async ({
                 };
             } else if (action === "APPROVE") {
                 try {
-                    const oraclient = await ora.getConnection();
+                    const oraclient = await getConnection();
                     let plantList = new Set();
                     try {
                         let updateData = {

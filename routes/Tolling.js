@@ -21,6 +21,7 @@ router.post("/getprint", TollingController.GetPrintTolling);
 router.post("/getprintv2", TollingController.GetPrintTollingv2);
 router.post("/print", TollingController.PrintTolling);
 router.post("/printv2", TollingController.PrintTollingv2);
+router.post("/printv3", TollingController.PrintTollingv3);
 router.post("/reqdeltol", TollingController.ReqDeleteLNTol);
 router.post("/apprreqdel", TollingController.ProcessDeleteReq);
 router.get("/createdtol", TollingController.ShowCreatedLN);

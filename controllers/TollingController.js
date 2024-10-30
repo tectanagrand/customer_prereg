@@ -3,7 +3,8 @@ const Tolling = require("../models/TollingModel");
 const db = require("../config/connection");
 const TRANS = require("../config/transaction");
 const EmailModel = require("../models/EmailModel");
-
+const fs = require("fs");
+const path = require("path");
 const TollingController = {};
 
 TollingController.getSTOTolling = async (req, res) => {
@@ -231,6 +232,40 @@ TollingController.PrintTollingv2 = async (req, res) => {
         doc.pipe(res);
         res.status(200);
         doc.end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+TollingController.PrintTollingv3 = async (req, res) => {
+    try {
+        const { id } = req.body;
+        const { batch_code } = await Tolling.PrintTollingv3(id);
+        const zipPath = path.join(path.resolve(), `/${batch_code}_Tolling.zip`);
+        const folderPath = path.join(path.resolve(), `/${batch_code}`);
+
+        // Send the file for download
+        await res.download(zipPath, `${batch_code}_Tolling.zip`, async err => {
+            if (err) {
+                console.error("Error downloading the file: ", err);
+                res.status(500).send({
+                    message: "Error downloading the file",
+                });
+                return;
+            }
+
+            // Clean up the ZIP file and folder after the download
+            try {
+                fs.unlinkSync(zipPath); // Delete the ZIP file
+                fs.rmSync(folderPath, { recursive: true, force: true }); // Delete the folder and its contents
+                console.log("Cleaned up ZIP and folder successfully");
+            } catch (cleanupError) {
+                console.error("Error cleaning up files: ", cleanupError);
+            }
+        });
     } catch (error) {
         console.error(error);
         res.status(500).send({

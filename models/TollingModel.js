@@ -9,7 +9,10 @@ const crud = require("../helper/crudquery");
 const moment = require("moment");
 const PDFDocument = require("pdfkit");
 const EmailModel = require("../models/EmailModel");
-const { PoolOra, ora } = require("../config/oracleconnection");
+const { getConnection } = require("../config/oracleconnectionv2");
+const archiver = require("archiver");
+const fs = require("fs");
+const path = require("path");
 
 TollingModel.GetSTOTolling = async stonum => {
     try {
@@ -98,14 +101,14 @@ TollingModel.SaveRequestTolling = async (params, session) => {
                 const { rows } = await client.query(
                     `
             select batch_code from loading_note_hd 
-            where batch_code is not null and create_by = $1
+            where batch_code is not null and plant = $1
             order by id desc limit 1            
             `,
-                    [session.id_user]
+                    [params.plant]
                 );
                 let last_batch_code = rows[0]?.batch_code ?? "";
                 payloadHeader.batch_code = TicketGen.GenTollingReq(
-                    session.username,
+                    params.plant,
                     last_batch_code
                 );
                 [que, val] = crud.insertItem(
@@ -1242,12 +1245,14 @@ TollingModel.PrintTollingv2 = async id_tol => {
                 doc.rotate(35);
                 doc.opacity(1);
                 doc.fontSize(20).text(`${dt.name_1} (${dt.kunnr})`, 100, 90);
-                doc.fontSize(20).text("Surat Jalan", 400, 50);
+                doc.font("Helvetica-Bold")
+                    .fontSize(18)
+                    .text("Surat Jalan Tolling", 300, 50);
                 if (dt.is_multi) {
                     doc.fontSize(10).text("(Multi Con.)", 400, 70);
                 }
 
-                doc.fontSize(12).text("No Batch :", 100, 140);
+                doc.font("Helvetica").fontSize(12).text("No Batch :", 100, 140);
                 doc.fontSize(12).text(dt.batch_code, 180, 140);
 
                 doc.fontSize(12).text("No LN :", 100, 160);
@@ -1341,6 +1346,441 @@ TollingModel.PrintTollingv2 = async id_tol => {
         throw error;
     }
 };
+
+TollingModel.PrintTollingv3 = async id_tol => {
+    try {
+        const client = await db.connect();
+        if (!id_tol.length > 0) {
+            throw new Error("Please provide Array<id_tol>");
+        }
+        try {
+            await client.query(TRANS.BEGIN);
+            const whereParam = id_tol.map((_, index) => `$${index + 1}`);
+            const { rows } = await client.query(
+                `
+                SELECT  
+                TOL.driver_id,
+                TOL.driver_name,
+                TOL.vhcl_id,
+                HD.plant,
+                TOL.ln_num,
+                hd.batch_code,
+                TO_CHAR(TOL.tanggal_surat_jalan, 'DD-MM-YYYY') as tanggal_surat_jalan,
+                TO_CHAR(TOL.cre_date, 'DD-MM-YYYY') as cre_date,
+                TOL.plan_qty,
+                HD.UOM,
+                HD.DESC_CON,
+                HD.ID_STO,
+                HD.material,
+                CO.name as comp_name,
+                HD.company,
+                CASE 
+                    WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
+                    WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+                    WHEN INT.NAME_1 IS NOT NULL THEN INT.NAME_1
+                    ELSE ''
+                    END
+                AS NAME_1,
+                CASE 
+                    WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
+                    WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+                    WHEN INT.KUNNR IS NOT NULL THEN INT.KUNNR
+                    ELSE ''
+                    END
+                AS KUNNR,
+                PLT.ALAMAT,
+                TOL.print_count,
+                TOL.is_multi, 
+                TOL.remark_req
+                FROM TOLLING TOL
+                LEFT JOIN LOADING_NOTE_HD HD ON TOL.HD_FK = HD.HD_ID
+                LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+                LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR OR USR.SAP_CODE = CUST.KUNNR
+                LEFT JOIN MST_VENDOR VEN ON USR.USERNAME = VEN.LIFNR OR USR.SAP_CODE = VEN.LIFNR
+                LEFT JOIN MST_COMPANY CO ON CO.SAP_CODE = HD.COMPANY
+                LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME       
+                LEFT JOIN MST_COMPANY_PLANT PLT ON PLT.PLANT_CODE = HD.PLANT         
+                WHERE TOL.DET_ID in (${whereParam.join(", ")})
+                ORDER BY TOL.ID DESC
+                `,
+                id_tol
+            );
+
+            let pageIndex = 0;
+            let last_print_count = rows[0].print_count ?? 0;
+            let batch_code = rows[0].batch_code;
+            const zip_folder = fs.createWriteStream(
+                path.join(path.resolve(), `/${batch_code}_Tolling.zip`)
+            );
+            const zipper = archiver("zip");
+            zipper.pipe(zip_folder);
+            zipper.on("error", err => {
+                throw err;
+            });
+
+            fs.mkdirSync(path.join(path.resolve(), `./${batch_code}`));
+
+            // Helper function to handle writing PDFs asynchronously
+            const createPDFAsync = dt => {
+                return new Promise((resolve, reject) => {
+                    const doc = new PDFDocument({ size: "A4" });
+                    const filePath = path.join(
+                        path.resolve(),
+                        `/${batch_code}/${dt.vhcl_id}_SuratJalanTolling.pdf`
+                    );
+                    const writeStream = fs.createWriteStream(filePath);
+
+                    doc.pipe(writeStream);
+
+                    let watermark = !dt.print_count
+                        ? "Original Document"
+                        : `Copy of original (${dt.print_count})`;
+
+                    doc.opacity(0.2);
+                    doc.rotate(-35);
+
+                    doc.fontSize(60).text(watermark, -200, 400);
+                    doc.text("KPN CORP", -200, 500);
+
+                    doc.save();
+                    doc.rotate(35);
+                    doc.opacity(1);
+                    doc.fontSize(20).text(
+                        `${dt.name_1} (${dt.kunnr})`,
+                        100,
+                        90
+                    );
+                    doc.font("Helvetica-Bold")
+                        .fontSize(18)
+                        .text("Surat Jalan Tolling", 300, 50);
+                    if (dt.is_multi) {
+                        doc.fontSize(10).text("(Multi Con.)", 400, 70);
+                    }
+
+                    doc.font("Helvetica")
+                        .fontSize(12)
+                        .text("No Batch :", 100, 140);
+                    doc.fontSize(12).text(dt.batch_code, 180, 140);
+
+                    doc.fontSize(12).text("No LN :", 100, 160);
+                    doc.fontSize(12).text(dt.ln_num, 180, 160);
+
+                    doc.fontSize(12).text("Tgl. Request LN :", 300, 160);
+                    doc.fontSize(12).text(dt.cre_date, 420, 160, {
+                        width: 120,
+                    });
+
+                    doc.fontSize(12).text("Nama Supir :", 100, 190);
+                    doc.fontSize(12).text(dt.driver_name, 180, 190, {
+                        width: 120,
+                    });
+                    doc.fontSize(12).text("No Polisi : ", 100, 240);
+                    doc.fontSize(12).text(dt.vhcl_id, 180, 240, { width: 120 });
+                    doc.fontSize(12).text("No STO :", 100, 260);
+                    doc.fontSize(12).text(dt.id_sto, 180, 260, { width: 120 });
+                    doc.fontSize(12).text(
+                        "Tgl. Pengambilan / Muat :",
+                        300,
+                        190,
+                        {
+                            width: 120,
+                        }
+                    );
+                    doc.fontSize(12).text(dt.tanggal_surat_jalan, 420, 190, {
+                        width: 120,
+                    });
+                    doc.fontSize(12).text("Tujuan :", 300, 240);
+                    doc.fontSize(12).text(
+                        `${dt.comp_name}(${dt.plant})`,
+                        390,
+                        240,
+                        {
+                            width: 120,
+                        }
+                    );
+                    doc.fontSize(12).text("Alamat :", 300, 260);
+                    doc.fontSize(12).text(dt.alamat, 355, 260, { width: 120 });
+
+                    let xline = 350;
+
+                    doc.moveTo(100, xline).lineTo(500, xline).stroke();
+                    doc.text("Material", 100, xline + 10);
+                    doc.text("Planned Qty", 350, xline + 10);
+                    doc.text("UOM", 450, xline + 10);
+                    doc.moveTo(100, xline + 30)
+                        .lineTo(500, xline + 30)
+                        .stroke();
+
+                    let lastRow = xline + 30;
+                    let col = [100, 350, 450];
+                    lastRow += 30;
+                    doc.text(
+                        `${dt.desc_con}(${dt.material})`,
+                        col[0],
+                        lastRow,
+                        {
+                            width: 220,
+                        }
+                    );
+                    doc.text(dt.plan_qty, col[1], lastRow, { width: 85 });
+                    doc.text(dt.uom, col[2], lastRow, { width: 80 });
+                    lastRow += 30;
+
+                    doc.moveTo(col[1] - 10, xline)
+                        .lineTo(col[1] - 10, lastRow)
+                        .stroke();
+                    doc.moveTo(col[2] - 10, xline)
+                        .lineTo(col[2] - 10, lastRow)
+                        .stroke();
+
+                    doc.fontSize(12).text("Hormat Kami", 100, lastRow + 80);
+                    doc.fontSize(12).text(dt.name_1, 100, lastRow + 160);
+                    doc.fontSize(12).text(dt.driver_name, 400, lastRow + 160);
+                    doc.fontSize(12).text("Remark :", 100, lastRow + 200);
+                    doc.fontSize(12).text(dt.remark_req, 100, lastRow + 220);
+                    doc.end(); // End writing to the PDF
+
+                    writeStream.on("finish", resolve); // Resolve promise when writing finishes
+                    writeStream.on("error", reject); // Reject if there is an error
+                });
+            };
+
+            for (const dt of rows) {
+                await createPDFAsync(dt); // Ensure the PDF file is created before proceeding
+                zipper.file(
+                    path.join(
+                        path.resolve(),
+                        `/${batch_code}/${dt.vhcl_id}_SuratJalanTolling.pdf`
+                    ),
+                    { name: `${dt.vhcl_id}_SuratJalanTolling.pdf` }
+                );
+            }
+
+            await zipper.finalize(); // Finalize the ZIP file after all PDFs are added
+
+            await client.query(
+                `
+                UPDATE TOLLING set print_count = ${parseInt(last_print_count) + 1} where det_id in (${whereParam.join(", ")})
+                `,
+                id_tol
+            );
+            await client.query(TRANS.COMMIT);
+
+            return {
+                batch_code: rows[0].batch_code,
+            };
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+// TollingModel.PrintTollingv3 = async id_tol => {
+//     try {
+//         const client = await db.connect();
+//         if (!id_tol.length > 0) {
+//             throw new Error("Please provide Array<id_tol>");
+//         }
+//         try {
+//             await client.query(TRANS.BEGIN);
+//             const whereParam = id_tol.map((_, index) => `$${index + 1}`);
+//             const { rows } = await client.query(
+//                 `
+//                 SELECT
+//                 TOL.driver_id,
+//                 TOL.driver_name,
+//                 TOL.vhcl_id,
+//                 HD.plant,
+//                 TOL.ln_num,
+//                 hd.batch_code,
+//                 TO_CHAR(TOL.tanggal_surat_jalan, 'DD-MM-YYYY') as tanggal_surat_jalan,
+//                 TO_CHAR(TOL.cre_date, 'DD-MM-YYYY') as cre_date,
+//                 TOL.plan_qty,
+//                 HD.UOM,
+//                 HD.DESC_CON,
+//                 HD.ID_STO,
+//                 HD.material,
+//                 CO.name as comp_name,
+//                 HD.company,
+//                 CASE
+//                     WHEN CUST.NAME_1 IS NOT NULL THEN CUST.NAME_1
+//                     WHEN VEN.NAME_1 IS NOT NULL THEN VEN.NAME_1
+//                     WHEN INT.NAME_1 IS NOT NULL THEN INT.NAME_1
+//                     ELSE ''
+//                     END
+//                 AS NAME_1,
+//                 CASE
+//                     WHEN CUST.KUNNR IS NOT NULL THEN CUST.KUNNR
+//                     WHEN VEN.LIFNR IS NOT NULL THEN VEN.LIFNR
+//                     WHEN INT.KUNNR IS NOT NULL THEN INT.KUNNR
+//                     ELSE ''
+//                     END
+//                 AS KUNNR,
+//                 PLT.ALAMAT,
+//                 TOL.print_count,
+//                 TOL.is_multi,
+//                 TOL.remark_req
+//                 FROM TOLLING TOL
+//                 LEFT JOIN LOADING_NOTE_HD HD ON TOL.HD_FK = HD.HD_ID
+//                 LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
+//                 LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR OR USR.SAP_CODE = CUST.KUNNR
+//                 LEFT JOIN MST_VENDOR VEN ON USR.USERNAME = VEN.LIFNR OR USR.SAP_CODE = VEN.LIFNR
+//                 LEFT JOIN MST_COMPANY CO ON CO.SAP_CODE = HD.COMPANY
+//                 LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
+//                 LEFT JOIN MST_COMPANY_PLANT PLT ON PLT.PLANT_CODE = HD.PLANT
+//                 WHERE TOL.DET_ID in (${whereParam.join(", ")})
+//                 ORDER BY TOL.ID DESC
+//                 `,
+//                 id_tol
+//             );
+//             let pageIndex = 0;
+//             let last_print_count = rows[0].print_count ?? 0;
+//             let batch_code = rows[0].batch_code;
+//             const zip_folder = fs.createWriteStream(
+//                 path.join(path.resolve(), `/${batch_code}_Tolling.zip`)
+//             );
+//             const zipper = archiver("zip");
+//             zipper.pipe(zip_folder);
+//             zipper.on("error", err => {
+//                 throw err;
+//             });
+
+//             fs.mkdirSync(path.join(path.resolve(), `./${batch_code}`));
+//             for (const dt of rows) {
+//                 const doc = new PDFDocument({ size: "A4" });
+//                 doc.pipe(
+//                     fs.createWriteStream(
+//                         path.join(
+//                             path.resolve(),
+//                             `/${batch_code}/${dt.vhcl_id}_SuratJalanTolling.pdf`
+//                         )
+//                     )
+//                 );
+//                 let watermark = "";
+//                 if (!dt.print_count) {
+//                     watermark = "Original Document";
+//                 } else {
+//                     watermark = `Copy of original (${dt.print_count})`;
+//                 }
+
+//                 doc.opacity(0.2);
+//                 doc.rotate(-35);
+
+//                 doc.fontSize(60).text(watermark, -200, 400);
+//                 doc.text("KPN CORP", -200, 500);
+
+//                 doc.save();
+//                 doc.rotate(35);
+//                 doc.opacity(1);
+//                 doc.fontSize(20).text(`${dt.name_1} (${dt.kunnr})`, 100, 90);
+//                 doc.font("Helvetica-Bold")
+//                     .fontSize(18)
+//                     .text("Surat Jalan Tolling", 300, 50);
+//                 if (dt.is_multi) {
+//                     doc.fontSize(10).text("(Multi Con.)", 400, 70);
+//                 }
+
+//                 doc.font("Helvetica").fontSize(12).text("No Batch :", 100, 140);
+//                 doc.fontSize(12).text(dt.batch_code, 180, 140);
+
+//                 doc.fontSize(12).text("No LN :", 100, 160);
+//                 doc.fontSize(12).text(dt.ln_num, 180, 160);
+
+//                 doc.fontSize(12).text("Tgl. Request LN :", 300, 160);
+//                 doc.fontSize(12).text(dt.cre_date, 420, 160, {
+//                     width: 120,
+//                 });
+
+//                 doc.fontSize(12).text("Nama Supir :", 100, 190);
+//                 doc.fontSize(12).text(dt.driver_name, 180, 190, { width: 120 });
+//                 doc.fontSize(12).text("No Polisi : ", 100, 240);
+//                 doc.fontSize(12).text(dt.vhcl_id, 180, 240, { width: 120 });
+//                 doc.fontSize(12).text("No STO :", 100, 260);
+//                 doc.fontSize(12).text(dt.id_sto, 180, 260, { width: 120 });
+//                 doc.fontSize(12).text("Tgl. Pengambilan / Muat :", 300, 190, {
+//                     width: 120,
+//                 });
+//                 doc.fontSize(12).text(dt.tanggal_surat_jalan, 420, 190, {
+//                     width: 120,
+//                 });
+//                 doc.fontSize(12).text("Tujuan :", 300, 240);
+//                 doc.fontSize(12).text(
+//                     `${dt.comp_name}(${dt.plant})`,
+//                     390,
+//                     240,
+//                     {
+//                         width: 120,
+//                     }
+//                 );
+//                 doc.fontSize(12).text("Alamat :", 300, 260);
+//                 doc.fontSize(12).text(dt.alamat, 355, 260, { width: 120 });
+
+//                 let xline = 350;
+
+//                 doc.moveTo(100, xline).lineTo(500, xline).stroke();
+//                 doc.text("Material", 100, xline + 10);
+//                 doc.text("Planned Qty", 350, xline + 10);
+//                 doc.text("UOM", 450, xline + 10);
+//                 doc.moveTo(100, xline + 30)
+//                     .lineTo(500, xline + 30)
+//                     .stroke();
+
+//                 let lastRow = xline + 30;
+//                 let col = [100, 350, 450];
+//                 lastRow += 30;
+//                 doc.text(`${dt.desc_con}(${dt.material})`, col[0], lastRow, {
+//                     width: 220,
+//                 });
+//                 doc.text(dt.plan_qty, col[1], lastRow, { width: 85 });
+//                 doc.text(dt.uom, col[2], lastRow, { width: 80 });
+//                 lastRow += 30;
+
+//                 doc.moveTo(col[1] - 10, xline)
+//                     .lineTo(col[1] - 10, lastRow)
+//                     .stroke();
+//                 doc.moveTo(col[2] - 10, xline)
+//                     .lineTo(col[2] - 10, lastRow)
+//                     .stroke();
+
+//                 doc.fontSize(12).text("Hormat Kami", 100, lastRow + 80);
+//                 doc.fontSize(12).text(dt.name_1, 100, lastRow + 160);
+//                 doc.fontSize(12).text(dt.driver_name, 400, lastRow + 160);
+//                 doc.fontSize(12).text("Remark :", 100, lastRow + 200);
+//                 doc.fontSize(12).text(dt.remark_req, 100, lastRow + 220);
+//                 doc.end();
+//                 zipper.file(
+//                     path.join(
+//                         path.resolve(),
+//                         `/${batch_code}/${dt.vhcl_id}_SuratJalanTolling.pdf`
+//                     )
+//                 );
+//             }
+//             zipper.finalize();
+//             await client.query(
+//                 `
+//                 UPDATE TOLLING set print_count = ${parseInt(last_print_count) + 1} where det_id in (${whereParam.join(", ")})
+//                 `,
+//                 id_tol
+//             );
+//             await client.query(TRANS.COMMIT);
+//             return {
+//                 batch_code: rows[0].batch_code,
+//             };
+//         } catch (error) {
+//             await client.query(TRANS.ROLLBACK);
+//             throw error;
+//         } finally {
+//             client.release();
+//         }
+//     } catch (error) {
+//         throw error;
+//     }
+// };
 
 TollingModel.requestDelete = async (selected, remark, id_user) => {
     try {
@@ -1505,7 +1945,7 @@ TollingModel.ShowCreatedLN = async (q, limit, offset, id_user, role) => {
 };
 TollingModel.SyncTollingWBNET = async () => {
     try {
-        const oraclient = await ora.getConnection();
+        const oraclient = await getConnection();
         const client = await db.connect();
         const ColWBNET = Object.freeze({
             BATCH_CODE: 0,
