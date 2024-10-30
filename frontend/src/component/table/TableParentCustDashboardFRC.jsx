@@ -316,10 +316,11 @@ export default function TableParentCustDashboardFRC() {
     useEffect(() => {
         (async () => {
             const allow =
-                getPermission("FRANCO Req.").fcreate ||
+                getPermission("FRANCO DWS Req.").fcreate ||
                 getPermission("FRANCO UPS Req.").fcreate ||
                 getPermission("FRANCO → LOCO").fcreate ||
-                getPermission("FRANCO → LOCO UPS").fcreate;
+                getPermission("FRANCO → LOCO UPS").fcreate ||
+                getPermission("FRANCO → LOCO DWS").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
                     "/ln/lnuserfrc?isallow=" + allow + `&comp_group=${C_GRP}`,
@@ -342,9 +343,9 @@ export default function TableParentCustDashboardFRC() {
     return (
         <>
             <Toaster />
-            {(getPermission("FRANCO Req.").fcreate ||
+            {(getPermission("FRANCO DWS Req.").fcreate ||
                 getPermission("FRANCO UPS Req.").fcreate ||
-                getPermission("FRANCO → LOCO").fcreate ||
+                getPermission("FRANCO → LOCO DWS").fcreate ||
                 getPermission("FRANCO → LOCO UPS").fcreate) && (
                 <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                     <RefreshButton

@@ -29,7 +29,7 @@ export default function TablePrintTollingv2({
         async value => {
             try {
                 const response = await axiosPrivate.post(
-                    "/tol/printv2",
+                    "/tol/printv3",
                     {
                         id: value.merged,
                     },
