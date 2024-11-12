@@ -205,7 +205,9 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: "locofranco/",
-                        element: <TableParentCustDashboardFRC />,
+                        element: (
+                            <TableParentCustDashboardFRC key="DOWNSTREAM" />
+                        ),
                         loader: () => {
                             return {
                                 C_GRP: "DOWNSTREAM",
@@ -214,6 +216,19 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: "locofranco/create",
+                        element: <LoadingNoteFormLOCOFRC />,
+                    },
+                    {
+                        path: "locofrancoups/",
+                        element: <TableParentCustDashboardFRC key="UPSTREAM" />,
+                        loader: () => {
+                            return {
+                                C_GRP: "UPSTREAM",
+                            };
+                        },
+                    },
+                    {
+                        path: "locofrancoups/create",
                         element: <LoadingNoteFormLOCOFRC />,
                     },
                     {
