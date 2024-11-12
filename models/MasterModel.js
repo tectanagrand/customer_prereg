@@ -147,6 +147,7 @@ MasterModel.getSOData = async do_num => {
             }
         );
         let I_ZSLIP = {};
+        // console.log(ZSLIP_get.d.results[0]);
         Object.keys(ZSLIP_get.d.results[0]).map(item => {
             if (item !== "__metadata") {
                 I_ZSLIP[item.toUpperCase()] = ZSLIP_get.d.results[0][item];
@@ -162,6 +163,10 @@ MasterModel.getSOData = async do_num => {
                 },
             }
         );
+        // console.log(
+        //     `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZPINOSet?$filter=(Vbeln eq '${do_num}')&$format=json`
+        // );
+        // console.log(ZPINO_get.d.results);
         const I_ZPINO = ZPINO_get.d.results.map(item => {
             const itemTemp = {};
             Object.keys(item).map(data => {
@@ -180,9 +185,15 @@ MasterModel.getSOData = async do_num => {
         const PINO = I_ZPINO.map(item => ({
             ...item,
             WRBTR: item.WRBTR.trim().replace(/[.,]/g, "").replace(",", "."),
+            ZPIPH: item.ZPIPH.trim().replace(/[.,]/g, "").replace(",", "."),
+            ZPIPN: item.ZPIPN.trim().replace(/[.,]/g, "").replace(",", "."),
         }));
+
         PINO.forEach(item => {
-            totalPay += parseFloat(item.WRBTR);
+            totalPay +=
+                parseFloat(item.WRBTR) +
+                parseFloat(item.ZPIPH) +
+                parseFloat(item.ZPIPN);
         });
         const SLIPZ = I_ZSLIP;
 
@@ -193,6 +204,8 @@ MasterModel.getSOData = async do_num => {
                 .replace(/[.,]/g, "")
                 .replace(",", "."),
         };
+        // console.log(totalPay);
+        // console.log(SLIP.ZTTLPROF);
         return {
             SLIP: SLIP,
             PINO: PINO,
@@ -484,9 +497,9 @@ MasterModel.getStoreLoc2 = async (plant, itemrule) => {
 
 MasterModel.getValType = async (plant, material) => {
     try {
-        console.log(`
-        ${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/VALTYPESet?$filter=(Matnr eq '${material}')and(Plant eq '${plant}')&$format=json
-        `);
+        // console.log(`
+        // ${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/VALTYPESet?$filter=(Matnr eq '${material}')and(Plant eq '${plant}')&$format=json
+        // `);
         const { data: dataValtype } = await axios.get(
             `
         ${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/VALTYPESet?$filter=(Matnr eq '${material}')and(Plant eq '${plant}')&$format=json
@@ -764,7 +777,7 @@ MasterModel.updateMstCustbyDate = async dateFrom => {
                 }
             );
             for (const item of custData.d.results) {
-                console.log(item);
+                // console.log(item);
                 const { rowCount: isExist } = await client.query(
                     `select kunnr from mst_customer where kunnr = $1`,
                     [item.Kunnr]
@@ -1533,7 +1546,7 @@ MasterModel.getDataDOFRCByCGRP = async (sto_num, comp_group) => {
                 if (!detaildo.d.results.length > 0) {
                     continue;
                 }
-                console.log(comp_group);
+                // console.log(comp_group);
                 if (comp_group) {
                     const comp_code = detaildo.d.results[0].Werks.slice(0, 2);
                     const { rows: compDt } = await client.query(
