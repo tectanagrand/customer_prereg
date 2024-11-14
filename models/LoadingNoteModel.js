@@ -1468,6 +1468,12 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                     MAT_DESC: ln.desc_con,
                     MAT_CODE: ln.material,
                     MAT_CAT: material_mst.get(ln.material),
+                    FAC_SLOC: ln.fac_sloc,
+                    OTH_SLOC: ln.oth_sloc,
+                    FAC_VALTYPE: ln.fac_valtype,
+                    OTH_VALTYPE: ln.oth_valtype,
+                    FAC_BATCH: ln.fac_batch,
+                    OTH_BATCH: ln.oth_batch,
                 };
                 console.log(payload);
                 const [queIns, valIns] = crud.insertItemOra(
@@ -1480,6 +1486,12 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                     is_pushed: true,
                     push_sap_date: today,
                     plan_qty: ln.plan_qty,
+                    fac_sloc: ln.fac_sloc,
+                    oth_sloc: ln.oth_sloc,
+                    fac_valtype: ln.fac_valtype,
+                    oth_valtype: ln.oth_valtype,
+                    fac_batch: ln.fac_batch,
+                    oth_batch: ln.oth_batch,
                 };
                 const [queUp, valUp] = crud.updateItem(
                     "loading_note_det",
