@@ -61,9 +61,6 @@ app.use(express.static(path.join(__dirname, "frontend/dist")));
 app.get("/*$", (req, res) => {
     res.sendFile(path.join(__dirname, "frontend/dist", "index.html"));
 });
-// setInterval(() => {
-//     console.log(db.totalCount);
-// }, 1000);
 
 if (process.env.NODE_ENV === "production") {
     //for production deployment

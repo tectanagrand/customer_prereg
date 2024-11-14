@@ -154,7 +154,12 @@ export default function NewUserRegFormPage() {
     }, []);
 
     const setRole = valueOv => {
-        _setRole(roleOp.find(({ value }) => value === valueOv)?.label);
+        const label = roleOp.find(({ value }) => value === valueOv)?.label;
+        if (["CUSTOMER-UPS", "CUSTOMER-DWS", "CUSTOMER"].includes(label)) {
+            _setRole("CUSTOMER");
+        } else {
+            _setRole(label);
+        }
         if (
             roleOp.find(({ value }) => value === valueOv)?.label === "LOGISTIC"
         ) {

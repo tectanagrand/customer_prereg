@@ -1,6 +1,6 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
-import AutoSelectDriver from "./AutoselectDriver";
+import AutoSelectDriver from "../loadingnote/AutoselectDriver";
 import {
     Typography,
     Divider,
@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { Cancel, Replay } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
-import AutoSelectVehicle from "./AutoselectVehicle";
+import AutoSelectVehicle from "../loadingnote/AutoselectVehicle";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useRef, useState, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
@@ -22,10 +22,12 @@ import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
-import SelectDOComp from "./SelectDOComp";
-import SelectMultiDOComp from "./SelectMultiDoComp";
+import SelectDOComp from "../loadingnote/SelectDOComp";
+import SelectMultiDOComp from "../loadingnote/SelectMultiDoComp";
 import { useTheme } from "@mui/material/styles";
 import CheckBoxComp from "../../component/input/CheckBoxComp";
+import { useLoaderData } from "react-router-dom";
+import useTimeout from "../../hooks/useTimeout";
 
 const MediaTransportOp = [
     { value: "V", label: "Vessel" },
@@ -52,6 +54,9 @@ export default function LoadingNoteFormUPS() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
+    const { setHookTimeout } = useTimeout();
+    const loader = useLoaderData();
+    const C_GRP = loader.C_GRP;
     const axiosPrivate = useAxiosPrivate();
     const [searchParams] = useSearchParams();
     const [click, setClick] = useState(false);
@@ -89,7 +94,7 @@ export default function LoadingNoteFormUPS() {
             con_qty: 0,
             hold_qty: 0,
             os_qty: 0,
-            os_sap_qty: 0,
+            os_wb_qty: 0,
             plant: "",
             description: "",
             uom: "",
@@ -144,7 +149,7 @@ export default function LoadingNoteFormUPS() {
                     reset({
                         ...data.data,
                         con_qty: data.data.con_qty,
-                        os_sap_qty: data.data.con_qty - data.data.totalSAP,
+                        os_sap_qty: data.data.con_qty - data.data.totalWB,
                         load_detail: load_detail,
                     });
                     setPreOp(data.data.do_num);
@@ -214,6 +219,7 @@ export default function LoadingNoteFormUPS() {
                 : "",
             vehicle: item.vehicle ? item.vehicle.value : "",
             loading_date: moment(item.loading_date).format("YYYY-MM-DD"),
+            planned_qty: item.planned_qty.replace(/,/g, ""),
             media_tp: item.media_tp,
             method: item.method,
             multi_do: item.relate_do,
@@ -264,8 +270,12 @@ export default function LoadingNoteFormUPS() {
                     }
                 }
             }
-            setTimeout(() => {
-                navigate("/dashboard/loco");
+            setHookTimeout(() => {
+                if (C_GRP === "DOWNSTREAM") {
+                    navigate("/dashboard/loco");
+                } else {
+                    navigate("/dashboard/locoups");
+                }
             }, 2000);
         } catch (error) {
             console.error(error);
@@ -279,7 +289,7 @@ export default function LoadingNoteFormUPS() {
         setLoading(true);
         try {
             const { data } = await axiosPrivate.get(
-                `/master/do?do_num=${value}`
+                `/master/doups?do_num=${value}`
             );
             const slip = data.SLIP;
             if (slip.INCO1 === "FRC") {
@@ -296,7 +306,7 @@ export default function LoadingNoteFormUPS() {
                 material: slip.MATNR,
                 con_qty: slip.KWMENG,
                 os_qty: slip.KWMENG - data.TOTALSPEND,
-                os_sap_qty: slip.KWMENG - data.TOTALSAP,
+                os_wb_qty: slip.KWMENG - data.TOTALWB,
                 plant: slip.WERKS,
                 description: slip.MAKTX,
                 uom: slip.VRKME,
@@ -422,7 +432,7 @@ export default function LoadingNoteFormUPS() {
         <>
             <Toaster />
             <Typography variant="h4">
-                Upstream LOCO Loading Note Registration Form
+                Customer LOCO Loading Note Registration Form
             </Typography>
             <br />
             <form
@@ -474,6 +484,7 @@ export default function LoadingNoteFormUPS() {
                                 label="DO Number"
                                 preop={preOp}
                                 type="LCO"
+                                cgrp={C_GRP}
                             />
                             <LoadingButton
                                 onClick={() =>
@@ -536,8 +547,8 @@ export default function LoadingNoteFormUPS() {
                                 disabled
                             />
                             <NumericFieldComp
-                                name="os_sap_qty"
-                                label="O/S SAP Quantity"
+                                name="os_wb_qty"
+                                label="O/S WB Quantity"
                                 control={control}
                                 sx={{
                                     minWidth: "15rem",

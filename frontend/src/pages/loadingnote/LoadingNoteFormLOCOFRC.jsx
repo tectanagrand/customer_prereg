@@ -12,7 +12,7 @@ import { Cancel, Replay } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import AutoSelectVehicle from "./AutoselectVehicle";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import SelectComp from "../../component/input/SelectComp";
 import { NumericFormat } from "react-number-format";
@@ -20,7 +20,7 @@ import { TextField } from "@mui/material";
 import DatePickerComp from "../../component/input/DatePickerComp";
 import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLoaderData } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
 import SelectDOComp from "./SelectDOComp";
 import SelectMultiDOComp from "./SelectMultiDoComp";
@@ -52,6 +52,8 @@ export default function LoadingNoteFormFRC() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
+    const loader = useLoaderData();
+    const C_GRP = useMemo(() => loader.C_GRP, []);
     const axiosPrivate = useAxiosPrivate();
     const [searchParams] = useSearchParams();
     const [click, setClick] = useState(false);
@@ -270,7 +272,11 @@ export default function LoadingNoteFormFRC() {
                 }
             }
             setTimeout(() => {
-                navigate("/dashboard/locofranco");
+                if (C_GRP === "DOWNSTREAM") {
+                    navigate("/dashboard/locofranco");
+                } else {
+                    navigate("/dashboard/locofrancoups");
+                }
             }, 2000);
         } catch (error) {
             console.error(error);
@@ -536,6 +542,7 @@ export default function LoadingNoteFormFRC() {
                                     label="DO Number"
                                     preop={preOp}
                                     type="FRC"
+                                    cgrp={C_GRP}
                                     onChangeOvr={() => handleCheckSTO()}
                                 />
                             </div>

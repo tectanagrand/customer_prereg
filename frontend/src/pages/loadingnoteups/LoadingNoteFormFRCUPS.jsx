@@ -312,7 +312,7 @@ export default function LoadingNoteFormFRCUPS() {
         setLoading(true);
         try {
             const { data } = await axiosPrivate.get(
-                `/master/doups?do_num=${value}`
+                `/master/do?do_num=${value}`
             );
             const slip = data.SLIP;
             const dataMap = {
@@ -605,8 +605,8 @@ export default function LoadingNoteFormFRCUPS() {
                                 disabled
                             />
                             <NumericFieldComp
-                                name="os_wb_qty"
-                                label="O/S WB Quantity"
+                                name="os_sap_qty"
+                                label="O/S SAP Quantity"
                                 control={control}
                                 sx={{
                                     minWidth: "15rem",

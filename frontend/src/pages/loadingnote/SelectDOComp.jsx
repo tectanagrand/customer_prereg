@@ -11,6 +11,7 @@ export default function SelectDOComp({
     onChangeOvr,
     type,
     cust_id,
+    cgrp,
 }) {
     const axiosPrivate = useAxiosPrivate();
     const [isLoading, setLoading] = useState(false);
@@ -29,7 +30,7 @@ export default function SelectDOComp({
         try {
             setLoading(true);
             const { data } = await axiosPrivate.get(
-                `/master/dolist?type=${type}&cust=${cust_id}`,
+                `/master/dolist?type=${type}&cust=${cust_id}&bu=${cgrp}`,
                 {
                     withCredentials: true,
                 }

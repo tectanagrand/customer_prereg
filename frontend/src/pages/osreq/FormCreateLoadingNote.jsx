@@ -27,6 +27,7 @@ import { useSession } from "../../provider/sessionProvider";
 import { TextFieldComp } from "../../component/input/TextFieldComp";
 import { NumericFormat } from "react-number-format";
 import { PasswordWithEyes } from "../../component/input/PasswordWithEyes";
+import useTimeout from "../../hooks/useTimeout";
 
 export default function FormCreateLoadingNote() {
     const {
@@ -70,6 +71,7 @@ export default function FormCreateLoadingNote() {
             password: "",
         },
     });
+    const { setHookTimeout } = useTimeout();
     const axiosPrivate = useAxiosPrivate();
     const [DoNum, setDoNum] = useState("");
     const [CustNum, setCustNum] = useState("");
@@ -148,8 +150,12 @@ export default function FormCreateLoadingNote() {
             _setLoading(true);
             (async () => {
                 try {
+                    let inco;
+                    if (firstRow.cgrp === "UPSTREAM") {
+                        inco = `&inco=${firstRow.inco_1}`;
+                    }
                     const { data: getSloc } = await axiosPrivate.get(
-                        `/master/slocdb?plant=${firstRow.plant}&material=${firstRow.material}`
+                        `/master/slocdb?plant=${firstRow.plant}&material=${firstRow.material}${inco ?? ""}`
                     );
                     const slocfac = getSloc.data.FAC;
                     const slocoth = getSloc.data.OTH;
@@ -345,7 +351,7 @@ export default function FormCreateLoadingNote() {
                 selected_req: [],
             });
             setResetRow(!resetRow);
-            setTimeout(() => {
+            setHookTimeout(() => {
                 setModalscs(false);
             }, 3000);
         } catch (error) {

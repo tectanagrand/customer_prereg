@@ -64,7 +64,15 @@ export default function TableApprovalLNUPS({
         if (data_selected.length > 0) {
             let different = !data_selected.some(
                 item =>
-                    item.company === x.company && item.material === x.material
+                    item.plant === x.plant &&
+                    item.fac_plant === x.fac_plant &&
+                    item.oth_plant === x.oth_plant &&
+                    item.fac_sloc === x.fac_sloc &&
+                    item.oth_sloc === x.oth_sloc &&
+                    item.fac_valtype === x.fac_valtype &&
+                    item.oth_valtype === x.oth_valtype &&
+                    item.material === x.material &&
+                    item.inco_1 === x.inco_1
             );
             if (different) {
                 table.resetRowSelection();
@@ -308,6 +316,7 @@ export default function TableApprovalLNUPS({
                             { id: "id_do", value: DoNum },
                             { id: code_filter, value: CustNum },
                         ],
+                        cgrp: "UPSTREAM",
                     });
                     setRemainingUp(os_data);
                     setRows(data.data);

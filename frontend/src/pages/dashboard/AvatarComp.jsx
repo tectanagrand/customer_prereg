@@ -87,6 +87,7 @@ export default function AvatarComp() {
                 <MenuItem onClick={handleUserInfo} sx={{ width: "10rem" }}>
                     Edit User Info
                 </MenuItem>
+                <MenuItem sx={{ width: "10rem" }}>Version : v1.1.17</MenuItem>
             </Menu>
             <Backdrop
                 sx={{ color: "#fff", zIndex: theme => theme.zIndex.drawer - 2 }}

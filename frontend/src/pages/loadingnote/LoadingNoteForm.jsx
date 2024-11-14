@@ -26,6 +26,8 @@ import SelectDOComp from "./SelectDOComp";
 import SelectMultiDOComp from "./SelectMultiDoComp";
 import { useTheme } from "@mui/material/styles";
 import CheckBoxComp from "../../component/input/CheckBoxComp";
+import { useLoaderData } from "react-router-dom";
+import useTimeout from "../../hooks/useTimeout";
 
 const MediaTransportOp = [
     { value: "V", label: "Vessel" },
@@ -52,6 +54,9 @@ export default function LoadingNoteForm() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
+    const { setHookTimeout } = useTimeout();
+    const loader = useLoaderData();
+    const C_GRP = loader.C_GRP;
     const axiosPrivate = useAxiosPrivate();
     const [searchParams] = useSearchParams();
     const [click, setClick] = useState(false);
@@ -265,8 +270,12 @@ export default function LoadingNoteForm() {
                     }
                 }
             }
-            setTimeout(() => {
-                navigate("/dashboard/loco");
+            setHookTimeout(() => {
+                if (C_GRP === "DOWNSTREAM") {
+                    navigate("/dashboard/loco");
+                } else {
+                    navigate("/dashboard/locoups");
+                }
             }, 2000);
         } catch (error) {
             console.error(error);
@@ -475,6 +484,7 @@ export default function LoadingNoteForm() {
                                 label="DO Number"
                                 preop={preOp}
                                 type="LCO"
+                                cgrp={C_GRP}
                             />
                             <LoadingButton
                                 onClick={() =>

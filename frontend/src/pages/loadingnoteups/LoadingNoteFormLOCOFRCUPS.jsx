@@ -12,7 +12,7 @@ import { Cancel, Replay } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import AutoSelectVehicle from "./AutoselectVehicle";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import SelectComp from "../../component/input/SelectComp";
 import { NumericFormat } from "react-number-format";
@@ -20,12 +20,13 @@ import { TextField } from "@mui/material";
 import DatePickerComp from "../../component/input/DatePickerComp";
 import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLoaderData } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
 import SelectDOComp from "./SelectDOComp";
 import SelectMultiDOComp from "./SelectMultiDoComp";
 import { useTheme } from "@mui/material/styles";
 import CheckBoxComp from "../../component/input/CheckBoxComp";
+import useTimeout from "../../hooks/useTimeout";
 
 const MediaTransportOp = [
     { value: "V", label: "Vessel" },
@@ -53,6 +54,9 @@ export default function LoadingNoteFormLCOFRCUPS() {
         if (e.key === "Enter") e.preventDefault();
     };
     const axiosPrivate = useAxiosPrivate();
+    const { setHookTimeout } = useTimeout();
+    const loader = useLoaderData();
+    const C_GRP = useMemo(() => loader.C_GRP, []);
     const [searchParams] = useSearchParams();
     const [click, setClick] = useState(false);
     const [slocOP, setSloc] = useState([]);
@@ -269,7 +273,7 @@ export default function LoadingNoteFormLCOFRCUPS() {
                     }
                 }
             }
-            setTimeout(() => {
+            setHookTimeout(() => {
                 navigate("/dashboard/locofranco");
             }, 2000);
         } catch (error) {
@@ -536,6 +540,7 @@ export default function LoadingNoteFormLCOFRCUPS() {
                                     label="DO Number"
                                     preop={preOp}
                                     type="FRC"
+                                    cgrp={C_GRP}
                                     onChangeOvr={() => handleCheckSTO()}
                                 />
                             </div>

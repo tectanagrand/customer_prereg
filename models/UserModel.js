@@ -396,8 +396,12 @@ UserModel.login = async ({ username, password }) => {
         delete userData[0].password;
         const insertData = await client.query(queIns, valIns);
         await client.query(TRANS.COMMIT);
+        let role = userData[0].role;
+        if (["CUSTOMER", "CUSTOMER-UPS", "CUSTOMER-DWS"].includes(role)) {
+            role = "CUSTOMER";
+        }
         return {
-            data: { ...userData[0] },
+            data: { ...userData[0], role: role },
             accessToken: accessToken,
         };
     } catch (error) {

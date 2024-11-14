@@ -115,6 +115,8 @@ OSCheck.CheckOSUps = async do_number => {
             let ConQtySAP = 0;
             let totalFromWB = 0;
             let hold_qty = 0;
+            let totalFromSAP = 0;
+            let deletedLN = 0;
             //get OS SAP, Temp Plan Qty, Holding Quantity
             //getContractQty
             const { data: ZSLIP_get } = await axios.get(
@@ -132,8 +134,42 @@ OSCheck.CheckOSUps = async do_number => {
                     I_ZSLIP[item.toUpperCase()] = ZSLIP_get.d.results[0][item];
                 }
             });
-            ConQtySAP = parseFloat(I_ZSLIP.KWMENG);
             //get qty sap
+            ConQtySAP = parseFloat(I_ZSLIP.KWMENG);
+
+            //get used qty sap
+            const { data: I_OUTDELIVERY } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/OUTDELIVSet?$filter=(Vbeln%20eq%20%27${do_number}%27)&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            if (I_OUTDELIVERY.d.results.length > 0) {
+                I_OUTDELIVERY.d.results.map((item, index) => {
+                    let planning = parseFloat(item.PlnLfimg);
+                    let real = parseFloat(item.LLfimg);
+                    totalFromSAP += real === 0 ? planning : real;
+                });
+            }
+
+            //get qty sap ln deleted
+            const { data: DOTRXDELETE } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELETESet?$filter=(VbelnRef%20eq%20%27${do_number}%27)&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            if (DOTRXDELETE.d.results.length > 0) {
+                DOTRXDELETE.d.results.map(item => {
+                    deletedLN += parseFloat(item.PlnLfimg);
+                });
+            }
             const { rows } = await oraclient.execute(
                 `
                 SELECT
@@ -176,6 +212,8 @@ OSCheck.CheckOSUps = async do_number => {
             return {
                 ConQty: ConQtySAP,
                 TotalWB: totalFromWB,
+                TotalSAP: totalFromSAP,
+                TotalDeleted: deletedLN,
                 HoldQty: parseFloat(hold_qty),
                 QtyWeb: parseFloat(qtyWeb[0].totaltemp_plan),
             };

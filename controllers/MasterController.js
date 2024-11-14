@@ -227,7 +227,8 @@ MasterController.getDataDOList = async (req, res) => {
             cust = cust_id;
         }
         const type = req.query.type;
-        const dataRFC = await Master.getDOList(cust, type);
+        const bu = req.query.bu;
+        const dataRFC = await Master.getDOList(cust, type, bu);
         if (dataRFC.length === 0) {
             throw new Error("NO DO");
         }
@@ -531,7 +532,13 @@ MasterController.getDataValTypeDB = async (req, res) => {
 MasterController.SlocDB = async (req, res) => {
     try {
         const client = await db.connect();
-        const { plant, material } = req.query;
+        const { plant, material, inco } = req.query;
+        let whereque = `msp.plant = $1 and msp.material = $2 `;
+        let whereval = [plant, material];
+        if (inco) {
+            whereque = whereque + ` and msp.incoterm = $3`;
+            whereval.push(inco);
+        }
         try {
             const { rows } = await client.query(
                 `select
@@ -542,9 +549,8 @@ MasterController.SlocDB = async (req, res) => {
                     mst_sloc_plant msp
                 left join mst_sloc ms on
                     msp.sloc = ms.sloc
-                where msp.plant = $1
-                and msp.material = $2`,
-                [plant, material]
+                where ${whereque}`,
+                whereval
             );
             const SlocFac = rows.filter(item => item.facoth == "FAC");
             const SlocOth = rows.filter(item => item.facoth === "OTH");

@@ -292,9 +292,12 @@ MasterModel.getSODataUPS = async do_num => {
                 parseInt(OSData.HoldQty) +
                 parseInt(OSData.QtyWeb),
             TOTALWB: parseInt(OSData.TotalWB),
+            TOTALSAP: parseInt(OSData.TotalSAP) - parseInt(OSData.TotalDeleted),
             OS_QTY:
                 parseInt(OSData.ConQty) -
-                (parseInt(OSData.TotalWB) + parseInt(OSData.HoldQty)),
+                (parseInt(OSData.TotalSAP) -
+                    parseInt(OSData.TotalDeleted) +
+                    parseInt(OSData.HoldQty)),
             HOLDQTY: parseInt(OSData.HoldQty),
         };
     } catch (error) {
@@ -1000,8 +1003,9 @@ MasterModel.updateMstVenbyDate = async dateFrom => {
 //     }
 // };
 
-MasterModel.getDOList = async (cust_id, type) => {
+MasterModel.getDOList = async (cust_id, type, bu) => {
     try {
+        const client = await db.connect();
         try {
             let dolist = [];
             const { data } = await axios.get(
@@ -1024,14 +1028,22 @@ MasterModel.getDOList = async (cust_id, type) => {
                             },
                         }
                     );
+                    const company = data.d.results[0].Werks.slice(0, 2);
+                    const { rows } = await client.query(
+                        `select group_comp from mst_company where sap_code = $1`,
+                        [company]
+                    );
                     if (!data.d.results.length > 0) {
                         continue;
                     }
-                    if (data.d.results[0].Inco1 === type) {
-                        dolist.push({
-                            value: d.Vbeln,
-                            label: d.Vbeln,
-                        });
+                    const bu_comp = rows[0].group_comp;
+                    if (bu_comp === bu) {
+                        if (data.d.results[0].Inco1 === type) {
+                            dolist.push({
+                                value: d.Vbeln,
+                                label: d.Vbeln,
+                            });
+                        }
                     }
                 } else {
                     dolist.push({
@@ -1043,6 +1055,8 @@ MasterModel.getDOList = async (cust_id, type) => {
             return dolist;
         } catch (error) {
             throw error;
+        } finally {
+            client.release();
         }
     } catch (error) {
         console.error(error);
@@ -1245,7 +1259,7 @@ MasterModel.getOSDataCust2 = async (limit, offset, q, cgrp) => {
                                 AND DET.ln_num is null
                                 AND DET.push_sap_date is null
                                 AND hed.cur_pos = 'FINA'
-                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}
+                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}' and HED.inco_1 = 'LCO'` : ""}
                 LIMIT $7 OFFSET $8`,
                 [
                     `%${q}%`,
@@ -1283,7 +1297,7 @@ MasterModel.getOSDataCust2 = async (limit, offset, q, cgrp) => {
                                 AND DET.ln_num is null
                                 AND DET.push_sap_date is null
                                 AND hed.cur_pos = 'FINA'
-                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`,
+                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}' and HED.inco_1 = 'LCO'` : ""}`,
                 [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]
             );
             return {

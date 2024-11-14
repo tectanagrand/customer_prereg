@@ -853,12 +853,17 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
         try {
             let filter_que = [];
             let filter_val = [];
+            let queCgrp = "";
             let filterStr = "";
             let whoFilter = "";
             if (who !== "wb") {
-                whoFilter = `WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true ${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`;
+                whoFilter = `WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL
+                AND (C.GROUP_COMP = 'DOWNSTREAM' OR ${cgrp ? `(C.GROUP_COMP = 'UPSTREAM' AND HD.INCO_1 = 'LCO'))` : `(C.GROUP_COMP = 'UPSTREAM' AND HD.INCO_1 = 'FRC'))`}
+                AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true ${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`;
             } else {
-                whoFilter = `WHERE DET.PUSH_SAP_DATE IS NOT NULL AND DET.LN_NUM IS NOT NULL AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true ${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`;
+                whoFilter = `WHERE DET.PUSH_SAP_DATE IS NOT NULL AND DET.LN_NUM IS NOT NULL 
+                AND (C.GROUP_COMP = 'DOWNSTREAM' OR (C.GROUP_COMP = 'UPSTREAM' AND HD.INCO_1 = 'FRC'))
+                AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true ${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`;
             }
             if (filters.length !== 0) {
                 let idx = 1;
@@ -927,6 +932,8 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
             ${whoFilter}
             `;
             const que = `SELECT * FROM (${baseQ}) A ${filterStr} ;`;
+            console.log(que);
+            console.log(filter_val);
             const { rows } = await client.query(que, filter_val);
             return {
                 data: rows,
@@ -973,7 +980,7 @@ LoadingNoteModel.getOSLoadingNoteNum = async (limit, offset, q) => {
     }
 };
 
-LoadingNoteModel.getOSLoadingNoteNum2 = async (limit, offset, cust) => {
+LoadingNoteModel.getOSLoadingNoteNum2 = async (limit, offset, cust, cgrp) => {
     try {
         const client = await db.connect();
 
@@ -983,11 +990,12 @@ LoadingNoteModel.getOSLoadingNoteNum2 = async (limit, offset, cust) => {
                 SELECT distinct hd.id_do FROM loading_note_hd hd
                 LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
 				LEFT JOIN mst_user u on u.id_user = hd.create_by
+                LEFT JOIN mst_company co on co.sap_code = hd.company
 				LEFT JOIN mst_customer c on c.kunnr = u.username
                 LEFT JOIN mst_vendor mv on mv.lifnr = u.username
                 LEFT JOIN mst_interco mi on mi.kunnr = u.username
                 WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
-                AND( c.kunnr = $1 or mv.lifnr = $2 or mi.kunnr = $3) AND det.is_active = true
+                AND( c.kunnr = $1 or mv.lifnr = $2 or mi.kunnr = $3) AND det.is_active = true ${cgrp ? `and hd.inco_1 = 'LCO' and co.group_comp = '${cgrp}'` : ""}
                 LIMIT $4 OFFSET $5
                 `,
                 [cust, cust, cust, limit, offset]
@@ -996,11 +1004,12 @@ LoadingNoteModel.getOSLoadingNoteNum2 = async (limit, offset, cust) => {
                 `SELECT distinct hd.id_do FROM loading_note_hd hd
                 LEFT JOIN loading_note_det det on hd.hd_id = det.hd_fk
 				LEFT JOIN mst_user u on u.id_user = hd.create_by
+                LEFT JOIN mst_company co on co.sap_code = hd.company
 				LEFT JOIN mst_customer c on c.kunnr = u.username
                 LEFT JOIN mst_vendor mv on mv.lifnr = u.username
                 LEFT JOIN mst_interco mi on mi.kunnr = u.username
                 WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
-                AND( c.kunnr = $1 or mv.lifnr = $2 or mi.kunnr = $3) AND det.is_active = true`,
+                AND( c.kunnr = $1 or mv.lifnr = $2 or mi.kunnr = $3) AND det.is_active = true ${cgrp ? `and hd.inco_1 = 'LCO' and co.group_comp = '${cgrp}'` : ""}`,
                 [cust, cust, cust]
             );
             return {
@@ -1353,6 +1362,9 @@ LoadingNoteModel.ApproveUPSLoadingNoteSAP = async (lnreq, session) => {
                     [ln.id]
                 );
                 const NUMLN = lnnum_data[0][0];
+                if (!NUMLN) {
+                    continue;
+                }
                 const payload = {
                     ID_SJ: NUMLN,
                     ID_TRANSPORTER: cust_code,
@@ -1406,6 +1418,7 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
         const id_user = session.id_user;
         const username = session.username;
         const cust_code = lnreq[0].cust_code;
+        const plant = lnreq[0].plant;
         let created_tgen = [];
         const today = new Date();
         try {
@@ -1417,22 +1430,23 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
             materialMst.forEach((item, index) => {
                 material_mst.set(item.material_code, item.material_cat);
             });
-            const { rows: latestLN } = await client.query(`
+            const { rows: latestLN } = await client.query(
+                `
                 select lnd.ln_num from loading_note_det lnd 
-                where ln_num like 'P%'
-                order by id desc
-                `);
+                left join loading_note_hd lnh on lnd.hd_fk = lnh.hd_id 
+                where ln_num like 'LCO%' and lnh.plant = $1
+                order by lnd.id desc
+                `,
+                [plant]
+            );
             let latestTicketNum = latestLN[0]?.ln_num ?? "";
             for (const ln of lnreq) {
-                const { rows: lnnum_data } = await oraclient.execute(
-                    `
-                    SELECT LOADING_NOTE_NUM FROM PREREG_LOADING_NOTE_SAP WHERE DET_ID = :0
-                    `,
-                    [ln.id]
+                const ticketNum = TicketGen.genLoadingNoteUPS(
+                    plant,
+                    latestTicketNum
                 );
-                const NUMLN = lnnum_data[0][0];
                 const payload = {
-                    ID_SJ: latestTicketNum,
+                    ID_SJ: ticketNum,
                     ID_TRANSPORTER: cust_code,
                     DO_NO: ln.id_do,
                     STONO: ln.id_sto,
@@ -1455,13 +1469,14 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                     MAT_CODE: ln.material,
                     MAT_CAT: material_mst.get(ln.material),
                 };
+                console.log(payload);
                 const [queIns, valIns] = crud.insertItemOra(
                     "PREREG_LOADING_NOTE_SAP_UPS",
                     payload
                 );
                 await oraclient.execute(queIns, valIns);
                 const updateLoc = {
-                    ln_num: latestTicketNum,
+                    ln_num: ticketNum,
                     is_pushed: true,
                     push_sap_date: today,
                     plan_qty: ln.plan_qty,
@@ -1474,7 +1489,9 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                 );
                 await client.query(queUp, valUp);
                 created_tgen.push(latestTicketNum);
+                latestTicketNum = ticketNum;
             }
+            // throw new Error("test");
             await client.query(TRANS.COMMIT);
             await oraclient.commit();
             return created_tgen;
@@ -1676,8 +1693,6 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
             }
 
             const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
-            console.log(getDataSess);
-            console.log(session.id_user, `%${type}%`, comp_group);
             if (isallow) {
                 const { rows } = await client.query(getDataSess, [
                     session.id_user,

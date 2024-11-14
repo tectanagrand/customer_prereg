@@ -187,8 +187,14 @@ LoadingNoteController.getOSLoadingNoteNum = async (req, res) => {
         const cust = req.query.cust;
         const limit = req.query.limit;
         const offset = req.query.offset;
+        const cgrp = req.query.cgrp;
         const who = req.query.who;
-        const dataLN = await LoadNote.getOSLoadingNoteNum2(limit, offset, cust);
+        const dataLN = await LoadNote.getOSLoadingNoteNum2(
+            limit,
+            offset,
+            cust,
+            cgrp
+        );
         res.status(200).send(dataLN);
     } catch (error) {
         console.error(error);

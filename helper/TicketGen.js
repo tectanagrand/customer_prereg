@@ -33,36 +33,36 @@ TicketGen.GenTollingReq = (plant, lasttolreq) => {
     return U + month + year + running_num.toString().padStart(3, "0");
 };
 
-TicketGen.genLoadingNoteUPS = (username, lastlnnum) => {
-    // running number by id_user
-    //all dummy ln using prefix P
-    // U => last 4 digit of username (cust or interco cut last 3 digit first)
-    //PUUUUMMYYYYXXXX
-    //P20120820240001
-    // Last 4 digit is running number
+TicketGen.genLoadingNoteUPS = (plant, lastlnnum) => {
+    //LCO/UUUUMMYYXXX
+    // U : Plant code
+    // MM : month
+    // Y : year
+    // X : running num
+    //LCO/PS211124001
+    // Last 3 digit is running number
+    console.log(lastlnnum);
     let running_num = 1;
-    const max_num = 9999;
+    const max_num = 999;
     let month = moment().format("MM");
-    let year = moment().format("YYYY");
-    let U = username;
-    if (U.slice(0, 2) == "LN") {
-        U = U.slice(6, 10);
-    } else {
-        U = U.slice(3, 7);
-    }
+    let year = moment().format("YY");
+    console.log(month);
+    console.log(year);
+    let U = plant;
     if (lastlnnum) {
-        let curmth = lastlnnum.slice(5, 7);
-        let curyr = lastlnnum.slice(7, 11);
+        let curyr = lastlnnum.slice(-5, -3);
+        let curmth = lastlnnum.slice(-7, -5);
+        console.log(curmth, curyr);
         if (year === curyr) {
             if (month === curmth) {
-                running_num = parseInt(lastlnnum.slice(11, 15)) + 1;
+                running_num = parseInt(lastlnnum.slice(-3)) + 1;
                 if (running_num > max_num) {
                     running_num = 1;
                 }
             }
         }
     }
-    return "P" + U + month + year + running_num.toString().padStart(4, "0");
+    return "LCO/" + U + month + year + running_num.toString().padStart(3, "0");
 };
 
 module.exports = TicketGen;

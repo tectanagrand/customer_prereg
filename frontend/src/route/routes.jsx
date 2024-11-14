@@ -38,6 +38,9 @@ const MenuAccessPage = lazy(() => import("../pages/menuaccess/MenuAccessPage"));
 const LoadingNoteForm = lazy(
     () => import("../pages/loadingnote/LoadingNoteForm")
 );
+const LoadingNoteFormUPS = lazy(
+    () => import("../pages/loadingnoteups/LoadingNoteFormUPS")
+);
 const LoadingNoteFormFRC = lazy(
     () => import("../pages/loadingnote/LoadingNoteFormFRC")
 );
@@ -173,7 +176,21 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: "loco/create",
-                        element: <LoadingNoteForm />,
+                        element: <LoadingNoteForm key="DOWNSTREAM" />,
+                        loader: () => {
+                            return {
+                                C_GRP: "UPSTREAM",
+                            };
+                        },
+                    },
+                    {
+                        path: "locoups/create",
+                        element: <LoadingNoteFormUPS key="UPSTREAM" />,
+                        loader: () => {
+                            return {
+                                C_GRP: "UPSTREAM",
+                            };
+                        },
                     },
                     {
                         path: "franco/",
@@ -216,7 +233,12 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: "locofranco/create",
-                        element: <LoadingNoteFormLOCOFRC />,
+                        element: <LoadingNoteFormLOCOFRC key="DOWNSTREAM" />,
+                        loader: () => {
+                            return {
+                                C_GRP: "DOWNSTREAM",
+                            };
+                        },
                     },
                     {
                         path: "locofrancoups/",
@@ -229,7 +251,12 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: "locofrancoups/create",
-                        element: <LoadingNoteFormLOCOFRC />,
+                        element: <LoadingNoteFormLOCOFRC key="UPSTREAM" />,
+                        loader: () => {
+                            return {
+                                C_GRP: "UPSTREAM",
+                            };
+                        },
                     },
                     {
                         path: "osreq",
