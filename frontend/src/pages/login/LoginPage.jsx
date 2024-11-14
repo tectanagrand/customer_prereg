@@ -14,6 +14,15 @@ import { useState, lazy, useEffect } from "react";
 import { LoadingButton } from "@mui/lab";
 import Cookies from "js-cookie";
 
+const NavigateTo = ({ link }) => {
+    return (
+        <>
+            <Toaster />
+            <Navigate to={link} />
+        </>
+    );
+};
+
 export default function LoginPage() {
     const { setSession } = useSession();
     const { setMenu } = useMenu();
@@ -38,10 +47,15 @@ export default function LoginPage() {
             setTimeout(() => {
                 if (userData.role === "LOGISTIC") {
                     navigate("/dashboard/osreq");
-                } else if (userData.role === "CUSTOMER") {
+                } else if (
+                    userData.role === "CUSTOMER" ||
+                    userData.role === "CUSTOMER-DWS"
+                ) {
                     navigate("/dashboard/loco");
                 } else if (userData.role === "VENDOR") {
                     navigate("/dashboard/francoups");
+                } else if (userData.role === "CUSTOMER-UPS") {
+                    navigate("/dashboard/locoups");
                 } else {
                     navigate("/dashboard/loco");
                 }
@@ -69,19 +83,27 @@ export default function LoginPage() {
     //     }
     // }, []);
 
-    useEffect(() => {
-        if (Cookies.get("access_token")) {
-            navigate("/dashboard/loco");
-        }
-    }, [navigate]);
+    // useEffect(() => {
+    //     if (Cookies.get("access_token")) {
+    //         navigate("/dashboard/loco");
+    //     }
+    // }, [navigate]);
 
     if (Cookies.get("access_token")) {
-        return (
-            <>
-                <Toaster />
-                <Navigate to="/dashboard/loco" />
-            </>
-        );
+        const role = Cookies.get("role");
+        let link;
+        if (role === "LOGISTIC") {
+            link = "/dashboard/osreq";
+        } else if (role === "CUSTOMER" || role === "CUSTOMER-DWS") {
+            link = "/dashboard/loco";
+        } else if (role === "VENDOR") {
+            link = "/dashboard/francoups";
+        } else if (role === "CUSTOMER-UPS") {
+            link = "/dashboard/locoups";
+        } else {
+            link = "/dashboard/loco";
+        }
+        return <NavigateTo link={link} />;
     }
     return (
         <Box

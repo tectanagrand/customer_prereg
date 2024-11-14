@@ -134,7 +134,9 @@ const OSRequestDrvVeh = () => {
                 cell: props => {
                     if (
                         props.row.original.status === "Completed" ||
-                        session.role === "CUSTOMER"
+                        ["CUSTOMER", "CUSTOMER-UPS", "CUSTOMER-DWS"].includes(
+                            session.role
+                        )
                     ) {
                         return "";
                     } else {

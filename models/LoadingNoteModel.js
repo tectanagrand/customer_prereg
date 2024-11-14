@@ -1475,7 +1475,6 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                     FAC_BATCH: ln.fac_batch,
                     OTH_BATCH: ln.oth_batch,
                 };
-                console.log(payload);
                 const [queIns, valIns] = crud.insertItemOra(
                     "PREREG_LOADING_NOTE_SAP_UPS",
                     payload
