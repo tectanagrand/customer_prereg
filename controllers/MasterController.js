@@ -502,11 +502,17 @@ MasterController.getDataSLocDB = async (req, res) => {
 MasterController.getDataValTypeDB = async (req, res) => {
     try {
         const client = await db.connect();
-        const { plant, material } = req.query;
+        const { plant, material, inco } = req.query;
+        let whereque = `plant = $1 and material = $2`;
+        let whereval = [plant, material];
+        if (inco) {
+            whereque = whereque + ` and incoterm = $3`;
+            whereval.push(inco);
+        }
         try {
             const { rows } = await client.query(
-                `SELECT valtype, facoth FROM mst_valtype_plant where plant = $1 and material = $2`,
-                [plant, material]
+                `SELECT valtype, facoth FROM mst_valtype_plant where ${whereque}`,
+                whereval
             );
             const FacVtype = rows.filter(item => item.facoth === "FAC");
             const OthVType = rows.filter(item => item.facoth === "OTH");

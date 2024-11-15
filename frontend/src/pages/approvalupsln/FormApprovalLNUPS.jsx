@@ -200,7 +200,7 @@ export default function FormApprovalLNUPS() {
                     const slocfac = getSloc.data.FAC;
                     const slocoth = getSloc.data.OTH;
                     const { data: getValtype } = await axiosPrivate.get(
-                        `/master/valtypedb?plant=${firstRow.plant}&material=${firstRow.material}`
+                        `/master/valtypedb?plant=${firstRow.plant}&material=${firstRow.material}${inco ?? ""}`
                     );
                     const valType = getValtype.data;
                     const valfac = valType.FAC;
@@ -403,12 +403,12 @@ export default function FormApprovalLNUPS() {
                     elevation={4}
                 >
                     <AutoCompleteCustomerUPS
-                        sx={{ minWidth: "30rem", maxWidth: "15rem" }}
+                        sx={{ maxWidth: "30rem" }}
                         label="Customer Code"
                         onChangeovr={setdataCust}
                     />
                     <AutoCompleteDOListUPS
-                        sx={{ minWidth: "12rem", maxWidth: "15rem" }}
+                        sx={{ maxWidth: "30rem" }}
                         label="Nomor DO"
                         onChangeovr={setdataDo}
                         cust={CustNum}
@@ -438,192 +438,194 @@ export default function FormApprovalLNUPS() {
                 />
             </div>
             <form onSubmit={handleSubmit(stagedapproveLN)}>
-                <Paper
-                    sx={{
-                        p: 3,
-                        display: "flex",
-                        flexWrap: "wrap",
-                        minWidth: "45rem",
-                        gap: 2,
-                        mb: 2,
-                    }}
-                    elevation={4}
-                >
-                    <AutocompleteComp
-                        name="fac_sloc"
-                        label="Factory Store Loc."
-                        control={control}
-                        options={slocopfac}
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Paper
                         sx={{
-                            maxWidth: "20rem",
-                            input: {
-                                "&.MuiOutlinedInput-input.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                            label: {
-                                "&.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
+                            p: 3,
+                            display: "flex",
+                            flexWrap: "wrap",
+                            maxWidth: "45rem",
+                            gap: 2,
+                            mb: 2,
                         }}
-                        // disabled={who === "log"}
-                        rules={{ required: "Please Insert" }}
+                        elevation={4}
+                    >
+                        <AutocompleteComp
+                            name="fac_sloc"
+                            label="Factory Store Loc."
+                            control={control}
+                            options={slocopfac}
+                            sx={{
+                                maxWidth: "20rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            // disabled={who === "log"}
+                            rules={{ required: "Please Insert" }}
+                        />
+                        <AutocompleteComp
+                            name="oth_sloc"
+                            label="Other Party Store Loc."
+                            control={control}
+                            options={slocopoth}
+                            sx={{
+                                maxWidth: "20rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            // disabled={who === "log"}
+                            rules={{ required: "Please Insert" }}
+                        />
+                        <AutocompleteComp
+                            name="fac_batch"
+                            label="Factory Batch"
+                            control={control}
+                            options={facBatchOp}
+                            rules={{ required: "Please Insert" }}
+                            freeSolo={true}
+                            sx={{
+                                maxWidth: "20rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            // disabled={who === "log"}
+                        />
+                        <AutocompleteComp
+                            name="oth_batch"
+                            label="Other Party Batch"
+                            control={control}
+                            options={othBatchOp}
+                            freeSolo
+                            sx={{
+                                maxWidth: "20rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            // disabled={who === "log"}
+                            rules={{ required: "Please Insert" }}
+                        />
+                        <AutocompleteComp
+                            name="fac_valtype"
+                            label="Factory Party Val. Type"
+                            control={control}
+                            options={valtypeOp}
+                            sx={{
+                                maxWidth: "20rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            rules={{ required: "Please Insert" }}
+                        />
+                        <AutocompleteComp
+                            name="oth_valtype"
+                            label="Other Party Val. Type"
+                            control={control}
+                            options={valtypeOp}
+                            sx={{
+                                maxWidth: "20rem",
+                                input: {
+                                    "&.MuiOutlinedInput-input.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                                label: {
+                                    "&.Mui-disabled": {
+                                        WebkitTextFillColor:
+                                            theme.palette.grey[500],
+                                        color: theme.palette.grey[500],
+                                    },
+                                },
+                            }}
+                            rules={{ required: "Please Insert" }}
+                        />
+                    </Paper>
+                    <input
+                        {...register("selected_req", {
+                            validate: selected => {
+                                return (
+                                    selected.length > 0 ||
+                                    "Please check data below at least 1"
+                                );
+                            },
+                        })}
+                        hidden
                     />
-                    <AutocompleteComp
-                        name="oth_sloc"
-                        label="Other Party Store Loc."
-                        control={control}
-                        options={slocopoth}
-                        sx={{
-                            maxWidth: "20rem",
-                            input: {
-                                "&.MuiOutlinedInput-input.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                            label: {
-                                "&.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                        }}
-                        // disabled={who === "log"}
-                        rules={{ required: "Please Insert" }}
-                    />
-                    <AutocompleteComp
-                        name="fac_batch"
-                        label="Factory Batch"
-                        control={control}
-                        options={facBatchOp}
-                        rules={{ required: "Please Insert" }}
-                        freeSolo={true}
-                        sx={{
-                            maxWidth: "20rem",
-                            input: {
-                                "&.MuiOutlinedInput-input.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                            label: {
-                                "&.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                        }}
-                        // disabled={who === "log"}
-                    />
-                    <AutocompleteComp
-                        name="oth_batch"
-                        label="Other Party Batch"
-                        control={control}
-                        options={othBatchOp}
-                        freeSolo
-                        sx={{
-                            maxWidth: "20rem",
-                            input: {
-                                "&.MuiOutlinedInput-input.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                            label: {
-                                "&.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                        }}
-                        // disabled={who === "log"}
-                        rules={{ required: "Please Insert" }}
-                    />
-                    <AutocompleteComp
-                        name="fac_valtype"
-                        label="Factory Party Val. Type"
-                        control={control}
-                        options={valtypeOp}
-                        sx={{
-                            maxWidth: "20rem",
-                            input: {
-                                "&.MuiOutlinedInput-input.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                            label: {
-                                "&.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                        }}
-                        rules={{ required: "Please Insert" }}
-                    />
-                    <AutocompleteComp
-                        name="oth_valtype"
-                        label="Other Party Val. Type"
-                        control={control}
-                        options={valtypeOp}
-                        sx={{
-                            maxWidth: "20rem",
-                            input: {
-                                "&.MuiOutlinedInput-input.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                            label: {
-                                "&.Mui-disabled": {
-                                    WebkitTextFillColor:
-                                        theme.palette.grey[500],
-                                    color: theme.palette.grey[500],
-                                },
-                            },
-                        }}
-                        rules={{ required: "Please Insert" }}
-                    />
-                </Paper>
-                <input
-                    {...register("selected_req", {
-                        validate: selected => {
-                            return (
-                                selected.length > 0 ||
-                                "Please check data below at least 1"
-                            );
-                        },
-                    })}
-                    hidden
-                />
-                <LoadingButton
-                    variant="contained"
-                    sx={{ m: 3, maxWidth: "10rem", height: "4rem" }}
-                    loading={isLoading}
-                    // onClick={() => {
-                    //     if (isValid) {
-                    //         setModalOpen(true);
-                    //     }
-                    // }}
-                    type="submit"
-                >
-                    Approve Request
-                </LoadingButton>
+                    <LoadingButton
+                        variant="contained"
+                        sx={{ m: 3, maxWidth: "10rem", height: "4rem" }}
+                        loading={isLoading}
+                        // onClick={() => {
+                        //     if (isValid) {
+                        //         setModalOpen(true);
+                        //     }
+                        // }}
+                        type="submit"
+                    >
+                        Approve Request
+                    </LoadingButton>
+                </Box>
             </form>
             <DialogFormConfirmation
                 open={openDialogConf}
