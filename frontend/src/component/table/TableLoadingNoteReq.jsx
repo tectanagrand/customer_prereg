@@ -162,6 +162,11 @@ export default function TableLoadingNoteReq({
                 accessorKey: "id_sto",
                 cell: props => props.getValue(),
             },
+            {
+                header: "Incoterm",
+                accessorKey: "inco_1",
+                cell: props => props.getValue(),
+            },
             ...lnnum,
             {
                 header: "Plant",

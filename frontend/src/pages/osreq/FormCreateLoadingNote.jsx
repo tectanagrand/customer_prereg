@@ -160,7 +160,7 @@ export default function FormCreateLoadingNote() {
                     const slocfac = getSloc.data.FAC;
                     const slocoth = getSloc.data.OTH;
                     const { data: getValtype } = await axiosPrivate.get(
-                        `/master/valtypedb?plant=${firstRow.plant}&material=${firstRow.material}`
+                        `/master/valtypedb?plant=${firstRow.plant}&material=${firstRow.material}${inco ?? ""}`
                     );
                     const valType = getValtype.data;
                     const valfac = valType.FAC;
