@@ -858,11 +858,9 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
             let whoFilter = "";
             if (who !== "wb") {
                 whoFilter = `WHERE DET.ln_num IS NULL AND DET.PUSH_SAP_DATE IS NULL
-                AND (C.GROUP_COMP = 'DOWNSTREAM' OR ${cgrp ? `(C.GROUP_COMP = 'UPSTREAM' AND HD.INCO_1 = 'LCO'))` : `(C.GROUP_COMP = 'UPSTREAM' AND HD.INCO_1 = 'FRC'))`}
                 AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true ${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`;
             } else {
                 whoFilter = `WHERE DET.PUSH_SAP_DATE IS NOT NULL AND DET.LN_NUM IS NOT NULL 
-                AND (C.GROUP_COMP = 'DOWNSTREAM' OR (C.GROUP_COMP = 'UPSTREAM' AND HD.INCO_1 = 'FRC'))
                 AND HD.CUR_POS = 'FINA' AND DET.IS_ACTIVE = true ${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`;
             }
             if (filters.length !== 0) {
