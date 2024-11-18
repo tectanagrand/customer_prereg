@@ -1335,12 +1335,16 @@ LoadingNoteModel.ApproveUPSLoadingNoteSAP = async (lnreq, session) => {
         const id_user = session.id_user;
         const username = session.username;
         let cust_code;
+        let role = "";
         if (lnreq[0].cust_code) {
             cust_code = lnreq[0].cust_code;
+            role = "CUSTOMER";
         } else if (lnreq[0].ven_code) {
             cust_code = lnreq[0].ven_code;
+            role = "VENDOR";
         } else if (lnreq[0].intr_code) {
             cust_code = lnreq[0].intr_code;
+            role = "INTERCO";
         }
         const today = new Date();
         try {
@@ -1365,7 +1369,6 @@ LoadingNoteModel.ApproveUPSLoadingNoteSAP = async (lnreq, session) => {
                 }
                 const payload = {
                     ID_SJ: NUMLN,
-                    ID_TRANSPORTER: cust_code,
                     DO_NO: ln.id_do,
                     STONO: ln.id_sto,
                     INCO1: ln.inco_1,
@@ -1387,6 +1390,11 @@ LoadingNoteModel.ApproveUPSLoadingNoteSAP = async (lnreq, session) => {
                     MAT_CODE: ln.material,
                     MAT_CAT: material_mst.get(ln.material),
                 };
+                if (role === "CUSTOMER" || role === "INTERCO") {
+                    payload.ID_CUSTOMER = cust_code;
+                } else if (role === "VENDOR") {
+                    payload.ID_TRANSPORTER = cust_code;
+                }
                 const [queIns, valIns] = crud.insertItemOra(
                     "PREREG_LOADING_NOTE_SAP_UPS",
                     payload
