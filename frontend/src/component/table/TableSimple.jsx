@@ -29,7 +29,7 @@ export default function TableSimple({ rowsData, sx, columns }) {
                     ...sx,
                 }}
             >
-                <Table stickyHeader>
+                <Table>
                     <TableHead>
                         {table.getHeaderGroups().map(headerGroup => {
                             return (
