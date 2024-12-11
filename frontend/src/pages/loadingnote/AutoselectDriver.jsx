@@ -113,10 +113,14 @@ export default function AutoSelectDriver({
                 rules={rules}
                 defaultValue={null}
                 onChangeovr={debounce(e => {
-                    setQuery(e?.target?.value);
+                    if (e && typeof e.target.value == "string") {
+                        setQuery(e?.target?.value.toUpperCase());
+                    }
                 }, 1000)}
                 onBlurovr={debounce(e => {
-                    setQuery(e?.target?.value);
+                    if (e && typeof e.target.value == "string") {
+                        setQuery(e?.target?.value.toUpperCase());
+                    }
                 }, 1000)}
                 {...props}
             />

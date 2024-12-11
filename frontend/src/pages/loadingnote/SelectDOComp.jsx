@@ -12,9 +12,10 @@ export default function SelectDOComp({
     type,
     cust_id,
     cgrp,
+    rules,
 }) {
     const axiosPrivate = useAxiosPrivate();
-    const [isLoading, setLoading] = useState(false);
+    const [isloading, setLoading] = useState(false);
     const [doOP, setDOOp] = useState([]);
 
     useEffect(() => {
@@ -58,12 +59,13 @@ export default function SelectDOComp({
                     getDataDO();
                 }}
                 sx={{
-                    mr: 3,
-                    maxWidth: "16rem",
-                    minWidth: "10rem",
+                    mr: 1,
+                    maxWidth: "8rem",
+                    minWidth: "6rem",
                 }}
                 lazy={true}
-                isLoading={isLoading}
+                isLoading={isloading}
+                rules={rules}
             />
         </>
     );

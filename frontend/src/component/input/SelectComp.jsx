@@ -24,9 +24,9 @@ export default function SelectComp({
 }) {
     const generateSingleOptions = () => {
         if (lazy) {
-            let optionses = options.map(item => {
+            let optionses = options.map((item, index) => {
                 return (
-                    <MenuItem key={item.value} value={item.value}>
+                    <MenuItem key={`${item.value}-${index}`} value={item.value}>
                         {item.label}
                     </MenuItem>
                 );
