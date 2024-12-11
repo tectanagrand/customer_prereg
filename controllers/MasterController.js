@@ -1053,7 +1053,6 @@ MasterController.getReqDrvVehLog = async (req, res) => {
                     md.req_uuid = rdv.uuid 
                 where rdv.position <> 'REJ' ${role === "LOGISTIC" ? `and rdv.position = 'LOG'` : role === "KRANIWB" ? `and rdv.position = 'ADM'` : ""} ${role === "CUSTOMER" ? `and rdv.create_by = '${req.cookies.id_user}'` : ""}
                 and ((rdv.position = 'SUC' and (rdv.create_at <= now() and rdv.create_at >= now() - interval '3' day)) or rdv.position = 'LOG' or rdv.position = 'ADM')
-                group by rdv.uuid, request_id, position, driver_id, md.uuid
                 order by
                     request_id desc ;`);
             for (const data of rows) {
