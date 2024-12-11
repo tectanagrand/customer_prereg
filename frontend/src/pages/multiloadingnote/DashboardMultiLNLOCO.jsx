@@ -94,14 +94,17 @@ const ButtonAction = ({ id, setRefresh }) => {
         <Box sx={{ display: "flex", gap: 1 }}>
             <TooltipButton
                 Icon={<EditOutlined />}
+                TooltipText={"Edit"}
                 onClick={e => buttonAction(id, "edit")}
             />
             <TooltipButton
                 Icon={<DeleteOutlined />}
+                TooltipText={"Delete"}
                 onClick={e => buttonAction(id, "delete")}
             />
             <TooltipButton
                 Icon={<OutboxOutlined />}
+                TooltipText={"Send To Logistic"}
                 onClick={e => buttonAction(id, "tolog")}
             />
         </Box>
