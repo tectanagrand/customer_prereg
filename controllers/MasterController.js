@@ -1027,23 +1027,30 @@ MasterController.getReqDrvVehLog = async (req, res) => {
                         when rdv.position = 'ADM' then 'On Krani'
                         else 'Outstanding'
                     End as status,
-                    string_agg(mv.vhcl_id, ',') as vehicle_id,
-                    string_agg(mv.uuid, ',') as vehuuid,
-                    case 
-	                    when md.driver_id is not null then string_agg(concat(md.driver_id || ' - ' || md.driver_name), ',')
-	                    else ''
-	                end
-	                as driver,
-                    case when md.uuid is not null then string_agg(coalesce(md.uuid, ''),',') 
-                    else ''
-                    end
-                    as drvuuid
+                    mv.vehicle_id,
+                    mv.vehuuid,
+                    md.driver,
+                   md.drvuuid
                 from
                     req_drvr_vhcl rdv
-                left join mst_vehicle mv on
-                    mv.req_uuid = rdv.uuid and mv.is_active = true
-                left join mst_driver md on
-                    md.req_uuid = rdv.uuid and md.is_active = true
+                left join (
+                	select string_agg(vhcl_id, ',') as vehicle_id, string_agg(uuid, ',') as vehuuid, req_uuid
+                	from mst_vehicle mv
+                	where mv.is_active = true
+                	group by req_uuid
+                ) mv on
+                    mv.req_uuid = rdv.uuid 
+                left join (
+                select string_agg(concat(driver_id || ' - ' || driver_name), ',')
+	                as driver,
+                   string_agg(coalesce(uuid, ''),',') 
+                    as drvuuid,
+                    req_uuid
+                	from mst_driver 
+                	where is_active = true
+                	group by req_uuid
+                ) md on
+                    md.req_uuid = rdv.uuid 
                 where rdv.position <> 'REJ' ${role === "LOGISTIC" ? `and rdv.position = 'LOG'` : role === "KRANIWB" ? `and rdv.position = 'ADM'` : ""} ${role === "CUSTOMER" ? `and rdv.create_by = '${req.cookies.id_user}'` : ""}
                 and ((rdv.position = 'SUC' and (rdv.create_at <= now() and rdv.create_at >= now() - interval '3' day)) or rdv.position = 'LOG' or rdv.position = 'ADM')
                 group by rdv.uuid, request_id, position, driver_id, md.uuid
