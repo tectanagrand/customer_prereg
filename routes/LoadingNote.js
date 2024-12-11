@@ -7,6 +7,7 @@ const AuthManager = require("../middleware/AuthManager");
 
 router.post(
     "/save",
+    AuthManager.authSession,
     SubmissionLN.checkSubmitValidity,
     LoadNote.SaveLoadingNoteDB
 );
