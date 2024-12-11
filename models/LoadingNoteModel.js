@@ -1,5 +1,4 @@
 const db = require("../config/connection");
-const { PoolOra, ora } = require("../config/oracleconnection");
 const { getConnection, ora: ora2 } = require("../config/oracleconnectionv2");
 const TRANS = require("../config/transaction");
 const ExcelJS = require("exceljs");
@@ -98,45 +97,23 @@ LoadingNoteModel.CheckIsExceedOS = async (do_number, load_detail) => {
     try {
         const client = await db.connect();
         try {
-            const { data: ZSLIP_get } = await axios.get(
-                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${do_number}')&$format=json
-            `,
-                {
-                    auth: {
-                        username: process.env.UNAMESAP,
-                        password: process.env.PWDSAP,
-                    },
-                }
-            );
-            const company = ZSLIP_get.d.results[0].Werks.slice(0, 2);
-            const { rows: compdet } = await client.query(
-                `select group_comp from mst_company where sap_code = $1`,
-                [company]
-            );
             let OSQty = 0;
-            if (compdet[0].group_comp === "UPSTREAM") {
-                const dataQty = await OSCheck.CheckOSUps(do_number);
-                console.log("Is Upstream");
-                console.log(dataQty);
-                OSQty =
-                    dataQty.ConQty -
-                    dataQty.TotalWB -
-                    dataQty.HoldQty -
-                    dataQty.QtyWeb;
-            } else {
-                const dataQty = await OSCheck.CheckOSCust(do_number);
-                console.log("Is Downstream");
-                console.log(dataQty);
-                OSQty =
-                    dataQty.ConQty -
-                    (dataQty.TotalSAP - dataQty.TotalDeleted) -
-                    dataQty.TotalTemp -
-                    dataQty.HoldQty;
-            }
+
+            const dataQty = await OSCheck.CheckOSCust(do_number);
+            OSQty =
+                dataQty.ConQty -
+                (dataQty.TotalSAP - dataQty.TotalDeleted) -
+                dataQty.TotalTemp -
+                dataQty.HoldQty;
+
             let totalRequested = 0;
-            load_detail.forEach(item => {
-                totalRequested += parseFloat(item.planned_qty);
-            });
+            if (Array.isArray(load_detail)) {
+                load_detail.forEach(item => {
+                    totalRequested += parseFloat(item.planned_qty);
+                });
+            } else {
+                totalRequested += parseFloat(load_detail.planned_qty);
+            }
             if (OSQty - totalRequested < 0) {
                 throw new Error(
                     "Amount requested is over than current outstanding quantity contract"
