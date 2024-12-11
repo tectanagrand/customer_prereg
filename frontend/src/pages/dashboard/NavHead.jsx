@@ -35,6 +35,10 @@ const getIcon = icon => {
             return lazy(() => import("@mui/icons-material/ReceiptLong"));
         case "Print":
             return lazy(() => import("@mui/icons-material/Print"));
+        case "FilterNone":
+            return lazy(() => import("@mui/icons-material/FilterNone"));
+        case "DynamicFeed":
+            return lazy(() => import("@mui/icons-material/DynamicFeed"));
         default:
             return HelpOutlineIcon;
     }

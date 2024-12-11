@@ -7,6 +7,9 @@ import AuthDashboard from "../pages/dashboard/AuthDashboard";
 const ApprovalPage = lazy(() => import("../pages/approvalreq/ApprovalPage"));
 import ErrorPage from "../pages/error/ErrorPage";
 import { Axios } from "../api/axios";
+const DashboardMultiLNLOCO = lazy(
+    () => import("../pages/multiloadingnote/DashboardMultiLNLOCO")
+);
 const PrintTolling = lazy(() => import("../pages/recap/PrintTolling"));
 const TollingDashboard = lazy(
     () => import("../pages/tolling/TollingDashboard")
@@ -28,6 +31,7 @@ const CreatedLoadingNote = lazy(
 const ApprovalReqDelete = lazy(
     () => import("../pages/loadingnote/ApprovalReqDelete")
 );
+const MultiLNLOCO = lazy(() => import("../pages/multiloadingnote/MultiLNLOCO"));
 // import DashboardCustomer from "../pages/dashboard/DashboardCustomer";
 
 const Dashboard = lazy(() => import("../pages/dashboard/Dashboard"));
@@ -333,6 +337,34 @@ export const routes = createBrowserRouter([
                     {
                         path: "apprdeltol",
                         element: <ApprovalReqDeleteTol />,
+                    },
+                    {
+                        path: "multilocodws",
+                        element: <DashboardMultiLNLOCO key="DOWNSTREAM" />,
+                        loader: () => ({
+                            CGRP: "DOWNSTREAM",
+                        }),
+                    },
+                    {
+                        path: "multilocodws/create",
+                        element: <MultiLNLOCO key="DOWNSTREAM" />,
+                        loader: () => ({
+                            CGRP: "DOWNSTREAM",
+                        }),
+                    },
+                    {
+                        path: "multilocoups",
+                        element: <DashboardMultiLNLOCO key="UPSTREAM" />,
+                        loader: () => ({
+                            CGRP: "UPSTREAM",
+                        }),
+                    },
+                    {
+                        path: "multilocoups/create",
+                        element: <MultiLNLOCO key="UPSTREAM" />,
+                        loader: () => ({
+                            CGRP: "UPSTREAM",
+                        }),
                     },
                 ],
             },
