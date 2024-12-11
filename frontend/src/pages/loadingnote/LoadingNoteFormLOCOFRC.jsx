@@ -401,7 +401,7 @@ export default function LoadingNoteFormFRC() {
             );
             setValue("sto_num", stodata.ebeln);
             const { data, status } = await axiosPrivate.get(
-                `/master/checkstolcfrc?sto=${stodata.ebeln})}`
+                `/master/checkstolcfrc?sto=${stodata.ebeln}`
             );
             if (status === 200) {
                 toast.success("STO Number Exist");

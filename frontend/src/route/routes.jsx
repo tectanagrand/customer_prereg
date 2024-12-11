@@ -183,7 +183,7 @@ export const routes = createBrowserRouter([
                         element: <LoadingNoteForm key="DOWNSTREAM" />,
                         loader: () => {
                             return {
-                                C_GRP: "UPSTREAM",
+                                C_GRP: "DOWNSTREAM",
                             };
                         },
                     },
