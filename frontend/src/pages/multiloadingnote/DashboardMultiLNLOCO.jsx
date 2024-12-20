@@ -45,6 +45,10 @@ const TableChildMultiLOCO = ({ dataChild }) => {
                 header: "INCO",
                 cell: ({ getValue }) => getValue(),
             }),
+            columnHelper.accessor("desc_mat", {
+                header: "Material",
+                cell: ({ getValue }) => getValue(),
+            }),
             columnHelper.accessor("planned_qty", {
                 header: "Planning Qty",
                 cell: ({ getValue, row }) => {
@@ -56,7 +60,7 @@ const TableChildMultiLOCO = ({ dataChild }) => {
     return <TableSimple rowsData={dataChild} columns={columns} />;
 };
 
-const ButtonAction = ({ id, setRefresh }) => {
+const ButtonAction = ({ id, setRefresh, cur_pos }) => {
     const { openBackdrop, closeBackdrop } = useToggleBackdrop(state => state);
     const axiosPrivate = useAxiosPrivate();
     const buttonAction = useCallback(
@@ -73,7 +77,7 @@ const ButtonAction = ({ id, setRefresh }) => {
                         });
                         toast.success("Success Send to Logistic");
                     } catch (error) {
-                        let errormsg = error.response?.data?.messsage;
+                        let errormsg = error.response?.data?.message;
                         if (!errormsg) {
                             errormsg = error.message;
                         }
@@ -91,23 +95,25 @@ const ButtonAction = ({ id, setRefresh }) => {
         [id]
     );
     return (
-        <Box sx={{ display: "flex", gap: 1 }}>
-            <TooltipButton
-                Icon={<EditOutlined />}
-                TooltipText={"Edit"}
-                onClick={e => buttonAction(id, "edit")}
-            />
-            <TooltipButton
-                Icon={<DeleteOutlined />}
-                TooltipText={"Delete"}
-                onClick={e => buttonAction(id, "delete")}
-            />
-            <TooltipButton
-                Icon={<OutboxOutlined />}
-                TooltipText={"Send To Logistic"}
-                onClick={e => buttonAction(id, "tolog")}
-            />
-        </Box>
+        cur_pos === "INIT" && (
+            <Box sx={{ display: "flex", gap: 1 }}>
+                <TooltipButton
+                    Icon={<EditOutlined />}
+                    TooltipText={"Edit"}
+                    onClick={e => buttonAction(id, "edit")}
+                />
+                <TooltipButton
+                    Icon={<DeleteOutlined />}
+                    TooltipText={"Delete"}
+                    onClick={e => buttonAction(id, "delete")}
+                />
+                <TooltipButton
+                    Icon={<OutboxOutlined />}
+                    TooltipText={"Send To Logistic"}
+                    onClick={e => buttonAction(id, "tolog")}
+                />
+            </Box>
+        )
     );
 };
 export default function DashboardMultiLNLOCO() {
@@ -150,6 +156,7 @@ export default function DashboardMultiLNLOCO() {
                     <ButtonAction
                         id={props.row.original.hd_id}
                         setRefresh={setRefresh}
+                        cur_pos={props.row.original.cur_pos}
                     />
                 ),
             }),
