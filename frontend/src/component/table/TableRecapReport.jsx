@@ -153,31 +153,6 @@ export default function TableRecapReport() {
                     )}  ${row.uom}`,
                 cell: props => props.getValue(),
             },
-            {
-                header: "Bruto",
-                accessorKey: "bruto",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Tarra",
-                accessorKey: "tarra",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Netto",
-                accessorKey: "netto",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Receive",
-                accessorKey: "receive",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Deduction",
-                accessorKey: "deduction",
-                cell: props => props.getValue(),
-            },
         ],
         []
     );
