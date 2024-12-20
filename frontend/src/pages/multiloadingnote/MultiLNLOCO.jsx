@@ -62,7 +62,7 @@ export default function MultiLNLOCO() {
         name: "requests",
         control: control,
         rules: {
-            required: "Please create a request",
+            minLength: { value: 2, message: "Please make request more than 1" },
         },
     });
 
@@ -130,7 +130,6 @@ export default function MultiLNLOCO() {
                 trans_type: null,
                 trg_cust: null,
                 planned_qty: parseInt(det.plan_qty.replace(/,/g, "")),
-                is_paid: det.is_paid,
                 fac_plant: det.fac_plant,
                 oth_plant: det.oth_plant,
                 fac_batch: det.company,
@@ -323,7 +322,8 @@ const RequestLoading = ({
 
     const onRemoveData = () => {
         let requestsData = getValues("requests");
-        if (requestsData.length < 2) {
+        console.log(requestsData);
+        if (requestsData.length < 1) {
             setIsPaid(false);
             return;
         }
@@ -339,20 +339,35 @@ const RequestLoading = ({
 
     const CheckPayment = async () => {
         let duplicateCount = 0;
+        let diffplant = 0;
         let requestsData = getValues("requests");
         let do_num = getValues(`requests.${index}.id_do`);
+        let plant = getValues(`requests.${index}.plant`);
         requestsData.forEach(item => {
             if (item.id_do == do_num) {
                 duplicateCount++;
             }
+            if (item.plant != plant) {
+                diffplant++;
+            }
         });
+        let is_error = false;
         if (duplicateCount > 1) {
             setError(`requests.${index}.id_do`, {
                 type: "duplicate",
                 message: "Cannot request same DO in a request",
             });
-            return;
+            is_error = true;
+            // return;
         }
+        if (diffplant > 0) {
+            setError(`requests.${index}.plant`, {
+                type: "different",
+                message: "Request must be on same plant",
+            });
+            is_error = true;
+        }
+        if (is_error) return;
         setValue(`requests.${index}.plan_qty`, "");
         setLoading(true);
         try {
@@ -575,8 +590,8 @@ const RequestLoading = ({
             <Box>
                 <IconButton
                     onClick={e => {
-                        onRemoveData();
                         remove(index);
+                        onRemoveData();
                     }}
                 >
                     <DeleteOutline />
