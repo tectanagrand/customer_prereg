@@ -31,9 +31,9 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 USR_UP.id_user AS ID_UPDATER,
                 EM_WB.EMAIL AS EMAIL_WB,
                 HD.ID_DO,
-                CUS.KUNNR,
-                TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
-                CUS.NAME_1,
+                mbc.KUNNR,
+                TO_CHAR(DET.tanggal_surat_jalan , 'DD-MM-YYYY') AS CRE_DATE,
+                mbc.NAME as name_1,
                 DET.DRIVER_ID,
                 DET.DRIVER_NAME,
                 DET.VHCL_ID,
@@ -60,8 +60,49 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = US.ROLE
                 WHERE RL.ROLE_NAME = 'KRANIWB'
                 GROUP BY RL.ROLE_NAME, US.PLANT_CODE) EM_WB ON EM_WB.plant_code = hd.plant
-              LEFT JOIN MST_CUSTOMER CUS ON CUS.KUNNR = USR_CR.USERNAME
-                WHERE LN_NUM IS NULL AND DET.IS_ACTIVE = TRUE`
+              LEFT JOIN master_bp_code mbc  ON mbc.KUNNR = USR_CR.USERNAME
+                WHERE LN_NUM IS NULL AND DET.IS_ACTIVE = true and push_sap_date is not null
+                union all
+                SELECT DET.DET_ID,
+                                EM_CR.EMAIL AS EMAIL_CREATOR,
+                                USR_CR.id_user AS ID_CREATOR,
+                                EM_UP.EMAIL AS EMAIL_UPDATER,
+                                USR_UP.id_user AS ID_UPDATER,
+                                EM_WB.EMAIL AS EMAIL_WB,
+                                DET.ID_DO,
+                                mbc.KUNNR,
+                                TO_CHAR(HD.tanggal_surat_jalan, 'DD-MM-YYYY') AS CRE_DATE,
+                                mbc.NAME as name_1,
+                                HD.DRIVER_ID,
+                                HD.DRIVER_NAME,
+                                HD.VEHICLE_ID,
+                                DET.PLANNED_QTY,
+                                DET.FAC_SLOC,
+                                ms_fac.description as FAC_SLOC_DESC,
+                                DET.FAC_VALTYPE,
+                                DET.OTH_SLOC,
+                                ms_oth.description as OTH_SLOC_DESC,
+                                DET.OTH_VALTYPE,
+                                DET.UOM
+                            FROM multi_ln_det DET
+                            LEFT JOIN MST_USER USR_CR ON DET.CREATE_BY = USR_CR.ID_USER
+                            LEFT JOIN MST_USER USR_UP ON DET.UPDATE_BY = USR_UP.ID_USER
+                            LEFT JOIN multi_ln_hd HD ON DET.HD_ID = HD.HD_ID
+                            LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, US.id_user FROM MST_USER US
+                                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
+                                GROUP BY US.id_user) EM_UP ON EM_UP.id_user = USR_UP.id_user
+                            LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, US.id_user FROM MST_USER US
+                                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
+                                GROUP BY US.id_user) EM_CR ON EM_CR.id_user = USR_CR.id_user
+                            LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, RL.ROLE_NAME, US.PLANT_CODE FROM MST_USER US
+                                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
+                                LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = US.ROLE
+                                WHERE RL.ROLE_NAME = 'KRANIWB'
+                                GROUP BY RL.ROLE_NAME, US.PLANT_CODE) EM_WB ON EM_WB.plant_code = det.plant
+                            LEFT JOIN master_bp_code mbc  ON mbc.KUNNR = USR_CR.USERNAME
+                            left join mst_sloc ms_fac on ms_fac.sloc = det.fac_sloc
+                            left join mst_sloc ms_oth on ms_oth.sloc = det.oth_sloc
+                                WHERE LN_NUM IS NULL AND DET.IS_ACTIVE = true and push_sap_date is not null`
             );
 
             if (rows.length > 0) {
@@ -189,13 +230,23 @@ SAPGetterChores.LoadingNoteSync = async () => {
                         }
 
                         const id_db = row.det_id;
+                        let queW, valW;
                         // console.log(id_db);
-                        const [queW, valW] = crud.updateItem(
-                            "loading_note_det",
-                            payload,
-                            { det_id: id_db },
-                            "det_id"
-                        );
+                        if (row.is_multi == 0) {
+                            [queW, valW] = crud.updateItem(
+                                "loading_note_det",
+                                payload,
+                                { det_id: id_db },
+                                "det_id"
+                            );
+                        } else {
+                            [queW, valW] = crud.updateItem(
+                                "multi_ln_det",
+                                payload,
+                                { det_id: id_db },
+                                "det_id"
+                            );
+                        }
                         // console.log(queW);
                         const [queO, valO] = crud.updateItemOra(
                             "PREREG_LOADING_NOTE_SAP",

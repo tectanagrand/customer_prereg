@@ -3,6 +3,7 @@ const PDFDocument = require("pdfkit");
 const moment = require("moment");
 const crud = require("../helper/crudquery");
 const TRANS = require("../config/transaction");
+const { formatNumber } = require("../helper/formatting");
 
 const PDFController = {};
 
@@ -187,6 +188,211 @@ PDFController.exportSuratJalan = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).send(error);
+    }
+};
+
+PDFController.exportSuratJalanMulti = async (req, res) => {
+    const hd_id = req.body.hd_id;
+    const doc = new PDFDocument({ size: "A4" });
+    try {
+        const client = await db.connect();
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows } = await client.query(
+                `
+                select  
+				HD.hd_id,
+                HD.driver_id,
+                HD.driver_name,
+                HD.vehicle_id,
+                DET.fac_plant,
+                DET.ln_num,
+                TO_CHAR(hd.tanggal_surat_jalan,
+                'DD-MM-YYYY') as tanggal_surat_jalan,
+                TO_CHAR(hd.tanggal_pembuatan,
+                'DD-MM-YYYY') as cre_date,
+                DET.planned_qty,
+                DET.UOM,
+                DET.DESC_MAT,
+                det.id_do,
+                DET.material,
+                CO.name as comp_name,
+                det.company,
+                mbc.name as name_1,
+                mbc.kunnr,
+                PLT.ALAMAT,
+                HD.print_count ,
+                DET.remark_req
+            from
+                multi_ln_det DET
+            left join multi_ln_hd HD on
+                DET.HD_ID = HD.HD_ID
+            left join MST_USER USR on
+                HD.CREATE_BY = USR.ID_USER
+            left join master_bp_code mbc on
+                mbc.kunnr = usr.username
+            left join MST_COMPANY CO on
+                CO.SAP_CODE = DET.COMPANY
+            left join MST_COMPANY_PLANT PLT on
+                PLT.PLANT_CODE = DET.PLANT
+            where hd.hd_id = $1
+            order by
+                HD.tanggal_surat_jalan desc,
+                ln_num asc
+      `,
+                [hd_id]
+            );
+            let watermark;
+            const dt = rows[0];
+            if (!dt.print_count) {
+                watermark = "Original Document";
+            } else {
+                watermark = `Copy of original (${dt.print_count})`;
+            }
+            const [queUp, insUp] = crud.updateItem(
+                "multi_ln_hd",
+                {
+                    print_count: dt.print_count
+                        ? parseInt(dt.print_count) + 1
+                        : 1,
+                },
+                { hd_id: hd_id },
+                "hd_id"
+            );
+            // console.log(queUp);
+            await client.query(queUp, insUp);
+            doc.opacity(0.2);
+            doc.rotate(-35);
+            doc.fontSize(60).text(watermark, -200, 400);
+            doc.text("KPN CORP", -200, 500);
+
+            doc.save();
+            doc.rotate(35);
+            doc.opacity(1);
+            doc.fontSize(20).text(`${dt.name_1}(${dt.kunnr})`, 100, 90);
+            doc.fontSize(20).text("Surat Jalan Multi", 360, 50);
+            // doc.fontSize(14).text("Multi", 400, 70);
+
+            // doc.fontSize(12).text("No LN :", 380, 120);
+            // doc.fontSize(12).text("1010000016790", 420, 120);
+            doc.fontSize(12).text("Nama Supir :", 100, 140);
+            doc.fontSize(12).text(dt.driver_name, 180, 140, { width: 200 });
+
+            // doc.fontSize(12).text("Tgl. Request LN :", 300, 140);
+            // doc.fontSize(12).text("23-04-2024", 420, 140, {
+            //     width: 120,
+            // });
+            // doc.fontSize(12).text("Tanggal Pengambilan :", 100, 140);
+            // doc.fontSize(12).text("12-19-2024", 230, 140, {
+            //     width: 120,
+            // });
+            doc.fontSize(12).text("Tgl. Request LN :", 100, 170);
+            doc.fontSize(12).text(dt.cre_date, 200, 170, { width: 120 });
+            doc.fontSize(12).text("No Polisi : ", 100, 200);
+            doc.fontSize(12).text(dt.vehicle_id, 200, 200, { width: 120 });
+            // doc.fontSize(12).text("No Do :", 100, 260);
+            // doc.fontSize(12).text("1011100704", 180, 260, { width: 120 });
+            doc.fontSize(12).text("Tgl. Pengambilan / Muat", 300, 170, {
+                width: 120,
+            });
+            doc.fontSize(12).text(":", 405, 170, {
+                width: 120,
+            });
+            doc.fontSize(12).text(dt.tanggal_surat_jalan, 420, 170, {
+                width: 120,
+            });
+            doc.fontSize(12).text("Tujuan :", 300, 210);
+            doc.fontSize(12).text(
+                `${dt.comp_name}(${dt.fac_plant})`,
+                390,
+                210,
+                {
+                    width: 120,
+                }
+            );
+            doc.fontSize(12).text("Alamat :", 100, 240);
+            doc.fontSize(12).text(dt.alamat, 180, 240);
+
+            var xline = 280;
+            var col = [100, 180, 280, 420];
+
+            doc.moveTo(100, xline).lineTo(500, xline).stroke();
+            doc.text("DO Num", col[0], xline + 10);
+            doc.text("LN Num", col[1], xline + 10);
+            doc.text("Material", col[2], xline + 10);
+            doc.text("Plan Qty", col[3], xline + 10);
+            doc.moveTo(100, xline + 30)
+                .lineTo(500, xline + 30)
+                .stroke();
+            doc.moveTo(col[1] - 10, xline)
+                .lineTo(col[1] - 10, xline + 30)
+                .stroke();
+            doc.moveTo(col[2] - 10, xline)
+                .lineTo(col[2] - 10, xline + 30)
+                .stroke();
+            doc.moveTo(col[3] - 10, xline)
+                .lineTo(col[3] - 10, xline + 30)
+                .stroke();
+
+            var lastRow = xline + 30;
+
+            for (const dt of rows) {
+                rowBefore = lastRow;
+                lastRow += 20;
+                doc.text(dt.id_do, col[0], lastRow);
+                doc.text(dt.ln_num, col[1] - 5, lastRow, { width: 200 });
+                doc.text(
+                    `${dt.desc_mat} (${dt.material})`,
+                    col[2] - 5,
+                    lastRow - 12,
+                    { width: 120 }
+                );
+                doc.text(
+                    formatNumber(dt.planned_qty, dt.uom),
+                    col[3],
+                    lastRow,
+                    { width: 200 }
+                );
+
+                lastRow += 30;
+                doc.moveTo(col[1] - 10, rowBefore)
+                    .lineTo(col[1] - 10, lastRow)
+                    .stroke();
+                doc.moveTo(col[2] - 10, rowBefore)
+                    .lineTo(col[2] - 10, lastRow)
+                    .stroke();
+                doc.moveTo(col[3] - 10, rowBefore)
+                    .lineTo(col[3] - 10, lastRow)
+                    .stroke();
+
+                doc.moveTo(100, lastRow).lineTo(500, lastRow).stroke();
+            }
+            lastRow += 30;
+
+            doc.fontSize(12).text("Hormat Kami", 100, lastRow + 20);
+            doc.fontSize(12).text(dt.comp_name, 100, lastRow + 100);
+            doc.fontSize(12).text(dt.driver_name, 400, lastRow + 100);
+            // doc.fontSize(12).text("Remark :", 100, lastRow + 120);
+            // doc.fontSize(12).text("HEHE", 100, lastRow + 160);
+
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader(
+                "Content-Disposition",
+                `attachment; filename="SuratJalan_Multi_${dt.driver_name}_${dt.tanggal_surat_jalan}.pdf"`
+            );
+            doc.pipe(res);
+            await client.query(TRANS.COMMIT);
+            res.status(200);
+            doc.end();
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: error.message });
     }
 };
 

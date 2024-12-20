@@ -1,4 +1,8 @@
 const MultiLoadingNoteModel = require("../models/MultiLoadingNoteModel");
+const LoadingNoteController = require("../controllers/LoadingNoteController");
+const q = require("../helper/Queue");
+const moment = require("moment");
+const axios = require("axios");
 
 const MultiLNController = {};
 
@@ -56,6 +60,94 @@ MultiLNController.SendToLog = async (req, res) => {
             message: error.message,
         });
     }
+    return;
+};
+
+MultiLNController.GetOSPushReq = async (req, res) => {
+    try {
+        const data = await MultiLoadingNoteModel.GetOSPushReq();
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MultiLNController.GetPrintReq = async (req, res) => {
+    try {
+        const id_user = req.cookies.id_user;
+        const data = await MultiLoadingNoteModel.GetPrintReq({
+            user_id: id_user,
+        });
+        res.status(200).send(data);
+        return;
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MultiLNController.SubmitPushMultiLN = async (req, res) => {
+    try {
+        const { requests, password } = req.body;
+        const session = req.cookies;
+        const data = await MultiLoadingNoteModel.PushSAPMulti({
+            data_req: requests,
+            session: session,
+        });
+        MultiLNController.PushJobSAPTrigger(data, requests, session, password);
+        res.status(200).send({ message: "Success push" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+    return;
+};
+
+MultiLNController.PushJobSAPTrigger = (
+    insertSAP,
+    payload,
+    session,
+    password
+) => {
+    const promiseJob = new Promise(async (resolve, reject) => {
+        try {
+            await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXSet?&$format=json`,
+                {
+                    auth: {
+                        username: session.username,
+                        password: password,
+                    },
+                }
+            );
+            await MultiLoadingNoteModel.ApproveMultiSAP(payload, session);
+            resolve(
+                "Success Push" +
+                    moment().format("YYYY-MM-DD T HH:mm:ss") +
+                    insertSAP.data
+            );
+        } catch (error) {
+            reject(error);
+        }
+    });
+    const jobQueue = () => {
+        console.log(
+            "Start new Job : " +
+                moment().format("YYYY-MM-DD T HH:mm:ss") +
+                insertSAP.data
+        );
+        return promiseJob
+            .then(result => console.log(result))
+            .catch(error => console.log(error));
+    };
+    q.push(jobQueue);
     return;
 };
 
