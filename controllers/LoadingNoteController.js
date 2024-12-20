@@ -250,19 +250,13 @@ LoadingNoteController.SubmitSAP_3 = async (req, res) => {
             payload,
             session
         );
-        if (payload.selected_req[0].cgrp === "UPSTREAM") {
-            LoadingNoteController.PushJobSAPUPSTrigger(
-                payload.selected_req,
-                session,
-                password
-            );
-        } else {
-            LoadingNoteController.PushJobSAPTrigger(
-                insertSAP,
-                session,
-                password
-            );
-        }
+        //uniform all push method, cgrp downstream omitted to move to prereg_loading_sap_ups
+        LoadingNoteController.PushJobSAPUPSTrigger(
+            insertSAP,
+            payload.selected_req,
+            session,
+            password
+        );
         res.status(200).send({
             message: "Data Pushed to SAP",
         });
@@ -351,7 +345,12 @@ LoadingNoteController.PushJobSAPTrigger = (insertSAP, session, password) => {
     return;
 };
 
-LoadingNoteController.PushJobSAPUPSTrigger = (payload, session, password) => {
+LoadingNoteController.PushJobSAPUPSTrigger = (
+    insertSAP,
+    payload,
+    session,
+    password
+) => {
     const promiseJob = new Promise(async (resolve, reject) => {
         try {
             await axios.get(
@@ -365,7 +364,9 @@ LoadingNoteController.PushJobSAPUPSTrigger = (payload, session, password) => {
             );
             await LoadNote.ApproveUPSLoadingNoteSAP(payload, session);
             resolve(
-                "Success Push" + moment().format("YYYY-MM-DD T HH:mm:ss") + " "
+                "Success Push" +
+                    moment().format("YYYY-MM-DD T HH:mm:ss") +
+                    insertSAP.data
             );
         } catch (error) {
             reject(error);
@@ -373,7 +374,9 @@ LoadingNoteController.PushJobSAPUPSTrigger = (payload, session, password) => {
     });
     const jobQueue = () => {
         console.log(
-            "Start new Job : " + moment().format("YYYY-MM-DD T HH:mm:ss") + " "
+            "Start new Job : " +
+                moment().format("YYYY-MM-DD T HH:mm:ss") +
+                insertSAP.data
         );
         return promiseJob
             .then(result => console.log(result))
