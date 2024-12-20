@@ -2,6 +2,11 @@ const ora = require("oracledb");
 
 let pool;
 
+/**
+ * @async
+ * @return {import("oracledb").Pool}
+ *
+ */
 async function initPool() {
     if (!pool) {
         pool = await ora.createPool({
@@ -12,6 +17,13 @@ async function initPool() {
     }
     return pool;
 }
+
+/**
+ *
+ * @async
+ * @function getConnection
+ * @returns {import("oracledb").Connection}
+ */
 
 async function getConnection() {
     if (!pool) {
