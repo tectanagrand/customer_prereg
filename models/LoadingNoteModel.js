@@ -1334,6 +1334,9 @@ LoadingNoteModel.ApproveUPSLoadingNoteSAP = async (lnreq, session) => {
                 material_mst.set(item.material_code, item.material_cat);
             });
             for (const ln of lnreq) {
+                if (ln.cgrp != "UPSTREAM") {
+                    continue;
+                }
                 const { rows: lnnum_data } = await oraclient.execute(
                     `
                     SELECT LOADING_NOTE_NUM FROM PREREG_LOADING_NOTE_SAP WHERE DET_ID = :0
@@ -2334,12 +2337,12 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
                 count: dataCount[0].count_rows,
                 sum_data: {
                     ...dataCount[0],
-                    con_qty: rows[0].con_qty,
-                    uom: rows[0].uom,
-                    plan_qty: planQty[0].plan_qty,
-                    pending_qty: pendingQty[0].plan_qty,
-                    postedTotal: postTot[0].receive,
-                    unpostedTotal: unpostTot[0].receive,
+                    con_qty: rows[0]?.con_qty,
+                    uom: rows[0]?.uom,
+                    plan_qty: planQty[0]?.plan_qty,
+                    pending_qty: pendingQty[0]?.plan_qty,
+                    postedTotal: postTot[0]?.receive,
+                    unpostedTotal: unpostTot[0]?.receive,
                 },
             };
             if (do_number) {
@@ -2347,23 +2350,23 @@ LoadingNoteModel.getReportLN = async (filters, customer_id, limit, offset) => {
                     do_number.value,
                 ]);
                 const { os_sap } = await LoadingNoteModel.getOSQtySAP(
-                    moment(dataCount[0].max_tgl_muat)
+                    moment(dataCount[0]?.max_tgl_muat)
                         .add(1, "days")
                         .format("YYYY-MM-DD"),
                     do_number.value
                 );
                 const { osposted, osunposted } =
                     await LoadingNoteModel.getOSQtyWB(
-                        moment(dataCount[0].max_tgl_muat)
+                        moment(dataCount[0]?.max_tgl_muat)
                             .add(1, "days")
                             .format("YYYY-MM-DD"),
                         do_number.value
                     );
-                const osweb = os_sap - parseFloat(pendingQty[0].plan_qty);
+                const osweb = os_sap - parseFloat(pendingQty[0]?.plan_qty);
                 returnData = {
                     ...returnData,
                     contract: {
-                        con_qty: contractData[0].con_qty,
+                        con_qty: contractData[0]?.con_qty,
                     },
                     outstanding: {
                         os_sap: os_sap,
