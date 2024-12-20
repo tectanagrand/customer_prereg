@@ -218,7 +218,9 @@ export default function Dashboard() {
                 sx={{
                     flexGrow: 1,
                     p: 3,
-                    height: "85%",
+                    height: "80%",
+                    display: "flex",
+                    flexDirection: "column",
                     width: open
                         ? `calc(100% - ${drawerWidth}px)`
                         : `calc(100% - 88px)`,
