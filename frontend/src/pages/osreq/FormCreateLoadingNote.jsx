@@ -358,7 +358,6 @@ export default function FormCreateLoadingNote() {
             console.error(error);
             if (
                 [
-                    "Role Not Authorized",
                     "Provide password",
                     "SAP Credential Not Valid",
                     "Session Expired",
