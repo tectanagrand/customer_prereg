@@ -7,6 +7,9 @@ import AuthDashboard from "../pages/dashboard/AuthDashboard";
 const ApprovalPage = lazy(() => import("../pages/approvalreq/ApprovalPage"));
 import ErrorPage from "../pages/error/ErrorPage";
 import { Axios } from "../api/axios";
+const PushSAPMulti = lazy(
+    () => import("../pages/multiloadingnote/PushSAPMulti")
+);
 const DashboardMultiLNLOCO = lazy(
     () => import("../pages/multiloadingnote/DashboardMultiLNLOCO")
 );
@@ -365,6 +368,10 @@ export const routes = createBrowserRouter([
                         loader: () => ({
                             CGRP: "UPSTREAM",
                         }),
+                    },
+                    {
+                        path: "pushmultiln",
+                        element: <PushSAPMulti />,
                     },
                 ],
             },
