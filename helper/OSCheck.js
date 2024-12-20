@@ -71,11 +71,15 @@ OSCheck.CheckOSCust = async do_number => {
       from loading_note_det lnd
       left join loading_note_hd lnh on lnh.hd_id = lnd.hd_fk
       where lnd.ln_num is null and lnh.id_do = $1 and lnd.is_active = true
+      union all
+      select sum(planned_qty) as totaltemp_plan
+      from multi_ln_det mld
+      where mld.ln_num is null and mld.id_do = $1 and mld.is_active = true
       `,
                 [do_number]
             );
-            if (qtyWeb[0].totaltemp_plan) {
-                totaltemp_plan = parseFloat(qtyWeb[0].totaltemp_plan);
+            for (const dt of qtyWeb) {
+                totaltemp_plan += parseFloat(dt.totaltemp_plan ?? 0);
             }
 
             //get qty hold
