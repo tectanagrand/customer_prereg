@@ -1079,4 +1079,44 @@ LoadingNoteController.choicesSyncStagingWBNET = async (req, res) => {
         });
     }
 };
+
+LoadingNoteController.PostZWBChain = async (req, res) => {
+    console.log("Post ZWB Chain ...");
+    try {
+        const dataZWBS_TRX = await LoadNote.PostZWBS_TRX();
+        console.log(`
+            Loading Note ZWBS_TRX Posted :
+            success : ${dataZWBS_TRX.success.join(", ")}
+            failed  : ${dataZWBS_TRX.failed.join(", ")}            
+            `);
+
+        const dataZWB_PARK = await LoadNote.PostZWB_PARK();
+
+        console.log(`
+            Loading Note ZWB_PARK Posted :
+            success : ${dataZWB_PARK.success.join(", ")}
+            failed  : ${dataZWB_PARK.failed.join(", ")}            
+            `);
+
+        const dataZDO_TRX = await LoadNote.PostZDO_TRX();
+
+        console.log(`
+            Loading Note ZDO_TRX Posted :
+            success : ${dataZDO_TRX.success.join(", ")}
+            failed  : ${dataZDO_TRX.failed.join(", ")}            
+            `);
+        res.status(200).send({
+            message: `Loading Note ZWB CHAIN Posted `,
+            ZWBS_TRX: dataZWBS_TRX,
+            ZWB_PARK: dataZWB_PARK,
+            ZDO_TRX: dataZDO_TRX,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+    return;
+};
 module.exports = LoadingNoteController;

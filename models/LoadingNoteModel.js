@@ -3570,4 +3570,334 @@ LoadingNoteModel.syncDataStagingWBNET = async (comp, month, year) => {
         throw error;
     }
 };
+
+LoadingNoteModel.PostZWBS_TRX = async () => {
+    try {
+        const client = await db.connect();
+        const oraclient = await getConnection();
+        let ln_success = [];
+        let ln_failed = [];
+        const success_msg = ["No New Data to Sync Up", "Success", "Sukses"];
+        try {
+            await client.query(TRANS.BEGIN);
+            const cora = {
+                COMPANY: 0,
+                PLANT: 1,
+                LOADING_NOTE_NUM: 2,
+                WB_TICKET: 3,
+                ZWBS_TRX_STAT: 4,
+                ZWBS_TRX_DESC: 5,
+            };
+
+            const { rows: pre_data } = await oraclient.execute(`
+                SELECT
+                    plns.BUKRS AS company,
+                    plns.RWERKS AS plant,
+                    plns.LOADING_NOTE_NUM,
+                    zp.WB_TICKET ,
+                    plns.ZWBS_TRX_STAT,
+                    plns.ZWBS_TRX_DESC
+                FROM
+                    PREREG_LOADING_NOTE_SAP plns
+                LEFT JOIN ZWB_PARK zp ON
+                    zp.DOCTRX = plns.LOADING_NOTE_NUM
+                WHERE
+                    ZWBS_TRX_STAT = 0
+                ORDER BY LOADING_NOTE_NUM asc
+                `);
+            for (const dt of pre_data) {
+                const { data } = await axios.get(
+                    process.env.ODATADOM +
+                        ":" +
+                        process.env.ODATAPORT +
+                        "/sap/opu/odata/sap/ZGW_REGISTRA_SRV/PULLZWBSTRXSet?$format=json&$filter=(Company eq '" +
+                        dt[cora["COMPANY"]] +
+                        "')and(Plant eq '" +
+                        dt[cora["PLANT"]] +
+                        "')and(Wbticket eq '" +
+                        dt[cora["WB_TICKET"]] +
+                        "')",
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                if (data.d.results.length < 1) {
+                    throw new Error("Error not exist");
+                }
+                console.log(data.d.results[0]);
+                const message = data.d.results[0].RfcText;
+                if (
+                    !(
+                        message.toLowerCase() == success_msg[0] ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[1].toLowerCase()) ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[2].toLowerCase())
+                    )
+                ) {
+                    ln_failed.push(dt[cora["LOADING_NOTE_NUM"]]);
+                    const update_failed = {
+                        ZWBS_TRX_STAT: 2,
+                        ZWBS_TRX_DESC: message,
+                    };
+                    const [upFail, valFail] = crud.updateItemOra(
+                        "PREREG_LOADING_NOTE_SAP",
+                        update_failed,
+                        { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                    );
+                    await oraclient.execute(upFail, valFail);
+                    continue;
+                }
+                const update_success = {
+                    ZWBS_TRX_STAT: 1,
+                    ZWBS_TRX_DESC: message,
+                };
+                const [upSuc, valSuc] = crud.updateItemOra(
+                    "PREREG_LOADING_NOTE_SAP",
+                    update_success,
+                    { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                );
+                await oraclient.execute(upSuc, valSuc);
+                ln_success.push(dt[cora["LOADING_NOTE_NUM"]]);
+            }
+            await oraclient.commit();
+            return {
+                success: ln_success,
+                failed: ln_failed,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            if (client) client.release();
+            if (oraclient) oraclient.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.PostZWB_PARK = async () => {
+    try {
+        const client = await db.connect();
+        const oraclient = await getConnection();
+        let ln_success = [];
+        let ln_failed = [];
+        const success_msg = ["No New Data to Sync Up", "Success", "Sukses"];
+        try {
+            await client.query(TRANS.BEGIN);
+            const cora = {
+                COMPANY: 0,
+                PLANT: 1,
+                LOADING_NOTE_NUM: 2,
+                WB_TICKET: 3,
+                ZWBS_TRX_STAT: 4,
+                ZWBS_TRX_DESC: 5,
+            };
+
+            const { rows: pre_data } = await oraclient.execute(`
+                SELECT
+                    plns.BUKRS AS company,
+                    plns.RWERKS AS plant,
+                    plns.LOADING_NOTE_NUM,
+                    zp.WB_TICKET ,
+                    plns.ZWB_PARK_STAT,
+                    plns.ZWB_PARK_DESC
+                FROM
+                    PREREG_LOADING_NOTE_SAP plns
+                LEFT JOIN ZWB_PARK zp ON
+                    zp.DOCTRX = plns.LOADING_NOTE_NUM
+                WHERE
+                    ZWBS_TRX_STAT = 1 AND ZWB_PARK_STAT IS NULL
+                ORDER BY LOADING_NOTE_NUM asc
+                `);
+            for (const dt of pre_data) {
+                const { data } = await axios.get(
+                    process.env.ODATADOM +
+                        ":" +
+                        process.env.ODATAPORT +
+                        "/sap/opu/odata/sap/ZGW_REGISTRA_SRV/POSTZWBPARKSet?$format=json&$filter=(Company eq '" +
+                        dt[cora["COMPANY"]] +
+                        "')and(Plant eq '" +
+                        dt[cora["PLANT"]] +
+                        "')and(Wbticket eq '" +
+                        dt[cora["WB_TICKET"]] +
+                        "')",
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                if (data.d.results.length < 1) {
+                    throw new Error("Error not exist");
+                }
+                // console.log(data.d.results[0]);
+                const message = data.d.results[0].RfcText;
+                if (
+                    !(
+                        message.toLowerCase() == success_msg[0] ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[1].toLowerCase()) ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[2].toLowerCase())
+                    )
+                ) {
+                    ln_failed.push(dt[cora["LOADING_NOTE_NUM"]]);
+                    const update_failed = {
+                        ZWB_PARK_STAT: 2,
+                        ZWB_PARK_DESC: message,
+                    };
+                    const [upFail, valFail] = crud.updateItemOra(
+                        "PREREG_LOADING_NOTE_SAP",
+                        update_failed,
+                        { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                    );
+                    await oraclient.execute(upFail, valFail);
+                    continue;
+                }
+                const update_success = {
+                    ZWB_PARK_STAT: 1,
+                    ZWB_PARK_DESC: message,
+                };
+                const [upSuc, valSuc] = crud.updateItemOra(
+                    "PREREG_LOADING_NOTE_SAP",
+                    update_success,
+                    { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                );
+                await oraclient.execute(upSuc, valSuc);
+                ln_success.push(dt[cora["LOADING_NOTE_NUM"]]);
+            }
+            await oraclient.commit();
+            return {
+                success: ln_success,
+                failed: ln_failed,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            if (client) client.release();
+            if (oraclient) oraclient.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.PostZDO_TRX = async () => {
+    try {
+        const client = await db.connect();
+        const oraclient = await getConnection();
+        let ln_success = [];
+        let ln_failed = [];
+        const success_msg = ["No New Data to Sync Up", "Success", "Sukses"];
+        try {
+            await client.query(TRANS.BEGIN);
+            const cora = {
+                COMPANY: 0,
+                PLANT: 1,
+                LOADING_NOTE_NUM: 2,
+                WB_TICKET: 3,
+                ZWBS_TRX_STAT: 4,
+                ZWBS_TRX_DESC: 5,
+            };
+
+            const { rows: pre_data } = await oraclient.execute(`
+               SELECT
+                    plns.BUKRS AS company,
+                    plns.RWERKS AS plant,
+                    plns.LOADING_NOTE_NUM,
+                    zp.WB_TICKET ,
+                    plns.ZWB_PARK_STAT,
+                    plns.ZWB_PARK_DESC
+                FROM
+                    PREREG_LOADING_NOTE_SAP plns
+                LEFT JOIN ZWB_PARK zp ON
+                    zp.DOCTRX = plns.LOADING_NOTE_NUM
+                WHERE
+                    ZWB_PARK_STAT = 1 AND ZDO_TRX_STAT  IS NULL
+                ORDER BY LOADING_NOTE_NUM asc
+                `);
+            for (const dt of pre_data) {
+                const { data } = await axios.get(
+                    process.env.ODATADOM +
+                        ":" +
+                        process.env.ODATAPORT +
+                        "/sap/opu/odata/sap/ZGW_REGISTRA_SRV/POSTZDOTRXSet?$format=json&$filter=(Company eq '" +
+                        dt[cora["COMPANY"]] +
+                        "')and(Loadingnote eq '" +
+                        dt[cora["LOADING_NOTE_NUM"]] +
+                        "')and(Postdata eq '" +
+                        "DOPO" +
+                        "')",
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                if (data.d.results.length < 1) {
+                    throw new Error("Error not exist");
+                }
+                // console.log(data.d.results[0]);
+                const message = data.d.results[0].RfcText;
+                if (
+                    !(
+                        message.toLowerCase() == success_msg[0] ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[1].toLowerCase()) ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[2].toLowerCase())
+                    )
+                ) {
+                    ln_failed.push(dt[cora["LOADING_NOTE_NUM"]]);
+                    const update_failed = {
+                        ZDO_TRX_STAT: 2,
+                        ZDO_TRX_DESC: message,
+                    };
+                    const [upFail, valFail] = crud.updateItemOra(
+                        "PREREG_LOADING_NOTE_SAP",
+                        update_failed,
+                        { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                    );
+                    await oraclient.execute(upFail, valFail);
+                    continue;
+                }
+                const update_success = {
+                    ZDO_TRX_STAT: 1,
+                    ZDO_TRX_DESC: message,
+                };
+                const [upSuc, valSuc] = crud.updateItemOra(
+                    "PREREG_LOADING_NOTE_SAP",
+                    update_success,
+                    { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                );
+                await oraclient.execute(upSuc, valSuc);
+                ln_success.push(dt[cora["LOADING_NOTE_NUM"]]);
+            }
+            await oraclient.commit();
+            return {
+                success: ln_success,
+                failed: ln_failed,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            if (client) client.release();
+            if (oraclient) oraclient.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
 module.exports = LoadingNoteModel;
