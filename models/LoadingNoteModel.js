@@ -1966,7 +1966,7 @@ LoadingNoteModel.getRecap = async customer_id => {
         LEFT JOIN LOADING_NOTE_HD HD ON HD.HD_ID = DET.HD_FK
         LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
         LEFT JOIN MST_CUSTOMER CUST ON USR.SAP_CODE = CUST.KUNNR
-        WHERE DET.LN_NUM IS NOT NULL ;`;
+        WHERE DET.LN_NUM IS NOT NULL and det.tanggal_surat_jalan >= (now() - interval '30 days')`;
     try {
         const client = await db.connect();
         try {
@@ -2026,7 +2026,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
         LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
         LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
-        WHERE DET.LN_NUM IS NOT NULL`;
+        WHERE DET.LN_NUM IS NOT NULL and det.tanggal_surat_jalan >= (now() - interval '30 days')`;
     let where = [];
     let whereVal = [];
     let ltindex = 0;
