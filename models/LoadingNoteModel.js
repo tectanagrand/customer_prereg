@@ -2029,7 +2029,7 @@ LoadingNoteModel.getSSRecap = async (filters, customer_id, skipid = false) => {
         LEFT JOIN MST_CUSTOMER CUST ON USR.USERNAME = CUST.KUNNR
         LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
         LEFT JOIN MST_INTERCO INT ON INT.KUNNR = USR.USERNAME
-        WHERE DET.LN_NUM IS NOT NULL and det.tanggal_surat_jalan >= (now() - interval '30 days')`;
+        WHERE DET.LN_NUM IS NOT NULL`;
     let where = [];
     let whereVal = [];
     let ltindex = 0;
