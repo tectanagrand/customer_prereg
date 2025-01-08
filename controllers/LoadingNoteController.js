@@ -1098,18 +1098,28 @@ LoadingNoteController.PostZWBChain = async (req, res) => {
             failed  : ${dataZWB_PARK.failed.join(", ")}            
             `);
 
-        const dataZDO_TRX = await LoadNote.PostZDO_TRX();
+        const dataZDO_TRXDOPO = await LoadNote.PostZDO_TRXDOPO();
 
         console.log(`
-            Loading Note ZDO_TRX Posted :
-            success : ${dataZDO_TRX.success.join(", ")}
-            failed  : ${dataZDO_TRX.failed.join(", ")}            
+            Loading Note ZDO_TRXDOPO Posted :
+            success : ${dataZDO_TRXDOPO.success.join(", ")}
+            failed  : ${dataZDO_TRXDOPO.failed.join(", ")}            
             `);
+
+        const dataZDO_TRXPGIP = await LoadNote.PostZDO_TRXPGIP();
+
+        console.log(`
+            Loading Note ZDO_TRXPGIP Posted :
+            success : ${dataZDO_TRXPGIP.success.join(", ")}
+            failed  : ${dataZDO_TRXPGIP.failed.join(", ")}            
+            `);
+
         res.status(200).send({
             message: `Loading Note ZWB CHAIN Posted `,
             ZWBS_TRX: dataZWBS_TRX,
             ZWB_PARK: dataZWB_PARK,
-            ZDO_TRX: dataZDO_TRX,
+            ZDO_TRXDOPO: dataZDO_TRXDOPO,
+            ZDO_TRXPGIP: dataZDO_TRXPGIP,
         });
     } catch (error) {
         console.error(error);
