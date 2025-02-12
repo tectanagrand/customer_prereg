@@ -21,6 +21,7 @@ SAPGetterChores.LoadingNoteSync = async () => {
         const email_creator = new Map();
         const email_updater = new Map();
         const email_wb = new Map();
+        const email_cc = new Map();
         try {
             // get data db psql
             const { rows } = await psqlclient.query(
@@ -30,10 +31,11 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 EM_UP.EMAIL AS EMAIL_UPDATER,
                 USR_UP.id_user AS ID_UPDATER,
                 EM_WB.EMAIL AS EMAIL_WB,
+                EM_MGR.em_mgr as EMAIL_MGR,
                 HD.ID_DO,
                 CUS.KUNNR,
                 TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
-                CUS.NAME_1,
+                CUS.NAME as name_1,
                 DET.DRIVER_ID,
                 DET.DRIVER_NAME,
                 DET.VHCL_ID,
@@ -60,7 +62,8 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = US.ROLE
                 WHERE RL.ROLE_NAME = 'KRANIWB'
                 GROUP BY RL.ROLE_NAME, US.PLANT_CODE) EM_WB ON EM_WB.plant_code = hd.plant
-              LEFT JOIN MST_CUSTOMER CUS ON CUS.KUNNR = USR_CR.USERNAME
+              LEFT JOIN master_bp_code CUS ON CUS.KUNNR = USR_CR.USERNAME
+              left join (select plant, string_agg(email_mgr, ',' order by email_mgr) as em_mgr from mst_email_mgr group by plant   ) EM_MGR on HD.plant = EM_MGR.plant
                 WHERE LN_NUM IS NULL AND DET.IS_ACTIVE = TRUE`
             );
 
@@ -166,6 +169,23 @@ SAPGetterChores.LoadingNoteSync = async () => {
                                     .get(row.email_creator)
                                     .push(payloadEmail);
                             }
+                            if (row.email_mgr !== null) {
+                                if (!email_cc.has(row.email_creator)) {
+                                    email_cc.set(row.email_creator, [
+                                        row.email_mgr,
+                                    ]);
+                                } else {
+                                    if (
+                                        !email_cc
+                                            .get(row.email_creator)
+                                            .includes(row.email_mgr)
+                                    ) {
+                                        email_cc
+                                            .get(row.email_creator)
+                                            .push(payloadEmail);
+                                    }
+                                }
+                            }
                         }
 
                         if (row.email_updater !== null) {
@@ -213,7 +233,7 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 }
                 try {
                     if (email_creator.size > 0) {
-                        await EmailModel.NotifyEmail(email_creator);
+                        await EmailModel.NotifyEmail(email_creator, email_cc);
                     }
                     if (email_updater.size > 0) {
                         await EmailModel.NotifyEmail(email_updater);
