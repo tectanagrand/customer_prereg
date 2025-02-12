@@ -21,6 +21,7 @@ SAPGetterChores.LoadingNoteSync = async () => {
         const email_creator = new Map();
         const email_updater = new Map();
         const email_wb = new Map();
+        const email_cc = new Map();
         try {
             // get data db psql
             const { rows } = await psqlclient.query(
@@ -30,10 +31,11 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 EM_UP.EMAIL AS EMAIL_UPDATER,
                 USR_UP.id_user AS ID_UPDATER,
                 EM_WB.EMAIL AS EMAIL_WB,
+                EM_MGR.em_mgr as EMAIL_MGR,
                 HD.ID_DO,
-                mbc.KUNNR,
-                TO_CHAR(DET.tanggal_surat_jalan , 'DD-MM-YYYY') AS CRE_DATE,
-                mbc.NAME as name_1,
+                CUS.KUNNR,
+                TO_CHAR(DET.CRE_DATE, 'DD-MM-YYYY') AS CRE_DATE,
+                CUS.NAME as name_1,
                 DET.DRIVER_ID,
                 DET.DRIVER_NAME,
                 DET.VHCL_ID,
@@ -60,49 +62,9 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = US.ROLE
                 WHERE RL.ROLE_NAME = 'KRANIWB'
                 GROUP BY RL.ROLE_NAME, US.PLANT_CODE) EM_WB ON EM_WB.plant_code = hd.plant
-              LEFT JOIN master_bp_code mbc  ON mbc.KUNNR = USR_CR.USERNAME
-                WHERE LN_NUM IS NULL AND DET.IS_ACTIVE = true and push_sap_date is not null
-                union all
-                SELECT DET.DET_ID,
-                                EM_CR.EMAIL AS EMAIL_CREATOR,
-                                USR_CR.id_user AS ID_CREATOR,
-                                EM_UP.EMAIL AS EMAIL_UPDATER,
-                                USR_UP.id_user AS ID_UPDATER,
-                                EM_WB.EMAIL AS EMAIL_WB,
-                                DET.ID_DO,
-                                mbc.KUNNR,
-                                TO_CHAR(HD.tanggal_surat_jalan, 'DD-MM-YYYY') AS CRE_DATE,
-                                mbc.NAME as name_1,
-                                HD.DRIVER_ID,
-                                HD.DRIVER_NAME,
-                                HD.VEHICLE_ID,
-                                DET.PLANNED_QTY,
-                                DET.FAC_SLOC,
-                                ms_fac.description as FAC_SLOC_DESC,
-                                DET.FAC_VALTYPE,
-                                DET.OTH_SLOC,
-                                ms_oth.description as OTH_SLOC_DESC,
-                                DET.OTH_VALTYPE,
-                                DET.UOM
-                            FROM multi_ln_det DET
-                            LEFT JOIN MST_USER USR_CR ON DET.CREATE_BY = USR_CR.ID_USER
-                            LEFT JOIN MST_USER USR_UP ON DET.UPDATE_BY = USR_UP.ID_USER
-                            LEFT JOIN multi_ln_hd HD ON DET.HD_ID = HD.HD_ID
-                            LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, US.id_user FROM MST_USER US
-                                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
-                                GROUP BY US.id_user) EM_UP ON EM_UP.id_user = USR_UP.id_user
-                            LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, US.id_user FROM MST_USER US
-                                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
-                                GROUP BY US.id_user) EM_CR ON EM_CR.id_user = USR_CR.id_user
-                            LEFT JOIN (SELECT STRING_AGG(EM.EMAIL, ', ') AS EMAIL, RL.ROLE_NAME, US.PLANT_CODE FROM MST_USER US
-                                LEFT JOIN MST_EMAIL EM ON EM.ID_USER = US.ID_USER
-                                LEFT JOIN MST_ROLE RL ON RL.ROLE_ID = US.ROLE
-                                WHERE RL.ROLE_NAME = 'KRANIWB'
-                                GROUP BY RL.ROLE_NAME, US.PLANT_CODE) EM_WB ON EM_WB.plant_code = det.plant
-                            LEFT JOIN master_bp_code mbc  ON mbc.KUNNR = USR_CR.USERNAME
-                            left join mst_sloc ms_fac on ms_fac.sloc = det.fac_sloc
-                            left join mst_sloc ms_oth on ms_oth.sloc = det.oth_sloc
-                                WHERE LN_NUM IS NULL AND DET.IS_ACTIVE = true and push_sap_date is not null`
+              LEFT JOIN master_bp_code CUS ON CUS.KUNNR = USR_CR.USERNAME
+              left join (select plant, string_agg(email_mgr, ',' order by email_mgr) as em_mgr from mst_email_mgr group by plant   ) EM_MGR on HD.plant = EM_MGR.plant
+                WHERE LN_NUM IS NULL AND DET.IS_ACTIVE = TRUE`
             );
 
             if (rows.length > 0) {
@@ -207,6 +169,23 @@ SAPGetterChores.LoadingNoteSync = async () => {
                                     .get(row.email_creator)
                                     .push(payloadEmail);
                             }
+                            if (row.email_mgr !== null) {
+                                if (!email_cc.has(row.email_creator)) {
+                                    email_cc.set(row.email_creator, [
+                                        row.email_mgr,
+                                    ]);
+                                } else {
+                                    if (
+                                        !email_cc
+                                            .get(row.email_creator)
+                                            .includes(row.email_mgr)
+                                    ) {
+                                        email_cc
+                                            .get(row.email_creator)
+                                            .push(payloadEmail);
+                                    }
+                                }
+                            }
                         }
 
                         if (row.email_updater !== null) {
@@ -264,7 +243,7 @@ SAPGetterChores.LoadingNoteSync = async () => {
                 }
                 try {
                     if (email_creator.size > 0) {
-                        await EmailModel.NotifyEmail(email_creator);
+                        await EmailModel.NotifyEmail(email_creator, email_cc);
                     }
                     if (email_updater.size > 0) {
                         await EmailModel.NotifyEmail(email_updater);

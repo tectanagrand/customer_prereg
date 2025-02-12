@@ -454,7 +454,8 @@ UserModel.getAllAuth = async role_id => {
         const { rows: getDataAuth } = await client.query(
             `SELECT mpa.page_id, mpa.fcreate, mpa.fread, mpa.fupdate, mpa.fdelete, mp.menu_page FROM mst_page_access mpa  
             LEFT JOIN mst_page mp on mpa.page_id = mp.menu_id and mp.is_active = true
-            WHERE role_id = $1`,
+            WHERE role_id = $1
+            order by mp.parent_id asc, mp.menu_id asc`,
             [role_id]
         );
 

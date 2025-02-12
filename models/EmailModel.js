@@ -3,16 +3,22 @@ const EmailGen = require("../helper/EmailGen");
 
 const EmailModel = {};
 
-EmailModel.NotifyEmail = async email_list => {
+EmailModel.NotifyEmail = async (email_list, cc) => {
     try {
         const tp = EmailTP.Transporter();
         const em_ls = Object.fromEntries(email_list);
         if (email_list.size > 0) {
             for (const em in em_ls) {
+                let cc_emails = "";
+                if (cc) {
+                    // get email cc by email creator
+                    cc_emails = cc.get(em);
+                }
                 const EmailHTML = EmailGen.PushedSAP(em_ls[em].join(" "));
                 const setup = {
                     from: process.env.SMTP_USERNAME,
                     to: em,
+                    cc: cc_emails,
                     subject: "Notification Pushed Loading Note",
                     html: EmailHTML,
                 };
