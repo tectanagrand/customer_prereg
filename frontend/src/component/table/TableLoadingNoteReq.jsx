@@ -163,6 +163,16 @@ export default function TableLoadingNoteReq({
                 cell: props => props.getValue(),
             },
             {
+                header: "PO Number",
+                accessorKey: "id_po",
+                cell: props => props.getValue(),
+            },
+            {
+                header: "BC Number",
+                accessorKey: "id_bc",
+                cell: props => props.getValue(),
+            },
+            {
                 header: "Incoterm",
                 accessorKey: "inco_1",
                 cell: props => props.getValue(),

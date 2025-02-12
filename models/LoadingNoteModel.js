@@ -176,6 +176,10 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                 payloadHeader.id_sto = params.sto_num;
                 payloadHeader.trans_type = params.trans_type;
             }
+            if (params.bc_num) {
+                payloadHeader.id_bc = params.bc_num;
+                payloadHeader.id_po = params.po_num;
+            }
             if (params.id_header === "") {
                 [que, val] = crud.insertItem(
                     "loading_note_hd",
@@ -722,6 +726,8 @@ LoadingNoteModel.getById2 = async id_header => {
 
             const resp = {
                 do_num: hd_dt.id_do,
+                po_num: hd_dt.id_po,
+                bc_num: hd_dt.id_bc,
                 sto_num: hd_dt.id_sto,
                 trans_type: hd_dt.trans_type,
                 inv_type: hd_dt.invoice_type,
@@ -857,6 +863,8 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
                 HD.hd_id,
                 HD.ID_DO,
                 HD.ID_STO,
+                HD.ID_BC,
+                HD.ID_PO,
                 HD.TRANS_TYPE,
                 HD.PLANT,
                 HD.RULES,
@@ -1208,6 +1216,8 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     ITEMRULE: itemrule,
                     VBELN_REF: item.id_do,
                     EBELN_REF: item.id_sto,
+                    BC_NO: item.id_bc,
+                    PO_NO: item.id_po,
                     POSNR: "000010",
                     // CREDAT: moment(item.create_date).format("DD.MM.YYYY"),
                     CREDAT: new Date(
