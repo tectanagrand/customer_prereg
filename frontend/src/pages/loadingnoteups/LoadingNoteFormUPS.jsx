@@ -62,6 +62,7 @@ export default function LoadingNoteFormUPS() {
     const [click, setClick] = useState(false);
     const [slocOP, setSloc] = useState([]);
     const [medtpOP, setMedTPOP] = useState([]);
+    const [bcList, setBclist] = useState([]);
     const [hold_qty, setHoldqty] = useState(0);
     const [restData, setRestData] = useState({});
     const [checkedMulti, setCheckedMulti] = useState([]);
@@ -83,6 +84,8 @@ export default function LoadingNoteFormUPS() {
         formState: { errors },
     } = useForm({
         defaultValues: {
+            bc_num: "",
+            po_num: "",
             do_num: "",
             inv_type: "",
             inv_type_tol_from: "0 %",
@@ -153,6 +156,9 @@ export default function LoadingNoteFormUPS() {
                         load_detail: load_detail,
                     });
                     setPreOp(data.data.do_num);
+                    setBclist([
+                        { value: data.data.bc_num, label: data.data.bc_num },
+                    ]);
                     uuidLN.current = data.id_header;
                     position.current = data.cur_pos;
                     setPltRule({
@@ -291,12 +297,18 @@ export default function LoadingNoteFormUPS() {
             const { data } = await axiosPrivate.get(
                 `/master/doups?do_num=${value}`
             );
+            const { data: bc_num } = await axiosPrivate.get(
+                `/master/getbcbyso?so_num=${value}`
+            );
+            setBclist(bc_num.BC.map(item => ({ value: item, label: item })));
             const slip = data.SLIP;
             if (slip.INCO1 === "FRC") {
                 throw new Error("Cannot proceed FRANCO type SO");
             }
+
             const dataMap = {
                 do_num: value,
+                po_num: bc_num.PO,
                 inv_type: slip.ZZINVOICETYPE,
                 inv_type_tol_from: slip.UEBTOINV + " %",
                 inv_type_tol_to: slip.UNTTOINV + " %",
@@ -336,7 +348,10 @@ export default function LoadingNoteFormUPS() {
             if (data.IS_PAID) {
                 toast.success("Already paid, can proceed to logistic");
             } else {
+                setPaid(false);
                 reset({
+                    bc_num: "",
+                    po_num: "",
                     do_num: "",
                     inv_type: "",
                     inv_type_tol_from: "0 %",
@@ -347,6 +362,7 @@ export default function LoadingNoteFormUPS() {
                     material: "",
                     con_qty: "0",
                     os_qty: "0",
+                    os_wb_qty: 0,
                     plant: "",
                     description: "",
                     uom: "",
@@ -364,20 +380,35 @@ export default function LoadingNoteFormUPS() {
                 toast.error("Not paid yet");
             }
         } catch (error) {
+            setPaid(false);
             console.log(error);
             const resetData = {
+                bc_num: "",
+                po_num: "",
                 do_num: "",
                 inv_type: "",
-                inv_type_tol_from: "",
-                inv_type_tol_to: "",
+                inv_type_tol_from: "0 %",
+                inv_type_tol_to: "0 %",
                 incoterms: "",
                 rules: "",
                 con_num: "",
                 material: "",
-                con_qty: "",
+                con_qty: "0",
+                os_qty: "0",
+                os_wb_qty: 0,
                 plant: "",
-                batch: "",
                 description: "",
+                uom: "",
+                load_detail: [],
+                fac_plant: "",
+                fac_store_loc: "",
+                fac_batch: "",
+                fac_val_type: "",
+                oth_plant: "",
+                oth_store_loc: "",
+                oth_batch: "",
+                oth_val_type: "",
+                company: "",
             };
             Object.keys(resetData).forEach(item => {
                 setValue(item, resetData[item]);
@@ -486,6 +517,7 @@ export default function LoadingNoteFormUPS() {
                                 type="LCO"
                                 cgrp={C_GRP}
                             />
+
                             <LoadingButton
                                 onClick={() =>
                                     handleCheckSO(getValues("do_num"))
@@ -504,6 +536,28 @@ export default function LoadingNoteFormUPS() {
                                 flexWrap: "wrap",
                             }}
                         >
+                            <TextFieldComp
+                                control={control}
+                                name="po_num"
+                                label="PO Number"
+                                sx={{
+                                    mr: 1,
+                                    maxWidth: "8rem",
+                                    minWidth: "6rem",
+                                }}
+                                disabled
+                            />
+                            <SelectComp
+                                control={control}
+                                name="bc_num"
+                                label="BC Number"
+                                sx={{
+                                    mr: 1,
+                                    maxWidth: "12rem",
+                                    minWidth: "10rem",
+                                }}
+                                options={bcList}
+                            />
                             <TextFieldComp
                                 name="material"
                                 label="Material"

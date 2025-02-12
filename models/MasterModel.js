@@ -290,6 +290,7 @@ MasterModel.getSODataUPS = async do_num => {
             TOTALSPEND:
                 parseInt(OSData.TotalWB) +
                 parseInt(OSData.HoldQty) +
+                parseInt(OSData.TotalSAP) +
                 parseInt(OSData.QtyWeb),
             TOTALWB: parseInt(OSData.TotalWB),
             TOTALSAP: parseInt(OSData.TotalSAP) - parseInt(OSData.TotalDeleted),
@@ -1588,6 +1589,35 @@ MasterModel.getDataDOFRCByCGRP = async (sto_num, comp_group) => {
         } finally {
             client.release();
         }
+    } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.getBCbySO = async so_num => {
+    try {
+        const { data } = await axios.get(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/NODAFTARBCSet?$format=json&$filter=(NomorSo%20eq%27${so_num}%27)`,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        console.log(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/NODAFTARBCSet?$format=json&$filter=(NomorSo%20eq%27${so_num}%27)`
+        );
+        const DataBC = data.d.results;
+        let BC = DataBC.map(item => item.NomorBc);
+        if (DataBC.length < 1) {
+            throw new Error("BC Not found");
+        }
+        return {
+            SO: so_num,
+            PO: DataBC[0].NomorPo,
+            BC: BC,
+        };
     } catch (error) {
         throw error;
     }

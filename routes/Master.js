@@ -53,5 +53,6 @@ router.post("/savemstcon", MasterController.createMasterContract);
 router.post("/deletemstcon", MasterController.deleteMasterContract);
 router.post("/deactmstcon", MasterController.deactivateMasterContract);
 router.get("/getsap", MasterController.getCodeSAP);
+router.get("/getbcbyso", MasterController.getBCbySO);
 
 module.exports = router;

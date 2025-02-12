@@ -1529,4 +1529,17 @@ MasterController.getIncoterms = async (req, res) => {
     }
 };
 
+MasterController.getBCbySO = async (req, res) => {
+    try {
+        const { so_num } = req.query;
+        const data = await Master.getBCbySO(so_num);
+        res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = MasterController;
