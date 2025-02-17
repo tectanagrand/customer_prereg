@@ -155,7 +155,9 @@ export default function TableLoadingNoteReq({
             {
                 header: "DO Number",
                 accessorKey: "id_do",
-                cell: props => props.getValue(),
+                cell: props => {
+                    return props.row.original.ref_id_do || props.getValue();
+                },
             },
             {
                 header: "STO Number",

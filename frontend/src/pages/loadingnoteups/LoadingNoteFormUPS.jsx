@@ -65,6 +65,7 @@ export default function LoadingNoteFormUPS() {
     const [bcList, setBclist] = useState([]);
     const [hold_qty, setHoldqty] = useState(0);
     const [restData, setRestData] = useState({});
+    const [showRefDo, setShowRefDo] = useState(false);
     const [checkedMulti, setCheckedMulti] = useState([]);
     const [uomQty, setUomQty] = useState("Kg");
     const [preOp, setPreOp] = useState("");
@@ -84,6 +85,8 @@ export default function LoadingNoteFormUPS() {
         formState: { errors },
     } = useForm({
         defaultValues: {
+            ref_do_num: "",
+            buyer_name: "",
             bc_num: "",
             po_num: "",
             do_num: "",
@@ -146,6 +149,9 @@ export default function LoadingNoteFormUPS() {
                             method: "",
                         };
                     });
+                    if (data.data.ref_do_num) {
+                        setShowRefDo(true);
+                    }
                     setCheckedMulti(checkedMulti);
                     setRemaining(parseFloat(data.data.remaining));
                     usedQty.current = parseFloat(data.data.totalspend);
@@ -337,6 +343,11 @@ export default function LoadingNoteFormUPS() {
                 }
             });
             setPaid(data.IS_PAID);
+            if (value != slip.VBELN) {
+                setValue("ref_do_num", slip.VBELN);
+                setValue("buyer_name", slip.NAME1);
+                setShowRefDo(true);
+            }
             const { data: slocList } = await axiosPrivate.get(
                 "master/sloc?plant=" +
                     dataMap.plant +
@@ -348,9 +359,12 @@ export default function LoadingNoteFormUPS() {
             if (data.IS_PAID) {
                 toast.success("Already paid, can proceed to logistic");
             } else {
+                setShowRefDo(false);
                 setPaid(false);
                 reset({
+                    ref_do_num: "",
                     bc_num: "",
+                    buyer_name: "",
                     po_num: "",
                     do_num: "",
                     inv_type: "",
@@ -380,9 +394,12 @@ export default function LoadingNoteFormUPS() {
                 toast.error("Not paid yet");
             }
         } catch (error) {
+            setShowRefDo(false);
             setPaid(false);
             console.log(error);
             const resetData = {
+                ref_do_num: "",
+                buyer_name: "",
                 bc_num: "",
                 po_num: "",
                 do_num: "",
@@ -518,6 +535,33 @@ export default function LoadingNoteFormUPS() {
                                 cgrp={C_GRP}
                             />
 
+                            {showRefDo && (
+                                <TextFieldComp
+                                    control={control}
+                                    name="ref_do_num"
+                                    label="Reference DO"
+                                    disabled
+                                    sx={{
+                                        mr: 1,
+                                        maxWidth: "8rem",
+                                        minWidth: "6rem",
+                                    }}
+                                />
+                            )}
+                            {showRefDo && (
+                                <TextFieldComp
+                                    control={control}
+                                    name="buyer_name"
+                                    label="Buyer"
+                                    disabled
+                                    sx={{
+                                        mr: 1,
+                                        maxWidth: "15rem",
+                                        minWidth: "6rem",
+                                    }}
+                                />
+                            )}
+
                             <LoadingButton
                                 onClick={() =>
                                     handleCheckSO(getValues("do_num"))
@@ -557,6 +601,7 @@ export default function LoadingNoteFormUPS() {
                                     minWidth: "10rem",
                                 }}
                                 options={bcList}
+                                rules={{ required: "Please insert this field" }}
                             />
                             <TextFieldComp
                                 name="material"
