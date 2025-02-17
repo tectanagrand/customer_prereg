@@ -180,6 +180,10 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                 payloadHeader.id_bc = params.bc_num;
                 payloadHeader.id_po = params.po_num;
             }
+            if (params.ref_do_num) {
+                payloadHeader.ref_id_do = params.ref_do_num;
+                payloadHeader.buyer_name = params.buyer_name;
+            }
             if (params.id_header === "") {
                 [que, val] = crud.insertItem(
                     "loading_note_hd",
@@ -725,6 +729,8 @@ LoadingNoteModel.getById2 = async id_header => {
             }
 
             const resp = {
+                ref_do_num: hd_dt.ref_id_do,
+                buyer_name: hd_dt.buyer_name,
                 do_num: hd_dt.id_do,
                 po_num: hd_dt.id_po,
                 bc_num: hd_dt.id_bc,
@@ -862,6 +868,7 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
             const baseQ = `SELECT DET.det_id as id,
                 HD.hd_id,
                 HD.ID_DO,
+                HD.REF_ID_DO,
                 HD.ID_STO,
                 HD.ID_BC,
                 HD.ID_PO,
@@ -915,8 +922,6 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
             ${whoFilter}
             `;
             const que = `SELECT * FROM (${baseQ}) A ${filterStr} ;`;
-            console.log(que);
-            console.log(filter_val);
             const { rows } = await client.query(que, filter_val);
             return {
                 data: rows,
@@ -1190,6 +1195,10 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
         try {
             await client.query(TRANS.BEGIN);
             for (item of uploadData) {
+                let id_do = item.ref_id_do;
+                if (!id_do) {
+                    id_do = item.id_do;
+                }
                 let method = "";
                 const { rowCount } = await client.query(
                     `SELECT * FROM loading_note_det WHERE det_id = $1 and push_sap_date is not null`,
@@ -1214,7 +1223,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     UPLOADID: "1",
                     DOTYPE: item?.trans_type === "M" ? "T" : "S",
                     ITEMRULE: itemrule,
-                    VBELN_REF: item.id_do,
+                    VBELN_REF: id_do,
                     EBELN_REF: item.id_sto,
                     BC_NO: item.id_bc,
                     PO_NO: item.id_po,
