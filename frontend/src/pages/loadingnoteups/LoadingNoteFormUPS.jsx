@@ -601,7 +601,6 @@ export default function LoadingNoteFormUPS() {
                                     minWidth: "10rem",
                                 }}
                                 options={bcList}
-                                rules={{ required: "Please insert this field" }}
                             />
                             <TextFieldComp
                                 name="material"

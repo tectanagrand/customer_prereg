@@ -1605,17 +1605,14 @@ MasterModel.getBCbySO = async so_num => {
                 },
             }
         );
-        console.log(
-            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/NODAFTARBCSet?$format=json&$filter=(NomorSo%20eq%27${so_num}%27)`
-        );
         const DataBC = data.d.results;
-        let BC = DataBC.map(item => item.NomorBc);
-        if (DataBC.length < 1) {
-            throw new Error("BC Not found");
+        let BC = [];
+        if (DataBC.length > 0) {
+            BC = DataBC.map(item => item.NomorBc);
         }
         return {
             SO: so_num,
-            PO: DataBC[0].NomorPo,
+            PO: DataBC[0].NomorPo || "",
             BC: BC,
         };
     } catch (error) {
