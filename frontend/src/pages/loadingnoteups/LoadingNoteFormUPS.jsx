@@ -28,6 +28,7 @@ import { useTheme } from "@mui/material/styles";
 import CheckBoxComp from "../../component/input/CheckBoxComp";
 import { useLoaderData } from "react-router-dom";
 import useTimeout from "../../hooks/useTimeout";
+import { debounce } from "lodash";
 
 const MediaTransportOp = [
     { value: "V", label: "Vessel" },
@@ -199,6 +200,25 @@ export default function LoadingNoteFormUPS() {
         })();
     }, []);
 
+    const auto_resi = () => {
+        const load_detail = getValues("load_detail");
+        if (load_detail.length > 1) {
+            const no_resi_1 = load_detail[0].no_resi;
+            if (no_resi_1 == "") return;
+            load_detail.forEach((value, index) => {
+                if (index == 0) return;
+                setValue(
+                    `load_detail.${index}.no_resi`,
+                    no_resi_1 + `~${index + 1}`
+                );
+            });
+        }
+    };
+
+    useEffect(() => {
+        auto_resi();
+    }, [watch("load_detail.0.no_resi"), watch("load_detail")]);
+
     useEffect(() => {
         (async () => {
             const { data } = await axiosPrivate.get(
@@ -235,6 +255,7 @@ export default function LoadingNoteFormUPS() {
             media_tp: item.media_tp,
             method: item.method,
             multi_do: item.relate_do,
+            no_resi: item.no_resi,
         }));
         const payload = {
             ...values,
@@ -936,6 +957,21 @@ export default function LoadingNoteFormUPS() {
                                                 preop={getValues(
                                                     `load_detail.${index}.relate_do`
                                                 )}
+                                            />
+                                            <TextFieldComp
+                                                name={`load_detail.${index}.no_resi`}
+                                                label="No. Resi"
+                                                control={control}
+                                                sx={{
+                                                    width: "20rem",
+                                                }}
+                                                rules={{
+                                                    maxLength: {
+                                                        value: 100,
+                                                        message:
+                                                            "Max 100 Character",
+                                                    },
+                                                }}
                                             />
                                             <TextFieldComp
                                                 name={`load_detail.${index}.remark`}

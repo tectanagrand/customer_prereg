@@ -225,6 +225,7 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                     is_multi: rows.is_multi,
                     multi_do: rows.multi_do,
                     remark_req: rows.remark,
+                    no_resi: rows.no_resi,
                 };
                 if (rows.id_detail === "") {
                     [que, val] = crud.insertItem(
@@ -699,6 +700,7 @@ LoadingNoteModel.getById2 = async id_header => {
                     multi_do: item.multi_do,
                     is_multi: item.is_multi,
                     remark: item.remark_req,
+                    no_resi: item.no_resi,
                 };
             });
             const hd_dt = rows[0];
