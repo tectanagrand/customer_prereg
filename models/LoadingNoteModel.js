@@ -1259,6 +1259,7 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                     FLAG: "I",
                     ISRETRIVEDBYSAP: "FALSE",
                     USERSAP: session.username,
+                    SGTXT: item.no_resi,
                 };
                 if (method === "insert") {
                     [queIns, valIns] = crud.insertItemOra(

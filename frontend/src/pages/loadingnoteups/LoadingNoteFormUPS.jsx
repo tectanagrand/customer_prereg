@@ -960,7 +960,7 @@ export default function LoadingNoteFormUPS() {
                                             />
                                             <TextFieldComp
                                                 name={`load_detail.${index}.no_resi`}
-                                                label="No. Resi"
+                                                label="No. Surat Jalan"
                                                 control={control}
                                                 sx={{
                                                     width: "20rem",

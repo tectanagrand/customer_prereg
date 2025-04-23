@@ -1612,7 +1612,7 @@ MasterModel.getBCbySO = async so_num => {
         }
         return {
             SO: so_num,
-            PO: DataBC[0].NomorPo || "",
+            PO: DataBC[0]?.NomorPo || "",
             BC: BC,
         };
     } catch (error) {

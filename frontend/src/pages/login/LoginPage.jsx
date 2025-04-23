@@ -54,7 +54,10 @@ export default function LoginPage() {
                     navigate("/dashboard/loco");
                 } else if (userData.role === "VENDOR") {
                     navigate("/dashboard/francoups");
-                } else if (userData.role === "CUSTOMER-UPS") {
+                } else if (
+                    userData.role === "CUSTOMER-UPS" ||
+                    userData.role === "INTERCO"
+                ) {
                     navigate("/dashboard/locoups");
                 } else {
                     navigate("/dashboard/loco");
@@ -98,7 +101,7 @@ export default function LoginPage() {
             link = "/dashboard/loco";
         } else if (role === "VENDOR") {
             link = "/dashboard/francoups";
-        } else if (role === "CUSTOMER-UPS") {
+        } else if (role === "CUSTOMER-UPS" || role === "INTERCO") {
             link = "/dashboard/locoups";
         } else {
             link = "/dashboard/loco";
