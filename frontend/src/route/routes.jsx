@@ -7,6 +7,7 @@ import AuthDashboard from "../pages/dashboard/AuthDashboard";
 const ApprovalPage = lazy(() => import("../pages/approvalreq/ApprovalPage"));
 import ErrorPage from "../pages/error/ErrorPage";
 import { Axios } from "../api/axios";
+import TestCallApi from "../pages/test/TestCallApi";
 const PushSAPMulti = lazy(
     () => import("../pages/multiloadingnote/PushSAPMulti")
 );
@@ -95,6 +96,10 @@ const ApprovalReqDeleteTol = lazy(
     () => import("../pages/tolling/ApprovalReqDeleteTol")
 );
 export const routes = createBrowserRouter([
+    {
+        path: "/test",
+        element: <TestCallApi />,
+    },
     {
         path: "/",
         children: [{ path: "", element: <Navigate to="login" /> }],

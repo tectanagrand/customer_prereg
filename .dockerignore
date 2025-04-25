@@ -10,6 +10,7 @@ frontend/package.json
 frontend/package-lock.json
 frontend/README.md
 frontend/vite.config.js
+resource/*
 public/license/*
 public/stnk/*
 node_modules

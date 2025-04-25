@@ -49,6 +49,6 @@ router.get("/lndatasap", LoadNote.LNDataSAP);
 router.post("/synclnsap", LoadNote.syncLNSAP);
 router.post("/syncstgwb", LoadNote.syncDataStagingWBNET);
 router.get("/choicesyncwbnet", LoadNote.choicesSyncStagingWBNET);
-router.get("/postzwbchain", LoadNote.PostZWBChain);
+router.get("/postzwbchain", AuthManager.authAPI, LoadNote.PostZWBChain);
 
 module.exports = router;

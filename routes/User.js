@@ -26,4 +26,15 @@ router.post("/getauth", UserController.getAllAuth);
 router.post("/email", UserController.sendEmailCredentials2);
 router.post("/delete", UserController.deleteUser);
 router.post("/isroleup", UserController.isRoleUp);
+
+router.post(
+    "/regapi",
+    AuthMiddleware.authSession,
+    UserController.RegisterUserApi
+);
+router.post(
+    "/resetpassapi",
+    AuthMiddleware.authSession,
+    UserController.UpdatePassApi
+);
 module.exports = router;
