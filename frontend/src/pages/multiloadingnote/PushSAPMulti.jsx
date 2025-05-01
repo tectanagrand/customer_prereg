@@ -183,8 +183,6 @@ export default function PushSAPMulti() {
         setRefresh: setRefresh,
     });
 
-    console.log(data);
-
     useEffect(() => {
         const dataGroup = new Map();
         if (data?.data.length < 0) {
@@ -211,9 +209,10 @@ export default function PushSAPMulti() {
                 return;
             }
             const grprw = groupedRow.get(key);
-            console.log(grprw);
-            for (const dt of grprw) {
-                selectedRows.push(dt);
+            if (grprw) {
+                for (const dt of grprw) {
+                    selectedRows.push(dt);
+                }
             }
         });
         setSelGrp(selectedRows);

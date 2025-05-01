@@ -4,6 +4,7 @@ const ncrypt = require("ncrypt-js");
 const TRANS = require("../config/transaction");
 const Crud = require("../helper/crudquery");
 const axios = require("axios");
+const UserModel = require("../models/UserModel");
 
 const AuthManager = {
     authSession: async (req, res, next) => {
@@ -45,6 +46,35 @@ const AuthManager = {
                         message: err.stack,
                     });
                 }
+            }
+        }
+    },
+
+    authAPI: async (req, res, next) => {
+        try {
+            console.log(req.headers);
+            const authorization = req.headers?.authorization;
+            if (!authorization) {
+                res.status(401).send({
+                    message: "Forbidden",
+                });
+            }
+            const buffer = Buffer.from(authorization.split(" ")[1], "base64");
+            const credential = buffer.toString("utf8").split(":");
+            const username = credential[0];
+            const password = credential[1];
+            await UserModel.ValidatePwdAPI(username, password);
+            next();
+        } catch (error) {
+            console.error(error);
+            if (error.message == "Forbidden") {
+                res.status(403).send({
+                    message: error.message,
+                });
+            } else {
+                res.status(500).send({
+                    message: error.message,
+                });
             }
         }
     },

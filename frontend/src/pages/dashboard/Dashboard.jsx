@@ -218,7 +218,7 @@ export default function Dashboard() {
                 sx={{
                     flexGrow: 1,
                     p: 3,
-                    height: "80%",
+                    height: "100%",
                     display: "flex",
                     flexDirection: "column",
                     width: open

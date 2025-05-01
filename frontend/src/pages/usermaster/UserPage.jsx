@@ -264,7 +264,6 @@ export default function User() {
                             {
                                 py: "15px",
                             },
-                        height: "70vh",
                     }}
                 />
             ) : (

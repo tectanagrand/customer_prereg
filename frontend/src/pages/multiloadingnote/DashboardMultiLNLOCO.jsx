@@ -61,6 +61,7 @@ const TableChildMultiLOCO = ({ dataChild }) => {
 };
 
 const ButtonAction = ({ id, setRefresh, cur_pos }) => {
+    const navigate = useNavigate();
     const { openBackdrop, closeBackdrop } = useToggleBackdrop(state => state);
     const axiosPrivate = useAxiosPrivate();
     const buttonAction = useCallback(

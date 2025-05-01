@@ -5,6 +5,7 @@ const LoadingNoteModel = require("./LoadingNoteModel");
 const uuid = require("uuidv4");
 const moment = require("moment");
 const crud = require("../helper/crudquery");
+const OSCheck = require("../helper/OSCheck");
 
 const MultiLoadingNoteModel = {};
 
@@ -21,15 +22,18 @@ MultiLoadingNoteModel.SaveMultiDB = async ({ params, session }) => {
                 action_hd = "insert";
                 hd_id = uuid.uuid();
             }
+            const ticket_no = await LoadingNoteModel.GetLatestNoTicket(
+                session.id_user
+            );
             const header_data = {
                 tanggal_surat_jalan: params.tanggal_surat_jalan,
                 driver_id: params.driver_id,
                 driver_name: params.driver_name,
                 vehicle_id: params.vehicle_id,
                 media_tp: params.media_tp,
+                ticket_no: ticket_no.new_created_ticket,
                 cur_pos: "INIT",
             };
-            console.log(action_hd);
             switch (action_hd) {
                 case "insert":
                     header_data.hd_id = hd_id;
@@ -96,6 +100,8 @@ MultiLoadingNoteModel.SaveMultiDB = async ({ params, session }) => {
                     oth_plant: det.oth_plant,
                     fac_batch: det.company,
                     oth_batch: det.oth_batch,
+                    ref_id_do: det.ref_id_do,
+                    buyer_name: det.buyer_name,
                 };
                 switch (action_det) {
                     case "insert":
@@ -135,6 +141,123 @@ MultiLoadingNoteModel.SaveMultiDB = async ({ params, session }) => {
             };
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+MultiLoadingNoteModel.GetReqbyID = async ({ id }) => {
+    try {
+        const client = await db.connect();
+        try {
+            const { rows: data_req } = await client.query(
+                `
+                select
+                    mlh.hd_id,
+                    mlh.driver_name,
+                    mlh.driver_id,
+                    TO_CHAR(mlh.tanggal_surat_jalan, 'yyyy-mm-dd') as tanggal_surat_jalan,
+                    TO_CHAR(mlh.tanggal_pembuatan, 'yyyy-mm-dd') as tanggal_pembuatan,
+                    mlh.vehicle_id,
+                    mlh.media_tp,
+                    mld.det_id,
+                    mld.id_do,
+                    mld.id_so,
+                    mld.id_sto,
+                    mld.inco_1,
+                    mld.inco_2,
+                    mld.invoice_type,
+                    mld.tol_from,
+                    mld.tol_to,
+                    mld.rules,
+                    mld.con_num,
+                    mld.material,
+                    mld.desc_mat,
+                    mld.con_qty,
+                    mld.uom,
+                    mld.plant,
+                    mld.company,
+                    mld.is_paid,
+                    mld.planned_qty,
+                    mld.fac_plant,
+                    mld.oth_plant,
+                    mld.fac_batch,
+                    mld.oth_batch,
+                    mld.ref_id_do,
+                    mld.buyer_name
+                from
+                    multi_ln_hd mlh
+                left join multi_ln_det mld on
+                    mld.hd_id = mlh.hd_id
+                where mlh.hd_id = $1
+                `,
+                [id]
+            );
+            let result = {
+                tanggal_surat_jalan: data_req[0].tanggal_surat_jalan,
+                tanggal_pembuatan: data_req[0].tanggal_pembuatan,
+                driver_id: data_req[0].driver_id,
+                driver_name: data_req[0].driver_name,
+                vehicle_id: data_req[0].vehicle_id,
+                media_tp: data_req[0].media_tp,
+                requests: data_req.map(item => {
+                    return {
+                        det_id: item.det_id,
+                        id_do: item.id_do,
+                        id_so: item.id_so,
+                        id_sto: item.id_sto,
+                        inco_1: item.inco_1,
+                        inco_2: item.inco_2,
+                        invoice_type: item.invoice_type,
+                        tol_from: item.tol_from,
+                        tol_to: item.tol_to,
+                        rules: item.rules,
+                        con_num: item.con_num,
+                        material: item.material,
+                        description: item.desc_mat,
+                        con_qty: item.con_qty,
+                        uom: item.uom,
+                        plant: item.plant,
+                        company: item.company,
+                        is_paid: item.is_paid,
+                        trans_type: item.trans_type,
+                        trg_cust: item.trg_cust,
+                        plan_qty: item.planned_qty,
+                        fac_plant: item.fac_plant,
+                        oth_plant: item.oth_plant,
+                        fac_batch: item.company,
+                        oth_batch: item.id_do,
+                        ref_do_num: item.ref_id_do,
+                        buyer_name: item.buyer_name,
+                        isB2B: item.ref_id_do ? true : false,
+                    };
+                }),
+            };
+            for (const index in data_req) {
+                const data = result.requests[index];
+                const os_check = await OSCheck.CheckOSCust(data.id_do);
+                result.requests[index].os_qty =
+                    os_check.ConQty -
+                    (os_check.TotalSAP -
+                        os_check.TotalDeleted +
+                        os_check.TotalTemp -
+                        parseInt(data.plan_qty));
+                result.requests[index].os_sap_qty =
+                    os_check.ConQty -
+                    (os_check.TotalSAP - os_check.TotalDeleted);
+                result.requests[index].os_remaining =
+                    os_check.ConQty -
+                    (os_check.TotalSAP -
+                        os_check.TotalDeleted +
+                        os_check.TotalTemp -
+                        parseInt(data.plan_qty));
+            }
+            return result;
+        } catch (error) {
             throw error;
         } finally {
             client.release();
@@ -260,6 +383,7 @@ MultiLoadingNoteModel.GetOSPushReq = async () => {
                 mlh.media_tp,
                 mlh.tanggal_surat_jalan ,
                 mlh.tanggal_pembuatan ,
+                mlh.ticket_no,
                 array_agg(mld.det_id) as det_id,
                 array_agg(mld.id_do) as id_do,
                 array_agg(mld.id_so) as id_so,

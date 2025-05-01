@@ -362,7 +362,7 @@ LoadingNoteController.PushJobSAPUPSTrigger = (
                     },
                 }
             );
-            await LoadNote.ApproveUPSLoadingNoteSAP(payload, session);
+            await LoadNote.ApproveUPSLoadingNoteSAPv2(payload, session);
             resolve(
                 "Success Push" +
                     moment().format("YYYY-MM-DD T HH:mm:ss") +
@@ -1114,12 +1114,38 @@ LoadingNoteController.PostZWBChain = async (req, res) => {
             failed  : ${dataZDO_TRXPGIP.failed.join(", ")}            
             `);
 
+        const dataZDO_TRXGRTR = await LoadNote.PostZDO_TRXGRTR();
+
+        console.log(`
+            Loading Note ZDO_TRXGRTR Posted :
+            success : ${dataZDO_TRXGRTR.success.join(", ")}
+            failed  : ${dataZDO_TRXGRTR.failed.join(", ")}            
+            `);
+
+        const dataZDO_TRXCSTO = await LoadNote.PostZDO_TRXCSTO();
+
+        console.log(`
+            Loading Note ZDO_TRXCSTO Posted :
+            success : ${dataZDO_TRXCSTO.success.join(", ")}
+            failed  : ${dataZDO_TRXCSTO.failed.join(", ")}            
+            `);
+
+        const dataZDO_TRXGRPO = await LoadNote.PostZDO_TRXGRPO();
+
+        console.log(`
+            Loading Note ZDO_TRXGRPO Posted :
+            success : ${dataZDO_TRXGRPO.success.join(", ")}
+            failed  : ${dataZDO_TRXGRPO.failed.join(", ")}            
+            `);
         res.status(200).send({
             message: `Loading Note ZWB CHAIN Posted `,
             ZWBS_TRX: dataZWBS_TRX,
             ZWB_PARK: dataZWB_PARK,
             ZDO_TRXDOPO: dataZDO_TRXDOPO,
             ZDO_TRXPGIP: dataZDO_TRXPGIP,
+            ZDO_TRXGRTR: dataZDO_TRXGRTR,
+            ZDO_TRXCSTO: dataZDO_TRXCSTO,
+            ZDO_TRXGRPO: dataZDO_TRXGRPO,
         });
     } catch (error) {
         console.error(error);

@@ -10,6 +10,7 @@ router.post(
     MultiLNController.SaveMultiLNDB
 );
 router.get("/showcust", MultiLNController.ShowDataUser);
+router.get("/id/:id", AuthManager.authSession, MultiLNController.GetReqbyID);
 router.post("/tolog", MultiLNController.SendToLog);
 router.get("/osreq", MultiLNController.GetOSPushReq);
 router.get("/printreq", MultiLNController.GetPrintReq);

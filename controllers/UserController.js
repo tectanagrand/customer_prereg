@@ -578,4 +578,34 @@ UserController.isRoleUp = async (req, res) => {
         }
     }
 };
+
+UserController.RegisterUserApi = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const result = await User.RegisterApiUser(username, password);
+        res.status(200).send({
+            message: `User ${result.username} is created`,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+UserController.UpdatePassApi = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const result = await User.UpdatePasswordUser(username, password);
+        res.status(200).send({
+            message: `User ${result.username} is created`,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
 module.exports = UserController;

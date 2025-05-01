@@ -6,7 +6,7 @@ import AutoSelectVehicle from "../loadingnote/AutoselectVehicle";
 import SelectComp from "../../component/input/SelectComp";
 import SelectDOComp from "../loadingnote/SelectDOComp";
 import { LoadingButton } from "@mui/lab";
-import { useLoaderData, useNavigate } from "react-router-dom";
+import { useLoaderData, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckKeyDownEnter } from "../../helper/checkkeydown";
 import {
     Box,
@@ -24,9 +24,12 @@ import NumericFieldComp from "../../component/input/NumericFieldComp";
 import { DeleteOutline } from "@mui/icons-material";
 import { axiosPrivate } from "../../api/axios";
 import useTimeout from "../../hooks/useTimeout";
+import GetMultiLN from "../../api/GetMultiLN";
 import { formatNumber } from "../../helper/formatting";
 
 export default function MultiLNLOCO() {
+    const [searchParams] = useSearchParams();
+    const { data, error, loading } = GetMultiLN(searchParams.get("id"));
     const navigate = useNavigate();
     const { setHookTimeout } = useTimeout();
     const [IsPaid, setIsPaid] = useState(false);
@@ -39,6 +42,7 @@ export default function MultiLNLOCO() {
     const CGRP = useMemo(() => loaderdata.CGRP, [loaderdata]);
     const {
         control,
+        reset,
         handleSubmit,
         watch,
         register,
@@ -107,9 +111,13 @@ export default function MultiLNLOCO() {
             vehicle_id: values.vehicle ? values.vehicle.value : "",
             media_tp: values.media_tp,
         };
+        if (searchParams.get("id")) {
+            payload.hd_id = searchParams.get("id");
+        }
         let requests_det = [];
         values.requests.forEach(det => {
             let payload_det = {
+                det_id: det.det_id,
                 id_do: det.id_do,
                 id_so: det.id_so,
                 id_sto: null,
@@ -134,10 +142,13 @@ export default function MultiLNLOCO() {
                 oth_plant: det.oth_plant,
                 fac_batch: det.company,
                 oth_batch: det.id_do,
+                ref_id_do: det.ref_do_num,
+                buyer_name: det.buyer_name,
             };
             requests_det.push(payload_det);
         });
         payload.requests = requests_det;
+        console.log(payload);
         try {
             const { data } = await axiosPrivate.post(`/multi/savedb`, payload);
             toast.success(data.message);
@@ -153,6 +164,23 @@ export default function MultiLNLOCO() {
             }
         }
     };
+    useEffect(() => {
+        if (!loading && data) {
+            reset({
+                ...data,
+                tanggal_surat_jalan: moment(data.tanggal_surat_jalan),
+                create_at: moment(data.tanggal_pembuatan),
+                vehicle: {
+                    value: data.vehicle_id,
+                    label: data.vehicle_id,
+                },
+                driver: {
+                    value: data.driver_id,
+                    label: `${data.driver_id} - ${data.driver_name}`,
+                },
+            });
+        }
+    }, [data, loading]);
 
     return (
         <>
@@ -266,10 +294,12 @@ export default function MultiLNLOCO() {
                                 getValues={getValues}
                                 setValue={setValue}
                                 key={field.id}
-                                // watch={watch}
+                                field={field}
+                                watch={watch}
                                 remove={remove}
                                 setError={setError}
                                 register={register}
+                                id={searchParams.get("id")}
                             />
                         );
                     })}
@@ -299,12 +329,15 @@ const RequestLoading = ({
     cgrp,
     control,
     index,
+    watch,
     setIsPaid,
     getValues,
     setValue,
     remove,
     setError,
     register,
+    field,
+    id,
 }) => {
     const [loading, setLoading] = useState(false);
     const axiosPrivate = useAxiosPrivate();
@@ -344,10 +377,11 @@ const RequestLoading = ({
         let do_num = getValues(`requests.${index}.id_do`);
         let plant = getValues(`requests.${index}.plant`);
         requestsData.forEach(item => {
+            console.log(item);
             if (item.id_do == do_num) {
                 duplicateCount++;
             }
-            if (item.plant != plant) {
+            if (plant != "" && item.plant != "" && item.plant != plant) {
                 diffplant++;
             }
         });
@@ -368,14 +402,17 @@ const RequestLoading = ({
             is_error = true;
         }
         if (is_error) return;
-        setValue(`requests.${index}.plan_qty`, "");
+        setValue(
+            `requests.${index}.os_remaining`,
+            getValues(`requests.${index}.os_qty`)
+        );
         setLoading(true);
         try {
             const { data } = await axiosPrivate.get(
                 `/master/do?do_num=${do_num}`
             );
             const slip = data.SLIP;
-            const dataMap = {
+            let dataMap = {
                 id_do: do_num,
                 id_so: slip.VBELV,
                 inv_type: slip.ZZINVOICETYPE,
@@ -387,7 +424,6 @@ const RequestLoading = ({
                 con_num: slip.CTRNO,
                 material: slip.MATNR,
                 con_qty: slip.KWMENG,
-                os_qty: slip.KWMENG - data.TOTALSPEND,
                 os_remaining: slip.KWMENG - data.TOTALSPEND,
                 os_sap_qty: slip.KWMENG - data.TOTALSAP,
                 plant: slip.WERKS,
@@ -398,6 +434,24 @@ const RequestLoading = ({
                 fac_plant: slip.WERKS,
                 hold_qty: data.HOLDQTY,
             };
+            if (!id) {
+                dataMap.os_qty = slip.KWMENG - data.TOTALSPEND;
+            } else {
+                dataMap.os_remaining =
+                    parseInt(dataMap.os_remaining) +
+                    parseInt(getValues(`requests.${index}.plan_qty`));
+            }
+            setValue(`requests.${index}.plan_qty`, "");
+            console.log(do_num);
+            console.log(slip.VBELN);
+            if (do_num != slip.VBELN) {
+                dataMap.ref_do_num = slip.VBELN;
+                dataMap.buyer_name = slip.NAME1;
+                dataMap.isB2B = true;
+            } else {
+                dataMap.isB2B = false;
+            }
+            console.log(dataMap);
             if (!data.IS_PAID) {
                 setValue(`requests.${index}.is_paid`, false);
                 setIsPaid(false);
@@ -439,6 +493,7 @@ const RequestLoading = ({
                         rules={{
                             required: "Please insert this field",
                         }}
+                        preop={getValues(`requests.${index}.id_do`)}
                     />
                     <LoadingButton
                         disabled={!requests.id_do}
@@ -447,6 +502,25 @@ const RequestLoading = ({
                     >
                         Check
                     </LoadingButton>
+
+                    {watch(`requests.${index}.isB2B`) && (
+                        <>
+                            <TextFieldComp
+                                control={control}
+                                name={`requests.${index}.ref_do_num`}
+                                label="Reference DO"
+                                sx={{ maxWidth: "10rem" }}
+                                disabled
+                            />
+                            <TextFieldComp
+                                control={control}
+                                name={`requests.${index}.buyer_name`}
+                                label="Buyer"
+                                sx={{ maxWidth: "17rem" }}
+                                disabled
+                            />
+                        </>
+                    )}
                     <TextFieldComp
                         control={control}
                         name={`requests.${index}.company`}

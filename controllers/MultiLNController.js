@@ -1,5 +1,4 @@
 const MultiLoadingNoteModel = require("../models/MultiLoadingNoteModel");
-const LoadingNoteController = require("../controllers/LoadingNoteController");
 const q = require("../helper/Queue");
 const moment = require("moment");
 const axios = require("axios");
@@ -149,6 +148,21 @@ MultiLNController.PushJobSAPTrigger = (
     };
     q.push(jobQueue);
     return;
+};
+
+MultiLNController.GetReqbyID = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await MultiLoadingNoteModel.GetReqbyID({ id });
+        res.status(200).send({
+            data: result,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
 };
 
 module.exports = MultiLNController;

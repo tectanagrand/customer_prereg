@@ -130,6 +130,53 @@ LoadingNoteModel.CheckIsExceedOS = async (do_number, load_detail) => {
     }
 };
 
+LoadingNoteModel.GetLatestNoTicket = async user_id => {
+    try {
+        const client = await db.connect();
+        try {
+            let init_num = 1;
+            let month = moment().format("MM");
+            let year = moment().format("YY");
+            const { rows: data_user } = await client.query(
+                `
+                select initial_user from mst_user where id_user = $1
+                `,
+                [user_id]
+            );
+            const initial_name = data_user[0].initial_user;
+            const { rows: latest_notick } = await client.query(
+                `
+                select ticket_no, month, year, initial_user from ln_notickets where create_by = $1
+                order by ticket_no desc
+                `,
+                [user_id]
+            );
+            const late_notick = latest_notick[0];
+            if (late_notick) {
+                if (year != late_notick.year || month != late_notick.month) {
+                    init_num = 1;
+                } else {
+                    init_num = parseInt(late_notick.ticket_no.slice(-3)) + 1;
+                }
+            }
+            let new_created_ticket =
+                "PR" +
+                initial_name +
+                year +
+                month +
+                init_num.toString().padStart(3, "0");
+            return {
+                new_created_ticket,
+                last_ticket: late_notick.ticket_no,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {}
+};
+
 LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
     try {
         const client = await db.connect();
@@ -145,6 +192,9 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
             );
             // throw new Error("Test");
             //
+            const ticket_no = await LoadingNoteModel.GetLatestNoTicket(
+                session.id_user
+            );
             const is_draft = params.is_draft;
             const today = new Date();
             const details = params.load_detail;
@@ -171,6 +221,7 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                 is_active: true,
                 is_paid: params.is_paid,
                 cur_pos: "INIT",
+                ticket_no: ticket_no?.new_created_ticket,
             };
             if (params.sto_num && params.sto_num !== "") {
                 payloadHeader.id_sto = params.sto_num;
@@ -226,6 +277,7 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                     multi_do: rows.multi_do,
                     remark_req: rows.remark,
                     no_resi: rows.no_resi,
+                    ticket_no: ticket_no.new_created_ticket + "~" + (index + 1),
                 };
                 if (rows.id_detail === "") {
                     [que, val] = crud.insertItem(
@@ -896,12 +948,14 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
                 DET.driver_id,
                 DET.create_by,
                 DET.ln_num,
+                DET.ticket_no,
                 CUST.KUNNR as cust_code,
                 CUST.name_1 as cust_name,
                 VEN.LIFNR as ven_code,
                 VEN.name_1 as ven_name,
                 INT.kunnr as intr_code,
                 INT.name_1 as intr_name,
+                DET.driver_name,
                 CONCAT(DET.DRIVER_ID,
                     ' - ',
                     DET.DRIVER_NAME) AS DRIVER,
@@ -1402,6 +1456,120 @@ LoadingNoteModel.ApproveUPSLoadingNoteSAP = async (lnreq, session) => {
                     payload
                 );
                 await oraclient.execute(queIns, valIns);
+            }
+            await client.query(TRANS.COMMIT);
+            await oraclient.commit();
+            return true;
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            await oraclient.rollback();
+            throw error;
+        } finally {
+            client.release();
+            oraclient.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.ApproveUPSLoadingNoteSAPv2 = async (lnreq, session) => {
+    try {
+        const client = await db.connect();
+        const oraclient = await getConnection();
+        const username = session.username;
+        let cust_code;
+        let role = "";
+        if (lnreq[0].cust_code) {
+            cust_code = lnreq[0].cust_code;
+            role = "CUSTOMER";
+        } else if (lnreq[0].ven_code) {
+            cust_code = lnreq[0].ven_code;
+            role = "VENDOR";
+        } else if (lnreq[0].intr_code) {
+            cust_code = lnreq[0].intr_code;
+            role = "INTERCO";
+        }
+        const today = new Date();
+        try {
+            await client.query(TRANS.BEGIN);
+            const { rows: materialMst } = await client.query(`
+                select material_code, material_cat from mst_material                 
+                `);
+            let material_mst = new Map();
+            materialMst.forEach((item, index) => {
+                material_mst.set(item.material_code, item.material_cat);
+            });
+            for (const ln of lnreq) {
+                if (ln.cgrp != "UPSTREAM") {
+                    continue;
+                }
+                const { rows: lnnum_data } = await oraclient.execute(
+                    `
+                    SELECT LOADING_NOTE_NUM FROM PREREG_LOADING_NOTE_SAP WHERE DET_ID = :0
+                    `,
+                    [ln.id]
+                );
+                const NUMLN = lnnum_data[0][0];
+                if (!NUMLN) {
+                    continue;
+                }
+                //insert to loading_note_sap_hd
+                const payload_hd = {
+                    HEAD_SJ: ln.ticket_no,
+                    PLATE_NUM: ln.vhcl_id,
+                    DRIVER_ID: ln.driver_id,
+                    DRIVER_NAME: ln.driver_name,
+                    TANGGAL_SJ: new Date(ln.create_date_ora + "T00:00:00"),
+                    TANGGAL_LOADING: new Date(
+                        ln.tanggal_surat_jalan_ora + "T00:00:00"
+                    ),
+                    CREATE_BY: username,
+                };
+
+                const [queHd, valHd] = crud.insertItemOra(
+                    "PRG_LOADING_NOTE_SAP_UPS_HD",
+                    payload_hd
+                );
+                await oraclient.execute(queHd, valHd);
+
+                //insert to prereg_loading_note_sap_ups
+                const payload = {
+                    ID_SJ: NUMLN,
+                    DO_NO: ln.id_do,
+                    STONO: ln.id_sto,
+                    INCO1: ln.inco_1,
+                    ID_CUSTOMER: ln?.trg_cust,
+                    PLANNING_QTY: ln.plan_qty,
+                    UOM: ln.uom,
+                    PLANT: ln.plant,
+                    COMPANY: ln.company,
+                    CTR_NO: ln.con_num,
+                    ISACTIVE: "TRUE",
+                    MAT_DESC: ln.desc_con,
+                    MAT_CODE: ln.material,
+                    MAT_CAT: material_mst.get(ln.material),
+                    HEAD_SJ: ln.ticket_no,
+                };
+                if (role === "CUSTOMER" || role === "INTERCO") {
+                    payload.ID_CUSTOMER = cust_code;
+                } else if (role === "VENDOR") {
+                    payload.ID_TRANSPORTER = cust_code;
+                }
+                const [queIns, valIns] = crud.insertItemOra(
+                    "PREREG_LOADING_NOTE_SAP_UPS",
+                    payload
+                );
+                await oraclient.execute(queIns, valIns);
+
+                const [queUpPRG, valUpPRG] = crud.updateItem(
+                    "loading_note_det",
+                    {
+                        is_wb_staged: true,
+                    },
+                    { det_id: ln.id }
+                );
+                await client.query(queUpPRG, valUpPRG);
             }
             await client.query(TRANS.COMMIT);
             await oraclient.commit();
@@ -4008,6 +4176,324 @@ LoadingNoteModel.PostZDO_TRXPGIP = async () => {
                 const update_success = {
                     ZDO_TRX_PGIP_STAT: 1,
                     ZDO_TRX_PGIP_DESC: message,
+                };
+                const [upSuc, valSuc] = crud.updateItemOra(
+                    "PREREG_LOADING_NOTE_SAP",
+                    update_success,
+                    { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                );
+                await oraclient.execute(upSuc, valSuc);
+                ln_success.push(dt[cora["LOADING_NOTE_NUM"]]);
+            }
+            await oraclient.commit();
+            return {
+                success: ln_success,
+                failed: ln_failed,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            if (client) client.release();
+            if (oraclient) oraclient.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.PostZDO_TRXGRTR = async () => {
+    try {
+        const client = await db.connect();
+        const oraclient = await getConnection();
+        let ln_success = [];
+        let ln_failed = [];
+        const success_msg = ["No New Data to Sync Up", "Success", "Sukses"];
+        try {
+            await client.query(TRANS.BEGIN);
+            const cora = {
+                COMPANY: 0,
+                PLANT: 1,
+                LOADING_NOTE_NUM: 2,
+                WB_TICKET: 3,
+            };
+
+            const { rows: pre_data } = await oraclient.execute(`
+               SELECT
+                    plns.BUKRS AS company,
+                    plns.RWERKS AS plant,
+                    plns.LOADING_NOTE_NUM,
+                    zp.WB_TICKET 
+                FROM
+                    PREREG_LOADING_NOTE_SAP plns
+                LEFT JOIN ZWB_PARK zp ON
+                    zp.DOCTRX = plns.LOADING_NOTE_NUM
+                WHERE
+                    ZDO_TRX_PGIP_STAT = 1 AND ZDO_TRX_GRTR_STAT IS NULL
+                ORDER BY LOADING_NOTE_NUM asc
+                `);
+            for (const dt of pre_data) {
+                const { data } = await axios.get(
+                    process.env.ODATADOM +
+                        ":" +
+                        process.env.ODATAPORT +
+                        "/sap/opu/odata/sap/ZGW_REGISTRA_SRV/POSTZDOTRXSet?$format=json&$filter=(Company eq '" +
+                        dt[cora["COMPANY"]] +
+                        "')and(Loadingnote eq '" +
+                        dt[cora["LOADING_NOTE_NUM"]] +
+                        "')and(Postdata eq '" +
+                        "GRTR" +
+                        "')",
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                if (data.d.results.length < 1) {
+                    throw new Error("Error not exist");
+                }
+                // console.log(data.d.results[0]);
+                const message = data.d.results[0].RfcText;
+                if (
+                    !(
+                        message.toLowerCase() == success_msg[0] ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[1].toLowerCase()) ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[2].toLowerCase())
+                    )
+                ) {
+                    ln_failed.push(dt[cora["LOADING_NOTE_NUM"]]);
+                    const update_failed = {
+                        ZDO_TRX_GRTR_STAT: 2,
+                        ZDO_TRX_GRTR_DESC: message,
+                    };
+                    const [upFail, valFail] = crud.updateItemOra(
+                        "PREREG_LOADING_NOTE_SAP",
+                        update_failed,
+                        { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                    );
+                    await oraclient.execute(upFail, valFail);
+                    continue;
+                }
+                const update_success = {
+                    ZDO_TRX_GRTR_STAT: 1,
+                    ZDO_TRX_GRTR_DESC: message,
+                };
+                const [upSuc, valSuc] = crud.updateItemOra(
+                    "PREREG_LOADING_NOTE_SAP",
+                    update_success,
+                    { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                );
+                await oraclient.execute(upSuc, valSuc);
+                ln_success.push(dt[cora["LOADING_NOTE_NUM"]]);
+            }
+            await oraclient.commit();
+            return {
+                success: ln_success,
+                failed: ln_failed,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            if (client) client.release();
+            if (oraclient) oraclient.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.PostZDO_TRXCSTO = async () => {
+    try {
+        const client = await db.connect();
+        const oraclient = await getConnection();
+        let ln_success = [];
+        let ln_failed = [];
+        const success_msg = ["No New Data to Sync Up", "Success", "Sukses"];
+        try {
+            await client.query(TRANS.BEGIN);
+            const cora = {
+                COMPANY: 0,
+                PLANT: 1,
+                LOADING_NOTE_NUM: 2,
+                WB_TICKET: 3,
+            };
+
+            const { rows: pre_data } = await oraclient.execute(`
+               SELECT
+                    plns.BUKRS AS company,
+                    plns.RWERKS AS plant,
+                    plns.LOADING_NOTE_NUM,
+                    zp.WB_TICKET 
+                FROM
+                    PREREG_LOADING_NOTE_SAP plns
+                LEFT JOIN ZWB_PARK zp ON
+                    zp.DOCTRX = plns.LOADING_NOTE_NUM
+                WHERE
+                    ZDO_TRX_GRTR_STAT = 1 AND ZDO_TRX_CSTO_STAT IS NULL
+                ORDER BY LOADING_NOTE_NUM asc
+                `);
+            for (const dt of pre_data) {
+                const { data } = await axios.get(
+                    process.env.ODATADOM +
+                        ":" +
+                        process.env.ODATAPORT +
+                        "/sap/opu/odata/sap/ZGW_REGISTRA_SRV/POSTZDOTRXSet?$format=json&$filter=(Company eq '" +
+                        dt[cora["COMPANY"]] +
+                        "')and(Loadingnote eq '" +
+                        dt[cora["LOADING_NOTE_NUM"]] +
+                        "')and(Postdata eq '" +
+                        "CSTO" +
+                        "')",
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                if (data.d.results.length < 1) {
+                    throw new Error("Error not exist");
+                }
+                // console.log(data.d.results[0]);
+                const message = data.d.results[0].RfcText;
+                if (
+                    !(
+                        message.toLowerCase() == success_msg[0] ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[1].toLowerCase()) ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[2].toLowerCase())
+                    )
+                ) {
+                    ln_failed.push(dt[cora["LOADING_NOTE_NUM"]]);
+                    const update_failed = {
+                        ZDO_TRX_CSTO_STAT: 2,
+                        ZDO_TRX_CSTO_DESC: message,
+                    };
+                    const [upFail, valFail] = crud.updateItemOra(
+                        "PREREG_LOADING_NOTE_SAP",
+                        update_failed,
+                        { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                    );
+                    await oraclient.execute(upFail, valFail);
+                    continue;
+                }
+                const update_success = {
+                    ZDO_TRX_CSTO_STAT: 1,
+                    ZDO_TRX_CSTO_DESC: message,
+                };
+                const [upSuc, valSuc] = crud.updateItemOra(
+                    "PREREG_LOADING_NOTE_SAP",
+                    update_success,
+                    { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                );
+                await oraclient.execute(upSuc, valSuc);
+                ln_success.push(dt[cora["LOADING_NOTE_NUM"]]);
+            }
+            await oraclient.commit();
+            return {
+                success: ln_success,
+                failed: ln_failed,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            if (client) client.release();
+            if (oraclient) oraclient.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.PostZDO_TRXGRPO = async () => {
+    try {
+        const client = await db.connect();
+        const oraclient = await getConnection();
+        let ln_success = [];
+        let ln_failed = [];
+        const success_msg = ["No New Data to Sync Up", "Success", "Sukses"];
+        try {
+            await client.query(TRANS.BEGIN);
+            const cora = {
+                COMPANY: 0,
+                PLANT: 1,
+                LOADING_NOTE_NUM: 2,
+                WB_TICKET: 3,
+            };
+
+            const { rows: pre_data } = await oraclient.execute(`
+               SELECT
+                    plns.BUKRS AS company,
+                    plns.RWERKS AS plant,
+                    plns.LOADING_NOTE_NUM,
+                    zp.WB_TICKET 
+                FROM
+                    PREREG_LOADING_NOTE_SAP plns
+                LEFT JOIN ZWB_PARK zp ON
+                    zp.DOCTRX = plns.LOADING_NOTE_NUM
+                WHERE
+                    ZDO_TRX_CSTO_STAT = 1 AND ZDO_TRX_GRPO_STAT IS NULL
+                ORDER BY LOADING_NOTE_NUM asc
+                `);
+            for (const dt of pre_data) {
+                const { data } = await axios.get(
+                    process.env.ODATADOM +
+                        ":" +
+                        process.env.ODATAPORT +
+                        "/sap/opu/odata/sap/ZGW_REGISTRA_SRV/POSTZDOTRXSet?$format=json&$filter=(Company eq '" +
+                        dt[cora["COMPANY"]] +
+                        "')and(Loadingnote eq '" +
+                        dt[cora["LOADING_NOTE_NUM"]] +
+                        "')and(Postdata eq '" +
+                        "GRPO" +
+                        "')",
+                    {
+                        auth: {
+                            username: process.env.UNAMESAP,
+                            password: process.env.PWDSAP,
+                        },
+                    }
+                );
+                if (data.d.results.length < 1) {
+                    throw new Error("Error not exist");
+                }
+                // console.log(data.d.results[0]);
+                const message = data.d.results[0].RfcText;
+                if (
+                    !(
+                        message.toLowerCase() == success_msg[0] ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[1].toLowerCase()) ||
+                        message
+                            .toLowerCase()
+                            .includes(success_msg[2].toLowerCase())
+                    )
+                ) {
+                    ln_failed.push(dt[cora["LOADING_NOTE_NUM"]]);
+                    const update_failed = {
+                        ZDO_TRX_GRPO_STAT: 2,
+                        ZDO_TRX_GRPO_DESC: message,
+                    };
+                    const [upFail, valFail] = crud.updateItemOra(
+                        "PREREG_LOADING_NOTE_SAP",
+                        update_failed,
+                        { LOADING_NOTE_NUM: dt[cora["LOADING_NOTE_NUM"]] }
+                    );
+                    await oraclient.execute(upFail, valFail);
+                    continue;
+                }
+                const update_success = {
+                    ZDO_TRX_GRPO_STAT: 1,
+                    ZDO_TRX_GRPO_DESC: message,
                 };
                 const [upSuc, valSuc] = crud.updateItemOra(
                     "PREREG_LOADING_NOTE_SAP",

@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const ncrypt = require("ncrypt-js");
 const moment = require("moment");
 const EmailModel = require("./EmailModel");
+const DBClientWrapper = require("../helper/DBClientWrapper");
 
 const UserModel = {};
 
@@ -707,6 +708,87 @@ UserModel.submitRoleGroup = async (role_id, accesses, id_user, role_name) => {
     } finally {
         client.release();
     }
+};
+
+UserModel.RegisterApiUser = async (username, password) => {
+    try {
+        const client = await db.connect();
+        try {
+            //check username exist
+            const { rowCount } = await client.query(
+                `select username from mst_user_api where username = $1`,
+                [username]
+            );
+            if (rowCount > 0) {
+                throw new Error("Username already exist");
+            }
+            const encrypted_pass = await hashPassword(password);
+            const payload = {
+                username: username,
+                password: encrypted_pass,
+            };
+            const [que, val] = crud.insertItem("mst_user_api", payload);
+            const { rows } = await client.query(que, val);
+            return {
+                username: username,
+            };
+        } catch (error) {
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+UserModel.UpdatePasswordUser = async (username, password) => {
+    return DBClientWrapper(async client => {
+        try {
+            const { rows } = await client.query(
+                `select username from mst_user_api where username = $1`,
+                [username]
+            );
+            if (rows.length == 0) {
+                throw new Error("User not exist");
+            }
+            const new_password = await hashPassword(password);
+            const payload = {
+                password: new_password,
+            };
+            const [que, val] = crud.updateItem("mst_user_api", payload, {
+                username: username,
+            });
+            await client.query(que, val);
+            return {
+                username: username,
+            };
+        } catch (error) {
+            throw error;
+        }
+    });
+};
+
+UserModel.ValidatePwdAPI = async (username, password) => {
+    return DBClientWrapper(async client => {
+        try {
+            const { rows } = await client.query(
+                `select password from mst_user_api where username = $1`,
+                [username]
+            );
+            if (rows.length < 1) {
+                throw new Error("Forbidden");
+            }
+            const password_hashed = rows[0].password;
+            const is_valid = await validatePassword(password, password_hashed);
+            if (!is_valid) {
+                throw new Error("Forbidden");
+            }
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    });
 };
 
 // UserModel.deleteUser = async()

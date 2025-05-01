@@ -60,7 +60,7 @@ export default function SelectDOComp({
                 }}
                 sx={{
                     mr: 1,
-                    maxWidth: "8rem",
+                    maxWidth: "10rem",
                     minWidth: "6rem",
                 }}
                 lazy={true}
