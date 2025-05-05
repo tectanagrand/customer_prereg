@@ -808,12 +808,45 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                 select material_code, material_cat from mst_material                 
                 `);
             let material_mst = new Map();
+            let head_notick = new Map();
             materialMst.forEach((item, index) => {
                 material_mst.set(item.material_code, item.material_cat);
             });
             for (const ln of lnreq) {
+                if (!head_notick.get(ln.ticket_no)) {
+                    head_notick.set(ln.ticket_no, 0);
+                }
+            }
+            for (const ln of lnreq) {
                 if (ln.cgrp != "UPSTREAM") {
                     continue;
+                }
+
+                if (head_notick.get(ln.ticket_no) == 0) {
+                    const payload_head = {
+                        HEAD_SJ: ln.ticket_no,
+                        PLATE_NUM: ln.vehicle_id,
+                        DRIVER_ID: ln.driver_id,
+                        DRIVER_NAME: ln.driver_name,
+                        TANGGAL_SJ: new Date(
+                            moment(ln.tanggal_pembuatan).format("YYYY-MM-DD") +
+                                "T00:00:00"
+                        ),
+                        TANGGAL_LOADING: new Date(
+                            moment(ln.tanggal_surat_jalan).format(
+                                "YYYY-MM-DD"
+                            ) + "T00:00:00"
+                        ),
+                    };
+                    const [queHD, valHD] = crud.insertItemOra(
+                        "PRG_LOADING_NOTE_SAP_UPS_HD",
+                        payload_head
+                    );
+                    await oraclient.execute(queHD, valHD);
+                    head_notick.set(
+                        ln.ticket_no,
+                        head_notick.get(ln.ticket_no) + 1
+                    );
                 }
                 let cust_code = ln.cust_code;
                 let role = ln.req_cat;
@@ -833,18 +866,8 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                     STONO: ln.id_sto,
                     INCO1: ln.inco_1,
                     ID_CUSTOMER: ln?.trg_cust,
-                    SIM_NO: ln.driver_id,
-                    VEHICLE_NO: ln.vehicle_id,
                     PLANNING_QTY: ln.planned_qty,
                     UOM: ln.uom,
-                    SJ_DATE: new Date(
-                        moment(ln.tanggal_pembuatan).format("YYYY-MM-DD") +
-                            "T00:00:00"
-                    ),
-                    LOADING_DATE: new Date(
-                        moment(ln.tanggal_surat_jalan).format("YYYY-MM-DD") +
-                            "T00:00:00"
-                    ),
                     CREATE_BY: username,
                     PLANT: ln.plant,
                     COMPANY: ln.company,
@@ -853,6 +876,7 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                     MAT_DESC: ln.desc_mat,
                     MAT_CODE: ln.material,
                     MAT_CAT: material_mst.get(ln.material),
+                    HEAD_SJ: ln.ticket_no,
                 };
                 if (role === "CUSTOMER" || role === "INTERCO") {
                     payload.ID_CUSTOMER = cust_code;
