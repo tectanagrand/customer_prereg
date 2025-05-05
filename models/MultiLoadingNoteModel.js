@@ -385,7 +385,7 @@ MultiLoadingNoteModel.GetOSPushReq = async () => {
                 mlh.tanggal_pembuatan ,
                 mlh.ticket_no,
                 array_agg(mld.det_id) as det_id,
-                array_agg(mld.id_do) as id_do,
+                array_agg(coalesce(mld.ref_id_do,mld.id_do)) as id_do,
                 array_agg(mld.id_so) as id_so,
                 array_agg(mld.id_sto) as id_sto,
                 array_agg(mld.plant) as plant,
@@ -808,7 +808,10 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                 select material_code, material_cat from mst_material                 
                 `);
             let material_mst = new Map();
-            let head_notick = new Map();
+            let head_sj = new Map();
+            for (const ln of lnreq) {
+                head_sj.set(ln.ticket_no, 0);
+            }
             materialMst.forEach((item, index) => {
                 material_mst.set(item.material_code, item.material_cat);
             });
@@ -860,6 +863,30 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                 if (!NUMLN) {
                     continue;
                 }
+                if (head_sj.get(ln.ticket_no) == 0) {
+                    head_sj.set(ln.ticket_no, head_sj.get(ln.ticket_no) + 1);
+                    const payload_hd = {
+                        HEAD_SJ: ln.ticket_no,
+                        PLATE_NUM: ln.vehicle_id,
+                        DRIVER_ID: ln.driver_id,
+                        DRIVER_NAME: ln.driver_name,
+                        SJ_DATE: new Date(
+                            moment(ln.tanggal_pembuatan).format("YYYY-MM-DD") +
+                                "T00:00:00"
+                        ),
+                        LOADING_DATE: new Date(
+                            moment(ln.tanggal_surat_jalan).format(
+                                "YYYY-MM-DD"
+                            ) + "T00:00:00"
+                        ),
+                        CREATE_BY: username,
+                    };
+                    const [queHd, valHd] = crud.insertItemOra(
+                        "PRG_LOADING_NOTE_SAP_UPS_HD",
+                        payload_hd
+                    );
+                    await oraclient.execute(queHd, valHd);
+                }
                 const payload = {
                     ID_SJ: NUMLN,
                     DO_NO: ln.id_do,
@@ -877,6 +904,12 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                     MAT_CODE: ln.material,
                     MAT_CAT: material_mst.get(ln.material),
                     HEAD_SJ: ln.ticket_no,
+                    FAC_SLOC: ln.fac_sloc,
+                    OTH_SLOC: ln.oth_sloc,
+                    FAC_VALTYPE: ln.fac_valtype,
+                    OTH_VALTYPE: ln.oth_valtype,
+                    FAC_BATCH: ln.fac_batch,
+                    OTH_BATCH: ln.oth_batch,
                 };
                 if (role === "CUSTOMER" || role === "INTERCO") {
                     payload.ID_CUSTOMER = cust_code;

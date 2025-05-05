@@ -1550,6 +1550,12 @@ LoadingNoteModel.ApproveUPSLoadingNoteSAPv2 = async (lnreq, session) => {
                     MAT_CODE: ln.material,
                     MAT_CAT: material_mst.get(ln.material),
                     HEAD_SJ: ln.ticket_no,
+                    FAC_SLOC: ln.fac_sloc,
+                    OTH_SLOC: ln.oth_sloc,
+                    FAC_VALTYPE: ln.fac_valtype,
+                    OTH_VALTYPE: ln.oth_valtype,
+                    FAC_BATCH: ln.fac_batch,
+                    OTH_BATCH: ln.oth_batch,
                 };
                 if (role === "CUSTOMER" || role === "INTERCO") {
                     payload.ID_CUSTOMER = cust_code;
