@@ -524,6 +524,8 @@ function SubmissionSelectedModal({
                     toast.error(error.response.data.message);
                 }
                 console.error(error);
+            } finally {
+                setLoadingPush(false);
             }
             return;
         }

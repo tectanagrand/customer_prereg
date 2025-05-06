@@ -816,8 +816,8 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                 material_mst.set(item.material_code, item.material_cat);
             });
             for (const ln of lnreq) {
-                if (!head_notick.get(ln.ticket_no)) {
-                    head_notick.set(ln.ticket_no, 0);
+                if (!head_sj.get(ln.ticket_no)) {
+                    head_sj.set(ln.ticket_no, 0);
                 }
             }
             for (const ln of lnreq) {
@@ -825,7 +825,7 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                     continue;
                 }
 
-                if (head_notick.get(ln.ticket_no) == 0) {
+                if (head_sj.get(ln.ticket_no) == 0) {
                     const payload_head = {
                         HEAD_SJ: ln.ticket_no,
                         PLATE_NUM: ln.vehicle_id,
@@ -846,10 +846,7 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                         payload_head
                     );
                     await oraclient.execute(queHD, valHD);
-                    head_notick.set(
-                        ln.ticket_no,
-                        head_notick.get(ln.ticket_no) + 1
-                    );
+                    head_sj.set(ln.ticket_no, head_sj.get(ln.ticket_no) + 1);
                 }
                 let cust_code = ln.cust_code;
                 let role = ln.req_cat;
