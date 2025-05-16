@@ -30,8 +30,18 @@ export default function SelectDOComp({
     const getDataDO = async () => {
         try {
             setLoading(true);
+            const URLParams = new URLSearchParams();
+            if (type) {
+                URLParams.append("type", type);
+            }
+            if (cust_id) {
+                URLParams.append("cust_id", cust_id);
+            }
+            if (cgrp) {
+                URLParams.append("bu", cgrp);
+            }
             const { data } = await axiosPrivate.get(
-                `/master/dolist?type=${type}&cust=${cust_id}&bu=${cgrp}`,
+                `/master/dolist?${URLParams.toString()}`,
                 {
                     withCredentials: true,
                 }

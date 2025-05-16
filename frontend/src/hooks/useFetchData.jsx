@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 export default function useFetchData({ url, initData, refresh, setRefresh }) {
     const axiosPrivate = useAxiosPrivate();
-    const [data, setData] = useState(initData);
+    const [data, setData] = useState(initData ?? {});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     useEffect(() => {

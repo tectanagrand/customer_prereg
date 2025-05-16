@@ -390,7 +390,7 @@ MasterController.getDataCustDB = async (req, res) => {
     try {
         const limit = req.query.limit;
         const offset = req.query.offset;
-        const q = req.query.q.toLowerCase();
+        const q = req.query.q ? req.query.q.toLowerCase() : null;
         const dataComp = await Master.getCustDataDB(limit, offset, q);
         res.status(200).send(dataComp);
     } catch (error) {
@@ -405,7 +405,7 @@ MasterController.getDataVenDB = async (req, res) => {
     try {
         const limit = req.query.limit;
         const offset = req.query.offset;
-        const q = req.query.q.toLowerCase();
+        const q = req.query.q ? req.query.q.toLowerCase() : null;
         const dataComp = await Master.getVenDataDB(limit, offset, q);
         res.status(200).send(dataComp);
     } catch (error) {
@@ -420,7 +420,7 @@ MasterController.getDataInterDB = async (req, res) => {
     try {
         const limit = req.query.limit;
         const offset = req.query.offset;
-        const q = req.query.q.toLowerCase();
+        const q = q ? req.query.q.toLowerCase() : null;
         const dataComp = await Master.getInterDataDB(limit, offset, q);
         res.status(200).send(dataComp);
     } catch (error) {

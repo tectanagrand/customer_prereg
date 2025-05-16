@@ -75,6 +75,7 @@ UserController.setNewPassword = async (req, res) => {
     try {
         const client = await db.connect();
         try {
+            await client.query(TRANS.BEGIN);
             const username = req.body.username;
             const password = req.body.newpass;
             const newpassToken = req.cookies?.newpass;
@@ -112,15 +113,18 @@ UserController.setNewPassword = async (req, res) => {
                 "id_user"
             );
             const updatePass = await client.query(queUp, valUp);
+            await client.query(TRANS.COMMIT);
             res.status(200).send({
                 message: "Password Set",
             });
         } catch (error) {
+            await client.query(TRANS.ROLLBACK);
             throw error;
         } finally {
             client.release();
         }
     } catch (error) {
+        console.error(error);
         res.status(500).send({
             message: error.message,
         });
@@ -276,9 +280,7 @@ UserController.showById = async (req, res) => {
         const { rows: userData } = await client.query(
             `SELECT USERNAME,
             FULLNAME,
-            TO_CHAR(U.CREATED_DATE,
-        
-                'YYYY-MM-DD T HH24:MI:SS') AS CREATED_DATE,
+            TO_CHAR(U.CREATED_DATE,'YYYY-MM-DD T HH24:MI:SS') AS CREATED_DATE,
             RL.ROLE_NAME,
             U.ROLE,
             EM.EMAIL,
@@ -293,6 +295,22 @@ UserController.showById = async (req, res) => {
             [id_user]
         );
         const dataUser = userData[0];
+        const { rows: relate_cust } = await client.query(
+            `
+            select
+                mbc."name" as name_1,
+                mbc.kunnr as code,
+                mbc.name || ' - ' || mbc.kunnr as label,
+                mbc.kunnr as value
+            from
+                mst_usr_to_cust mut
+            left join master_bp_code mbc on
+                mut.cust_id = mbc.kunnr
+            where
+                id_user = $1
+            `,
+            [id_user]
+        );
         const responseData = {
             fullname: dataUser.fullname,
             role: dataUser.role,
@@ -300,6 +318,7 @@ UserController.showById = async (req, res) => {
             plant_code: dataUser.plant_code,
             email: dataUser.email?.split(",").map(item => item.trim()) ?? [],
             telf: dataUser.telf?.split(",").map(item => item.trim()) ?? [],
+            relate_cust: relate_cust,
         };
         res.status(200).send(responseData);
     } catch (error) {
@@ -608,4 +627,12 @@ UserController.UpdatePassApi = async (req, res) => {
         });
     }
 };
+
+// UserController.ShowRelatedCust = async(req,res) => {
+//     try {
+//         const {id_user} = req.cookies
+//     } catch (error) {
+
+//     }
+// }
 module.exports = UserController;

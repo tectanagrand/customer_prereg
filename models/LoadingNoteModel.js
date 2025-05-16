@@ -784,6 +784,8 @@ LoadingNoteModel.getById2 = async id_header => {
 
             const resp = {
                 ref_do_num: hd_dt.ref_id_do,
+                ven_code: hd_dt.ven_code,
+                ven_name: hd_dt.ven_name,
                 buyer_name: hd_dt.buyer_name,
                 do_num: hd_dt.id_do,
                 po_num: hd_dt.id_po,

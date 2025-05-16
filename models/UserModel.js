@@ -74,6 +74,7 @@ UserModel.registerNew_2 = async ({
     email,
     phonenum,
     plant_code,
+    relate_cust,
     role,
     session,
 }) => {
@@ -153,6 +154,21 @@ UserModel.registerNew_2 = async ({
                     "id"
                 );
                 const insertTelf = await client.query(que, val);
+            }
+            if (relate_cust.length > 0) {
+                let promises_rlt = [];
+                relate_cust.map(item => {
+                    const payload = {
+                        id_user: id_user,
+                        cust_id: item,
+                    };
+                    const [que_rlt, val_rlt] = crud.insertItem(
+                        "mst_usr_to_cust",
+                        payload
+                    );
+                    promises_rlt.push(client.query(que_rlt, val_rlt));
+                });
+                await Promise.all(promises_rlt);
             }
             await EmailModel.newUserNotify(
                 email,
@@ -254,6 +270,25 @@ UserModel.editUser = async (payload, session) => {
                     );
                     const insertPhone = await client.query(queIns, valIns);
                 }
+            }
+            if (payload.relate_cust.length > 0) {
+                await client.query(
+                    `delete from mst_usr_to_cust where id_user = $1`,
+                    [payload.id_user]
+                );
+                let promises_rlt = [];
+                payload.relate_cust.map(item => {
+                    const payload_send = {
+                        id_user: payload.id_user,
+                        cust_id: item,
+                    };
+                    const [que_rlt, val_rlt] = crud.insertItem(
+                        "mst_usr_to_cust",
+                        payload_send
+                    );
+                    promises_rlt.push(client.query(que_rlt, val_rlt));
+                });
+                await Promise.all(promises_rlt);
             }
             await client.query(TRANS.COMMIT);
             return "User updated";
@@ -785,6 +820,26 @@ UserModel.ValidatePwdAPI = async (username, password) => {
                 throw new Error("Forbidden");
             }
             return true;
+        } catch (error) {
+            throw error;
+        }
+    });
+};
+
+UserModel.ShowRelatedCustUsr = user_id => {
+    return DBClientWrapper(async client => {
+        try {
+            const { rows: related_cust } = await client.query(
+                `
+                select rlc.cust_id as code, mbc.name from mst_usr_to_cust rlc
+                left join master_bp_code mbc on mbc.kunnr = rlc.cust_id
+                where rlc.id_user = $1
+                `,
+                [user_id]
+            );
+            return {
+                data: related_cust,
+            };
         } catch (error) {
             throw error;
         }

@@ -1038,7 +1038,9 @@ MasterModel.getDOList = async (cust_id, type, bu) => {
                         continue;
                     }
                     const bu_comp = rows[0].group_comp;
-                    if (bu_comp === bu) {
+                    // suppose customer have multiple connected company from DWS or UPS
+                    // Because each request menu have different bu, when user arrive at page DWS, DO UPS won't be displayed
+                    if (bu && bu_comp === bu) {
                         if (data.d.results[0].Inco1 === type) {
                             dolist.push({
                                 value: d.Vbeln,
@@ -1094,18 +1096,39 @@ MasterModel.getSTOList = async (cust_id, do_num) => {
 MasterModel.getCustDataDB = async (limit, offset, q) => {
     try {
         const client = await db.connect();
-
+        let where_val = [];
+        let where_que = [];
+        let count_que = "";
+        let count_val = [];
+        let index = 1;
+        if (q) {
+            where_val.push(`%${q}%`);
+            where_que.push(
+                `(lower(name_1) like $${index} or lower(kunnr) like $${index})`
+            );
+            count_que = `(lower(name_1) like $${index} or lower(kunnr) like $${index})`;
+            count_val.push(`%${q}%`);
+            index++;
+        }
+        if (limit) {
+            where_val.push(limit);
+            where_que.push(`LIMIT $${index}`);
+            index++;
+        }
+        if (offset) {
+            where_val.push(offset);
+            where_que.push(`OFFSET $${index}`);
+            index++;
+        }
         try {
             const { rows: dataComp } = await client.query(
-                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name FROM MST_CUSTOMER 
-                WHERE (lower(name_1) like $1 or lower(kunnr) like $2) 
-                AND kunnr like '%000'
-                LIMIT $3 OFFSET $4`,
-                [`%${q}%`, `%${q}%`, limit, offset]
+                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name, name_1, kunnr as code FROM MST_CUSTOMER 
+                WHERE kunnr like '%000' ${where_que.length > 0 ? (q ? "AND" : "") + where_que.join(" ") : ""}`,
+                where_val
             );
             const { rows } = await client.query(
-                "SELECT COUNT(*) AS ctr FROM MST_CUSTOMER WHERE (lower(name_1) like $1 or lower(kunnr) like $2) AND kunnr like '%000'",
-                [`%${q}%`, `%${q}%`]
+                `SELECT COUNT(*) AS ctr FROM MST_CUSTOMER WHERE kunnr like '%000' ${count_que.val > 0 ? "and" + count_que : ""}`,
+                count_val
             );
             return {
                 data: dataComp,
@@ -1124,18 +1147,39 @@ MasterModel.getCustDataDB = async (limit, offset, q) => {
 MasterModel.getInterDataDB = async (limit, offset, q) => {
     try {
         const client = await db.connect();
-
+        let where_val = [];
+        let where_que = [];
+        let count_que = "";
+        let count_val = [];
+        let index = 1;
+        if (q) {
+            where_val.push(`%${q}%`);
+            where_que.push(
+                `(lower(name_1) like $${index} or lower(kunnr) like $${index})`
+            );
+            count_que = `(lower(name_1) like $${index} or lower(kunnr) like $${index})`;
+            count_val.push(`%${q}%`);
+            index++;
+        }
+        if (limit) {
+            where_val.push(limit);
+            where_que.push(`LIMIT $${index}`);
+            index++;
+        }
+        if (offset) {
+            where_val.push(offset);
+            where_que.push(`OFFSET $${index}`);
+            index++;
+        }
         try {
             const { rows: dataComp } = await client.query(
-                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name FROM MST_INTERCO 
-                WHERE (lower(name_1) like $1 or lower(kunnr) like $2) 
-                AND kunnr like '%000'
-                LIMIT $3 OFFSET $4`,
-                [`%${q}%`, `%${q}%`, limit, offset]
+                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name, name_1, kunnr as code FROM MST_INTERCO 
+                WHERE kunnr like '%000' ${where_que.length > 0 ? (q ? "AND" : "") + where_que.join(" ") : ""}`,
+                where_val
             );
             const { rows } = await client.query(
-                "SELECT COUNT(*) AS ctr FROM MST_INTERCO WHERE (lower(name_1) like $1 or lower(kunnr) like $2) AND kunnr like '%000'",
-                [`%${q}%`, `%${q}%`]
+                `SELECT COUNT(*) AS ctr FROM MST_INTERCO WHERE kunnr like '%000' ${count_que.val > 0 ? "and" + count_que : ""}`,
+                count_val
             );
             return {
                 data: dataComp,
@@ -1154,17 +1198,39 @@ MasterModel.getInterDataDB = async (limit, offset, q) => {
 MasterModel.getVenDataDB = async (limit, offset, q) => {
     try {
         const client = await db.connect();
-
+        let where_val = [];
+        let where_que = [];
+        let count_que = "";
+        let count_val = [];
+        let index = 1;
+        if (q) {
+            where_val.push(`%${q}%`);
+            where_que.push(
+                `(lower(name_1) like $${index} or lower(lifnr) like $${index})`
+            );
+            count_que = `(lower(name_1) like $${index} or lower(lifnr) like $${index})`;
+            count_val.push(`%${q}%`);
+            index++;
+        }
+        if (limit) {
+            where_val.push(limit);
+            where_que.push(`LIMIT $${index}`);
+            index++;
+        }
+        if (offset) {
+            where_val.push(offset);
+            where_que.push(`OFFSET $${index}`);
+            index++;
+        }
         try {
             const { rows: dataComp } = await client.query(
-                `SELECT lifnr, CONCAT (name_1, ' - ', lifnr) as name FROM MST_VENDOR 
-                WHERE (lower(name_1) like $1 or lower(lifnr) like $2) 
-                LIMIT $3 OFFSET $4`,
-                [`%${q}%`, `%${q}%`, limit, offset]
+                `SELECT lifnr, CONCAT (name_1, ' - ', lifnr) as name, name_1, lifnr as code FROM MST_VENDOR 
+                ${where_que.length > 0 ? (q ? "WHERE " : "") + where_que.join(" ") : ""}`,
+                where_val
             );
             const { rows } = await client.query(
-                "SELECT COUNT(*) AS ctr FROM MST_VENDOR WHERE (lower(name_1) like $1 or lower(lifnr) like $2)",
-                [`%${q}%`, `%${q}%`]
+                `SELECT COUNT(*) AS ctr FROM MST_VENDOR ${count_que.val > 0 ? "WHERE" + count_que : ""}`,
+                count_val
             );
             return {
                 data: dataComp,
