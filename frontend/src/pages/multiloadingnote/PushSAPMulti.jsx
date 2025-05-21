@@ -169,7 +169,7 @@ export default function PushSAPMulti() {
         []
     );
 
-    const { data, loading, error } = useFetchData({
+    const { data, loading, error, refreshData } = useFetchData({
         url: "/multi/osreq",
         initData: {
             data: [],
@@ -179,8 +179,6 @@ export default function PushSAPMulti() {
                 left: [],
             },
         },
-        refresh: refresh,
-        setRefresh: setRefresh,
     });
 
     useEffect(() => {
@@ -246,6 +244,7 @@ export default function PushSAPMulti() {
 
     const refreshTable = value => {
         setRefresh(value);
+        refreshData();
         tableSelectionRef.current.resetRowSelection();
     };
     return (
@@ -301,7 +300,7 @@ export default function PushSAPMulti() {
                 open={openModal}
                 setOpen={setOpenModal}
                 data={data}
-                setRefresh={setRefresh}
+                setRefresh={refreshData}
                 tableSelectionAPI={tableSelectionRef}
             />
         </Box>
@@ -507,7 +506,7 @@ function SubmissionSelectedModal({
                 setOpen(false);
                 setModalAuth(false);
                 tableSelectionAPI.current.resetRowSelection({});
-                setRefresh(true);
+                setRefresh();
                 setLoadingPush(false);
                 toast.success(data.message);
             } catch (error) {

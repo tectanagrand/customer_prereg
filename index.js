@@ -86,7 +86,7 @@ if (process.env.NODE_ENV === "production") {
     //     console.log(`App running ${process.env.PORT}`);
     // });
 } else if (process.env.NODE_ENV === "development") {
-    const server1 = http.createServer(servOption, app);
+    const server1 = https.createServer(servOption, app);
     server1.listen(process.env.PORT, () => {
         console.log(`App running ${process.env.PORT}`);
     });

@@ -39,6 +39,8 @@ const getIcon = icon => {
             return lazy(() => import("@mui/icons-material/FilterNone"));
         case "DynamicFeed":
             return lazy(() => import("@mui/icons-material/DynamicFeed"));
+        case "Scale":
+            return lazy(() => import("@mui/icons-material/Scale"));
         default:
             return HelpOutlineIcon;
     }

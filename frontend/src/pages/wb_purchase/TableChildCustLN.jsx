@@ -1,0 +1,132 @@
+import {
+    flexRender,
+    getCoreRowModel,
+    useReactTable,
+} from "@tanstack/react-table";
+import {
+    TableContainer,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+} from "@mui/material";
+import { useMemo } from "react";
+import { useTheme } from "@mui/material/styles";
+
+export default function TableChildCustLN({ dataChild, comp_group }) {
+    const theme = useTheme();
+    const columns = useMemo(() => {
+        let init_lnreq = [
+            {
+                header: "Tanggal Request LN",
+                accessorKey: "cre_date",
+                cell: props => props.getValue(),
+            },
+            {
+                header: "Tanggal Pengambilan / Muat",
+                accessorKey: "tanggal_surat_jalan",
+                cell: props => props.getValue(),
+            },
+            {
+                header: "Driver ID",
+                accessorKey: "driver_id",
+                cell: props => props.getValue(),
+            },
+            {
+                header: "Driver Name",
+                accessorKey: "driver_name",
+                cell: props => props.getValue(),
+            },
+            {
+                header: "Vehicle",
+                accessorKey: "vhcl_id",
+                cell: props => props.getValue(),
+            },
+            {
+                header: "Media Transport",
+                accessorKey: "media_tp",
+                cell: props => props.getValue(),
+            },
+        ];
+
+        init_lnreq.push({
+            header: "Planning Quantity",
+            accessorKey: "plan_qty",
+            cell: ({ row }) =>
+                `${row.original.plan_qty?.replace(
+                    /\B(?=(\d{3})+(?!\d))/g,
+                    ","
+                )} ${row.original.uom}`,
+        });
+        init_lnreq.push({
+            header: "Error Message",
+            accessorKey: "error_msg",
+            cell: props => props.getValue(),
+        });
+        init_lnreq.push({
+            header: "Current Position",
+            accessorKey: "current_pos",
+            cell: props => props.getValue(),
+        });
+        return init_lnreq;
+    }, []);
+    const table = useReactTable({
+        columns,
+        data: dataChild,
+        getCoreRowModel: getCoreRowModel(),
+    });
+    return (
+        <>
+            <TableContainer>
+                <Table>
+                    <TableHead>
+                        {table.getHeaderGroups().map(headerGroup => {
+                            return (
+                                <TableRow key={headerGroup.id}>
+                                    {headerGroup.headers.map(header => {
+                                        return (
+                                            <TableCell
+                                                key={header.id}
+                                                colSpan={header.colSpan}
+                                            >
+                                                {header.isPlaceholder ? null : (
+                                                    <div>
+                                                        {flexRender(
+                                                            header.column
+                                                                .columnDef
+                                                                .header,
+                                                            header.getContext()
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                        );
+                                    })}
+                                </TableRow>
+                            );
+                        })}
+                    </TableHead>
+                    <TableBody>
+                        {table.getRowModel().rows.map(row => {
+                            return (
+                                <TableRow key={row.id}>
+                                    {row.getVisibleCells().map(cell => {
+                                        return (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </TableCell>
+                                        );
+                                    })}
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </>
+    );
+}

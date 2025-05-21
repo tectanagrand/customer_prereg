@@ -12,6 +12,7 @@ import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { LoadingButton } from "@mui/lab";
 import toast, { Toaster } from "react-hot-toast";
+import AutoCompleteMultiSelectCust from "../../component/input/AutoCompleteMultiSelectCust";
 
 export default function FormUserPage() {
     const axiosPrivate = useAxiosPrivate();
@@ -34,7 +35,7 @@ export default function FormUserPage() {
         setRoleName(role.find(({ value }) => value === roleState)?.label);
     };
 
-    const { handleSubmit, control, reset, getFieldState } = useForm({
+    const { handleSubmit, control, reset, getFieldState, watch } = useForm({
         mode: "onChange",
         defaultValues: {
             fullname: "",
@@ -211,6 +212,16 @@ export default function FormUserPage() {
                                 control={control}
                                 label="Email"
                                 rules={{ required: true }}
+                            />
+                        </Grid>
+                    </Grid>
+                    <Grid container spacing={2}>
+                        <Grid item xs>
+                            <AutoCompleteMultiSelectCust
+                                name="relate_cust"
+                                label="Relation Entity"
+                                control={control}
+                                roleSelected={watch("role")}
                             />
                         </Grid>
                     </Grid>

@@ -221,7 +221,13 @@ MasterController.getDataDOList = async (req, res) => {
         let cust = "";
         const { username: cust_id, role } = req.cookies;
         const opt_cust_id = req.query.cust;
-        if (role === "LOGISTIC" || role === "ADMIN") {
+        //search by cust_Id in query param only for this mentioned role below, except that using session
+        if (
+            role === "LOGISTIC" ||
+            role === "ADMIN" ||
+            role === "COMMERCIAL" ||
+            role === "LOG_KRANI"
+        ) {
             cust = opt_cust_id;
         } else {
             cust = cust_id;
@@ -390,7 +396,7 @@ MasterController.getDataCustDB = async (req, res) => {
     try {
         const limit = req.query.limit;
         const offset = req.query.offset;
-        const q = req.query.q.toLowerCase();
+        const q = req.query.q ? req.query.q.toLowerCase() : null;
         const dataComp = await Master.getCustDataDB(limit, offset, q);
         res.status(200).send(dataComp);
     } catch (error) {
@@ -405,7 +411,7 @@ MasterController.getDataVenDB = async (req, res) => {
     try {
         const limit = req.query.limit;
         const offset = req.query.offset;
-        const q = req.query.q.toLowerCase();
+        const q = req.query.q ? req.query.q.toLowerCase() : null;
         const dataComp = await Master.getVenDataDB(limit, offset, q);
         res.status(200).send(dataComp);
     } catch (error) {
@@ -420,7 +426,7 @@ MasterController.getDataInterDB = async (req, res) => {
     try {
         const limit = req.query.limit;
         const offset = req.query.offset;
-        const q = req.query.q.toLowerCase();
+        const q = q ? req.query.q.toLowerCase() : null;
         const dataComp = await Master.getInterDataDB(limit, offset, q);
         res.status(200).send(dataComp);
     } catch (error) {
@@ -1534,6 +1540,64 @@ MasterController.getBCbySO = async (req, res) => {
         const { so_num } = req.query;
         const data = await Master.getBCbySO(so_num);
         res.status(200).send(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.getPlant = async (req, res) => {
+    try {
+        const { company } = req.params;
+        const result = await Master.getPlant(company);
+        res.status(200).send({ data: result });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.savePlant = async (req, res) => {
+    try {
+        const result = await Master.savePlant({
+            ...req.body,
+            create_by: req.cookies.id_user,
+        });
+        res.status(200).send(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.updatePlant = async (req, res) => {
+    try {
+        const result = await Master.updatePlant({
+            ...req.body,
+            update_by: req.cookies.id_user,
+        });
+        res.status(200).send(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.deletePlant = async (req, res) => {
+    try {
+        const result = await Master.deletePlant({
+            ...req.body,
+            update_by: req.cookies,
+        });
+        res.status(200).send(result);
     } catch (error) {
         console.error(error);
         res.status(500).send({

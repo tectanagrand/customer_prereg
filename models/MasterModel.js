@@ -8,21 +8,42 @@ const ncrypt = require("ncrypt-js");
 const { Pool, sqls } = require("../config/sqlservconn");
 const OSCheck = require("../helper/OSCheck");
 const moment = require("moment");
+const DBClientWrapper = require("../helper/DBClientWrapper");
 // noderfc.setIniFileDirectory(process.env.SAPINIFILE);
 
 const MasterModel = {};
 
 MasterModel.getCompanyData = async (q, limit, offset) => {
     const client = await db.connect();
-
     try {
+        let whereval = [];
+        let whereque = [];
+        let limitval = [];
+        let limitque = [];
+        let index = 1;
+        if (q) {
+            whereval.push(`%${q}%`);
+            whereque.push(`lower(name) like $1 and lower(code) like $2`);
+            index++;
+        }
+        if (limit) {
+            limitval.push(limit);
+            limitque.push(`LIMIT $${index}`);
+            index++;
+        }
+        if (offset) {
+            limitval.push(offset);
+            limitque.push(`OFFSET $${index}`);
+            index++;
+        }
+
         const { rows: dataComp } = await client.query(
-            `SELECT comp_id, CONCAT (name, ' - ', sap_code) as name FROM MST_COMPANY WHERE lower(name) like $1 and lower(code) like $2 LIMIT $3 OFFSET $4`,
-            [`%${q}%`, `%${q}%`, limit, offset]
+            `SELECT comp_id, sap_code as company_code, name as company_name, CONCAT (name, ' - ', sap_code) as name FROM MST_COMPANY ${whereval.length > 0 ? "WHERE " + whereque.join(" and ") : ""} ${limitval.length > 0 ? limitque.join(" ") : ""}`,
+            [...whereval, ...limitval]
         );
         const { rows } = await client.query(
-            "SELECT COUNT(*) AS ctr FROM MST_COMPANY LIMIT $1 OFFSET 0",
-            [limit]
+            `SELECT COUNT(*) AS ctr FROM MST_COMPANY ${whereval.length > 0 ? "WHERE " + whereque.join(" and ") : ""}`,
+            [...whereval]
         );
         return {
             data: dataComp,
@@ -1018,6 +1039,9 @@ MasterModel.getDOList = async (cust_id, type, bu) => {
                     },
                 }
             );
+            console.log(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOKUNNRSet?$filter=(Kunnr%20eq%20%27${cust_id}%27)&$format=json`
+            );
             for (const d of data.d.results) {
                 if (type && type !== "undefined") {
                     const { data } = await axios.get(
@@ -1038,7 +1062,9 @@ MasterModel.getDOList = async (cust_id, type, bu) => {
                         continue;
                     }
                     const bu_comp = rows[0].group_comp;
-                    if (bu_comp === bu) {
+                    // suppose customer have multiple connected company from DWS and UPS
+                    // Because each request menu have different bu, when user arrive at page DWS, DO UPS won't be displayed
+                    if (bu && bu_comp === bu) {
                         if (data.d.results[0].Inco1 === type) {
                             dolist.push({
                                 value: d.Vbeln,
@@ -1094,18 +1120,39 @@ MasterModel.getSTOList = async (cust_id, do_num) => {
 MasterModel.getCustDataDB = async (limit, offset, q) => {
     try {
         const client = await db.connect();
-
+        let where_val = [];
+        let where_que = [];
+        let count_que = "";
+        let count_val = [];
+        let index = 1;
+        if (q) {
+            where_val.push(`%${q}%`);
+            where_que.push(
+                `(lower(name_1) like $${index} or lower(kunnr) like $${index})`
+            );
+            count_que = `(lower(name_1) like $${index} or lower(kunnr) like $${index})`;
+            count_val.push(`%${q}%`);
+            index++;
+        }
+        if (limit) {
+            where_val.push(limit);
+            where_que.push(`LIMIT $${index}`);
+            index++;
+        }
+        if (offset) {
+            where_val.push(offset);
+            where_que.push(`OFFSET $${index}`);
+            index++;
+        }
         try {
             const { rows: dataComp } = await client.query(
-                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name FROM MST_CUSTOMER 
-                WHERE (lower(name_1) like $1 or lower(kunnr) like $2) 
-                AND kunnr like '%000'
-                LIMIT $3 OFFSET $4`,
-                [`%${q}%`, `%${q}%`, limit, offset]
+                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name, name_1, kunnr as code FROM MST_CUSTOMER 
+                WHERE kunnr like '%000' ${where_que.length > 0 ? (q ? "AND" : "") + where_que.join(" ") : ""}`,
+                where_val
             );
             const { rows } = await client.query(
-                "SELECT COUNT(*) AS ctr FROM MST_CUSTOMER WHERE (lower(name_1) like $1 or lower(kunnr) like $2) AND kunnr like '%000'",
-                [`%${q}%`, `%${q}%`]
+                `SELECT COUNT(*) AS ctr FROM MST_CUSTOMER WHERE kunnr like '%000' ${count_que.val > 0 ? "and" + count_que : ""}`,
+                count_val
             );
             return {
                 data: dataComp,
@@ -1124,18 +1171,39 @@ MasterModel.getCustDataDB = async (limit, offset, q) => {
 MasterModel.getInterDataDB = async (limit, offset, q) => {
     try {
         const client = await db.connect();
-
+        let where_val = [];
+        let where_que = [];
+        let count_que = "";
+        let count_val = [];
+        let index = 1;
+        if (q) {
+            where_val.push(`%${q}%`);
+            where_que.push(
+                `(lower(name_1) like $${index} or lower(kunnr) like $${index})`
+            );
+            count_que = `(lower(name_1) like $${index} or lower(kunnr) like $${index})`;
+            count_val.push(`%${q}%`);
+            index++;
+        }
+        if (limit) {
+            where_val.push(limit);
+            where_que.push(`LIMIT $${index}`);
+            index++;
+        }
+        if (offset) {
+            where_val.push(offset);
+            where_que.push(`OFFSET $${index}`);
+            index++;
+        }
         try {
             const { rows: dataComp } = await client.query(
-                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name FROM MST_INTERCO 
-                WHERE (lower(name_1) like $1 or lower(kunnr) like $2) 
-                AND kunnr like '%000'
-                LIMIT $3 OFFSET $4`,
-                [`%${q}%`, `%${q}%`, limit, offset]
+                `SELECT kunnr, CONCAT (name_1, ' - ', kunnr) as name, name_1, kunnr as code FROM MST_INTERCO 
+                WHERE kunnr like '%000' ${where_que.length > 0 ? (q ? "AND" : "") + where_que.join(" ") : ""}`,
+                where_val
             );
             const { rows } = await client.query(
-                "SELECT COUNT(*) AS ctr FROM MST_INTERCO WHERE (lower(name_1) like $1 or lower(kunnr) like $2) AND kunnr like '%000'",
-                [`%${q}%`, `%${q}%`]
+                `SELECT COUNT(*) AS ctr FROM MST_INTERCO WHERE kunnr like '%000' ${count_que.val > 0 ? "and" + count_que : ""}`,
+                count_val
             );
             return {
                 data: dataComp,
@@ -1154,17 +1222,39 @@ MasterModel.getInterDataDB = async (limit, offset, q) => {
 MasterModel.getVenDataDB = async (limit, offset, q) => {
     try {
         const client = await db.connect();
-
+        let where_val = [];
+        let where_que = [];
+        let count_que = "";
+        let count_val = [];
+        let index = 1;
+        if (q) {
+            where_val.push(`%${q}%`);
+            where_que.push(
+                `(lower(name_1) like $${index} or lower(lifnr) like $${index})`
+            );
+            count_que = `(lower(name_1) like $${index} or lower(lifnr) like $${index})`;
+            count_val.push(`%${q}%`);
+            index++;
+        }
+        if (limit) {
+            where_val.push(limit);
+            where_que.push(`LIMIT $${index}`);
+            index++;
+        }
+        if (offset) {
+            where_val.push(offset);
+            where_que.push(`OFFSET $${index}`);
+            index++;
+        }
         try {
             const { rows: dataComp } = await client.query(
-                `SELECT lifnr, CONCAT (name_1, ' - ', lifnr) as name FROM MST_VENDOR 
-                WHERE (lower(name_1) like $1 or lower(lifnr) like $2) 
-                LIMIT $3 OFFSET $4`,
-                [`%${q}%`, `%${q}%`, limit, offset]
+                `SELECT lifnr, CONCAT (name_1, ' - ', lifnr) as name, name_1, lifnr as code FROM MST_VENDOR 
+                ${where_que.length > 0 ? (q ? "WHERE " : "") + where_que.join(" ") : ""}`,
+                where_val
             );
             const { rows } = await client.query(
-                "SELECT COUNT(*) AS ctr FROM MST_VENDOR WHERE (lower(name_1) like $1 or lower(lifnr) like $2)",
-                [`%${q}%`, `%${q}%`]
+                `SELECT COUNT(*) AS ctr FROM MST_VENDOR ${count_que.val > 0 ? "WHERE" + count_que : ""}`,
+                count_val
             );
             return {
                 data: dataComp,
@@ -1618,6 +1708,129 @@ MasterModel.getBCbySO = async so_num => {
     } catch (error) {
         throw error;
     }
+};
+
+//Master Plant
+MasterModel.getPlant = async company => {
+    return DBClientWrapper(async client => {
+        try {
+            const { rows: plants } = await client.query(
+                `select * from mst_company_plant where category = 'CHILD' and is_delete = false and company_code = $1`,
+                [company]
+            );
+            return plants;
+        } catch (error) {
+            throw error;
+        }
+    });
+};
+
+MasterModel.savePlant = async payload => {
+    return DBClientWrapper(async client => {
+        try {
+            const {
+                company_code,
+                company_name,
+                plant_code,
+                plant_name,
+                lokasi,
+                alamat,
+                create_by,
+            } = payload;
+            await client.query(TRANS.BEGIN);
+            const { rowCount: check_exist } = await client.query(
+                `
+                select plant_code where mst_company_plant where plant_code = $1
+                `,
+                [plant_code]
+            );
+            if (rowCount != 0) {
+                throw new Error("Plant Code duplicate, already exist");
+            }
+            const payload_send = {
+                company_code,
+                company_name,
+                plant_code,
+                plant_name,
+                lokasi,
+                alamat,
+                category: "CHILD",
+                create_by,
+            };
+            const [insque, insval] = crud.insertItem(
+                "mst_company_plant",
+                payload_send
+            );
+            await client.query(insval, insque);
+            await client.query(TRANS.COMMIT);
+            return {
+                message: `Success save plant ${plant_code} - ${plant_name}`,
+            };
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        }
+    });
+};
+
+MasterModel.updatePlant = async payload => {
+    return DBClientWrapper(async client => {
+        try {
+            await client.query(TRANS.BEGIN);
+            const { plant_code, alamat, lokasi, plant_name, update_by } =
+                payload;
+            const payload_up = {
+                alamat,
+                lokasi,
+                plant_name,
+                update_by,
+                update_at: moment().toISOString(),
+            };
+            const [upque, upval] = crud.updateItem(
+                "mst_company_plant",
+                payload_up,
+                { plant_code },
+                "id"
+            );
+            const { rows } = await client.query(upque, upval);
+            if (rows.length < 1) {
+                throw new Error("No data edited");
+            }
+            await client.query(TRANS.COMMIT);
+            return {
+                message: `Plant ${plant_code} - ${plant_name} is edited`,
+            };
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        }
+    });
+};
+
+MasterModel.deletePlant = async payload => {
+    return DBClientWrapper(async client => {
+        try {
+            await client.query(TRANS.BEGIN);
+            const { plant_code, update_by } = payload;
+            const { delque, delval } = crud.updateItem(
+                "mst_company_plant",
+                { is_delete: true, update_by },
+                { plant_code },
+                "plant_code"
+            );
+            const { rowCount } = await client.query(delque, delval);
+            if (!rowCount) {
+                throw new Error("No data deleted");
+            }
+            await client.query(TRANS.COMMIT);
+            return {
+                message: `${plant_code} is deleted`,
+            };
+        } catch (error) {
+            await client.query(TRANS.ROLLBACK);
+            throw error;
+        }
+    });
 };
 
 module.exports = MasterModel;

@@ -57,11 +57,15 @@ export default function AutoSelectUserSAP({
             if (!paginationRef.current.hasMore) return;
             setLoading(true);
             try {
-                const { list, pagination: resPagination } = await fetchData(
+                const resultFetchData = await fetchData(
                     limit,
                     paginationRef.current.offset,
                     searchQuery
                 );
+                if (!resultFetchData) {
+                    return;
+                }
+                const { list, pagination: resPagination } = resultFetchData;
                 const dataList = list?.map(item => ({
                     ...item,
                     value:
@@ -98,11 +102,15 @@ export default function AutoSelectUserSAP({
         (async () => {
             paginationRef.current.offset = 0;
             try {
-                const { list, pagination: resPagination } = await fetchData(
+                const resultFetchData = await fetchData(
                     limit,
                     paginationRef.current.offset,
                     searchQuery
                 );
+                if (!resultFetchData) {
+                    return;
+                }
+                const { list, pagination: resPagination } = resultFetchData;
                 const dataList = list?.map(item => ({
                     ...item,
                     value:

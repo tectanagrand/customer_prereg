@@ -12,7 +12,7 @@ import { Cancel, Replay } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import AutoSelectVehicle from "../loadingnote/AutoselectVehicle";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import SelectComp from "../../component/input/SelectComp";
 import { NumericFormat } from "react-number-format";
@@ -21,59 +21,29 @@ import DatePickerComp from "../../component/input/DatePickerComp";
 import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useSession } from "../../provider/sessionProvider";
 import SelectDOComp from "../loadingnote/SelectDOComp";
-import SelectMultiDOComp from "../loadingnote/SelectMultiDoComp";
+import { useSession } from "../../provider/sessionProvider";
 import { useTheme } from "@mui/material/styles";
-import CheckBoxComp from "../../component/input/CheckBoxComp";
-import { useLoaderData } from "react-router-dom";
+import AutocompleteComp from "../../component/input/AutocompleteComp";
 import useTimeout from "../../hooks/useTimeout";
-import { debounce } from "lodash";
+import useFetchData from "../../hooks/useFetchData";
+import AutoCompleteVCont from "../../component/input/AutoCompleteVCont";
 
-const MediaTransportOp = [
-    { value: "V", label: "Vessel" },
-    { value: "T", label: "Truck" },
-    { value: "R", label: "Railway" },
-    { value: "P", label: "Ponton" },
-    { value: "L", label: "Pipe Line" },
-    { value: "E", label: "Paper Trade" },
-    { value: "A", label: "Airplane" },
-    { value: "W", label: "Waterway" },
-];
-
-const ValuationTypeOp = [
-    { value: "TR-SALES", label: "TR-SALES" },
-    { value: "LIQD", label: "LIQD" },
-    { value: "IN-TS02", label: "IN-TS02" },
-    { value: "IN-TS03", label: "IN-TS03" },
-    { value: "1011100444", label: "1011100444" },
-    { value: "IN-VS51", label: "IN-VS51" },
-    { value: "TR-SALES2", label: "TR-SALES2" },
-];
-
-export default function LoadingNoteFormUPS() {
+export default function FormWBPurchase() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
     const { setHookTimeout } = useTimeout();
-    const loader = useLoaderData();
-    const C_GRP = loader.C_GRP;
     const axiosPrivate = useAxiosPrivate();
-    const [searchParams] = useSearchParams();
     const [click, setClick] = useState(false);
-    const [slocOP, setSloc] = useState([]);
     const [medtpOP, setMedTPOP] = useState([]);
-    const [bcList, setBclist] = useState([]);
-    const [hold_qty, setHoldqty] = useState(0);
-    const [restData, setRestData] = useState({});
-    const [showRefDo, setShowRefDo] = useState(false);
     const [checkedMulti, setCheckedMulti] = useState([]);
     const [uomQty, setUomQty] = useState("Kg");
     const [preOp, setPreOp] = useState("");
     const [pltRule, setPltRule] = useState({ plant: "", material: "" });
     const lastIdx = useRef(0);
     const navigate = useNavigate();
-    const { session, getPermission } = useSession();
+    const { getPermission } = useSession();
     const curAuth = useRef({});
     const {
         control,
@@ -86,13 +56,11 @@ export default function LoadingNoteFormUPS() {
         formState: { errors },
     } = useForm({
         defaultValues: {
-            ref_do_num: "",
-            buyer_name: "",
-            ven_code: "",
-            ven_name: "",
-            bc_num: "",
-            po_num: "",
+            relate_cust: null,
+            vendor: null,
             do_num: "",
+            sto_num: "",
+            trans_type: "",
             inv_type: "",
             inv_type_tol_from: "0 %",
             inv_type_tol_to: "0 %",
@@ -103,7 +71,7 @@ export default function LoadingNoteFormUPS() {
             con_qty: 0,
             hold_qty: 0,
             os_qty: 0,
-            os_wb_qty: 0,
+            os_sap_qty: 0,
             plant: "",
             description: "",
             uom: "",
@@ -124,8 +92,6 @@ export default function LoadingNoteFormUPS() {
         control,
         rules: { required: "Insert data" },
     });
-    watch("load_detail.method");
-    watch("load_detail.id_detail");
     const [isLoading, setLoading] = useState(false);
     const [isPaid, setPaid] = useState(false);
     const [isExceed, setExceed] = useState(false);
@@ -134,99 +100,58 @@ export default function LoadingNoteFormUPS() {
     const position = useRef("");
     const uuidLN = useRef("");
     const theme = useTheme();
-    useEffect(() => {
-        (async () => {
-            try {
-                const idloadnote = searchParams.get("idloadnote");
-                if (idloadnote) {
-                    const { data } = await axiosPrivate.get(
-                        "ln/id?idloadnote=" + idloadnote
-                    );
-                    let checkedMulti = [];
-                    const load_detail = data.data.load_detail.map(item => {
-                        checkedMulti.push(item.is_multi);
-                        return {
-                            ...item,
-                            loading_date: moment(item.loading_date),
-                            relate_do: item.multi_do ?? [],
-                            method: "",
-                        };
-                    });
-                    if (data.data.ref_do_num) {
-                        setShowRefDo(true);
-                    }
-                    setCheckedMulti(checkedMulti);
-                    setRemaining(parseFloat(data.data.remaining));
-                    usedQty.current = parseFloat(data.data.totalspend);
-                    reset({
-                        ...data.data,
-                        con_qty: data.data.con_qty,
-                        os_sap_qty: data.data.con_qty - data.data.totalWB,
-                        load_detail: load_detail,
-                    });
-                    setPreOp(data.data.do_num);
-                    setBclist([
-                        { value: data.data.bc_num, label: data.data.bc_num },
-                    ]);
-                    uuidLN.current = data.id_header;
-                    position.current = data.cur_pos;
-                    setPltRule({
-                        plant: data.data.plant,
-                        rule: data.data.material,
-                    });
-                    setPaid(data.is_paid);
-                    // const { data: slocList } = await Axios.get(
-                    //     "ln/sloc?plant=" + data.plant
-                    // );
-                    // setSloc(slocList);
-                    if (data.cur_pos === "INIT") {
-                        curAuth.current = getPermission("Initial Form");
-                    } else if (data.cur_pos === "FINA") {
-                        curAuth.current = getPermission("Final Form");
-                    } else {
-                        curAuth.current = getPermission("Initial Form");
-                    }
-                    lastIdx.current =
-                        load_detail.length !== 0 ? load_detail.length : 0;
-                } else {
-                    curAuth.current = {
-                        fcreate: true,
-                        fread: true,
-                        fupdate: true,
-                        fdelete: true,
-                    };
-                }
-            } catch (error) {
-                console.error(error);
-            }
-        })();
-    }, []);
+    // useEffect(() => {
+    //     (async () => {
+    //         try {
+    //             const { data } = await axiosPrivate.get(
+    //                 "ln/id?idloadnote=" + idloadnote
+    //             );
+    //             let checkedMulti = [];
+    //             const load_detail = data.data.load_detail.map(item => {
+    //                 checkedMulti.push(item.is_multi);
+    //                 return {
+    //                     ...item,
+    //                     loading_date: moment(item.loading_date),
+    //                     relate_do: item.multi_do ?? [],
+    //                     method: "",
+    //                 };
+    //             });
+    //             setCheckedMulti(checkedMulti);
+    //             setRemaining(parseFloat(data.data.remaining));
+    //             usedQty.current = parseFloat(data.data.totalspend);
+    //             reset({
+    //                 ...data.data,
+    //                 con_qty: data.data.con_qty,
+    //                 os_sap_qty: data.data.con_qty - data.data.totalSAP,
+    //                 load_detail: load_detail,
+    //             });
+    //             setPreOp(data.data.do_num);
+    //             uuidLN.current = data.id_header;
+    //             position.current = data.cur_pos;
+    //             setPltRule({
+    //                 plant: data.data.plant,
+    //                 rule: data.data.material,
+    //             });
+    //             setPaid(data.is_paid);
+    //             // const { data: slocList } = await Axios.get(
+    //             //     "ln/sloc?plant=" + data.plant
+    //             // );
+    //             // setSloc(slocList);
+    //             curAuth.current = getPermission("Sales Request");
 
-    const auto_resi = () => {
-        const load_detail = getValues("load_detail");
-        if (load_detail.length > 1) {
-            const no_resi_1 = load_detail[0].no_resi;
-            if (no_resi_1 == "") return;
-            load_detail.forEach((value, index) => {
-                if (index == 0) return;
-                setValue(
-                    `load_detail.${index}.no_resi`,
-                    no_resi_1 + `~${index + 1}`
-                );
-            });
-        }
-    };
-
-    useEffect(() => {
-        auto_resi();
-    }, [watch("load_detail.0.no_resi"), watch("load_detail")]);
+    //             lastIdx.current =
+    //                 load_detail.length !== 0 ? load_detail.length : 0;
+    //         } catch (error) {
+    //             console.error(error);
+    //         }
+    //     })();
+    // }, []);
 
     useEffect(() => {
         (async () => {
             const { data } = await axiosPrivate.get(
                 `master/sloc?plant=${pltRule.plant}&material=${pltRule.material}`
             );
-            setSloc(data.sloc);
         })();
     }, [pltRule]);
 
@@ -240,6 +165,45 @@ export default function LoadingNoteFormUPS() {
             }
         })();
     }, []);
+
+    //get options related customer
+    const {
+        data: relate_cust,
+        loading: load_cust,
+        error,
+    } = useFetchData({
+        url: "/user/relation",
+        initData: {
+            data: [],
+        },
+    });
+
+    const { data: ven_data, loading: ven_loading } = useFetchData({
+        url: "/master/ven",
+        initData: {
+            data: [],
+        },
+    });
+
+    const ven_op = useMemo(() => {
+        return ven_data.data
+            ? ven_data.data.map(value => ({
+                  label: value.name,
+                  value: value.code,
+                  ...value,
+              }))
+            : [];
+    }, [ven_data]);
+
+    const relate_cust_op = useMemo(() => {
+        return relate_cust.data
+            ? relate_cust.data.map(value => ({
+                  label: value.name + " - " + value.code,
+                  value: value.code,
+                  ...value,
+              }))
+            : [];
+    }, [relate_cust]);
 
     const submitItem = async (values, is_draft = false) => {
         if (typeof is_draft !== "boolean") {
@@ -257,7 +221,6 @@ export default function LoadingNoteFormUPS() {
             media_tp: item.media_tp,
             method: item.method,
             multi_do: item.relate_do,
-            no_resi: item.no_resi,
         }));
         const payload = {
             ...values,
@@ -270,6 +233,9 @@ export default function LoadingNoteFormUPS() {
             id_header: uuidLN.current,
             company: values.company,
             load_detail: load_detail,
+            ven_code: values.vendor.value,
+            ven_name: values.vendor.label.split("-")[0].trim(),
+            sto_num: values.sto_num,
             con_qty:
                 typeof values.con_qty === "string"
                     ? values.con_qty.replace(/,/g, "")
@@ -306,11 +272,7 @@ export default function LoadingNoteFormUPS() {
                 }
             }
             setHookTimeout(() => {
-                if (C_GRP === "DOWNSTREAM") {
-                    navigate("/dashboard/loco");
-                } else {
-                    navigate("/dashboard/locoups");
-                }
+                navigate("/dashboard/sales");
             }, 2000);
         } catch (error) {
             console.error(error);
@@ -324,20 +286,14 @@ export default function LoadingNoteFormUPS() {
         setLoading(true);
         try {
             const { data } = await axiosPrivate.get(
-                `/master/doups?do_num=${value}`
+                `/master/do?do_num=${value}`
             );
-            const { data: bc_num } = await axiosPrivate.get(
-                `/master/getbcbyso?so_num=${value}`
-            );
-            setBclist(bc_num.BC.map(item => ({ value: item, label: item })));
             const slip = data.SLIP;
             if (slip.INCO1 === "FRC") {
                 throw new Error("Cannot proceed FRANCO type SO");
             }
-
             const dataMap = {
                 do_num: value,
-                po_num: bc_num.PO,
                 inv_type: slip.ZZINVOICETYPE,
                 inv_type_tol_from: slip.UEBTOINV + " %",
                 inv_type_tol_to: slip.UNTTOINV + " %",
@@ -347,7 +303,7 @@ export default function LoadingNoteFormUPS() {
                 material: slip.MATNR,
                 con_qty: slip.KWMENG,
                 os_qty: slip.KWMENG - data.TOTALSPEND,
-                os_wb_qty: slip.KWMENG - data.TOTALWB,
+                os_sap_qty: slip.KWMENG - data.TOTALSAP,
                 plant: slip.WERKS,
                 description: slip.MAKTX,
                 uom: slip.VRKME,
@@ -366,31 +322,17 @@ export default function LoadingNoteFormUPS() {
                 }
             });
             setPaid(data.IS_PAID);
-            if (value != slip.VBELN) {
-                setValue("ref_do_num", slip.VBELN);
-                setValue("buyer_name", slip.NAME1);
-                setShowRefDo(true);
-            }
             const { data: slocList } = await axiosPrivate.get(
                 "master/sloc?plant=" +
                     dataMap.plant +
                     "&material=" +
                     dataMap.material
             );
-            setSloc(slocList.sloc);
             // toast.success("Success retrieve SO");
             if (data.IS_PAID) {
                 toast.success("Already paid, can proceed to logistic");
             } else {
-                setShowRefDo(false);
-                setPaid(false);
                 reset({
-                    ref_do_num: "",
-                    ven_code: "",
-                    ven_name: "",
-                    bc_num: "",
-                    buyer_name: "",
-                    po_num: "",
                     do_num: "",
                     inv_type: "",
                     inv_type_tol_from: "0 %",
@@ -401,7 +343,6 @@ export default function LoadingNoteFormUPS() {
                     material: "",
                     con_qty: "0",
                     os_qty: "0",
-                    os_wb_qty: 0,
                     plant: "",
                     description: "",
                     uom: "",
@@ -418,41 +359,33 @@ export default function LoadingNoteFormUPS() {
                 });
                 toast.error("Not paid yet");
             }
+            if (slip.INCO1 == "FRC") {
+                //get sto if exist
+                const { data: stodata, status: statussto } =
+                    await axiosPrivate.get(`/master/checkstobydo?do=${value}`);
+                setValue("sto_num", stodata.ebeln);
+                const { data: sto, status } = await axiosPrivate.get(
+                    `/master/checkstolcfrc?sto=${stodata.ebeln}`
+                );
+                if (status === 200) {
+                    setValue("trans_type", sto.ttype);
+                }
+            }
         } catch (error) {
-            setShowRefDo(false);
-            setPaid(false);
             console.log(error);
             const resetData = {
-                ref_do_num: "",
-                ven_code: "",
-                ven_name: "",
-                buyer_name: "",
-                bc_num: "",
-                po_num: "",
                 do_num: "",
                 inv_type: "",
-                inv_type_tol_from: "0 %",
-                inv_type_tol_to: "0 %",
+                inv_type_tol_from: "",
+                inv_type_tol_to: "",
                 incoterms: "",
                 rules: "",
                 con_num: "",
                 material: "",
-                con_qty: "0",
-                os_qty: "0",
-                os_wb_qty: 0,
+                con_qty: "",
                 plant: "",
+                batch: "",
                 description: "",
-                uom: "",
-                load_detail: [],
-                fac_plant: "",
-                fac_store_loc: "",
-                fac_batch: "",
-                fac_val_type: "",
-                oth_plant: "",
-                oth_store_loc: "",
-                oth_batch: "",
-                oth_val_type: "",
-                company: "",
             };
             Object.keys(resetData).forEach(item => {
                 setValue(item, resetData[item]);
@@ -537,58 +470,21 @@ export default function LoadingNoteFormUPS() {
                     >
                         <Typography variant="h5">Detail Order</Typography>
                         <Divider sx={{ my: 3 }} />
-                        <div style={{ display: "flex" }}>
-                            {/* <SelectComp
-                                name="do_num"
-                                label="DO Number"
-                                fullWidth
+                        <div style={{ display: "flex", gap: "1rem" }}>
+                            <AutocompleteComp
                                 control={control}
-                                options={doOP}
-                                onOpen={() => getDataDO()}
-                                sx={{
-                                    mb: 3,
-                                    mr: 3,
-                                    maxWidth: "16rem",
-                                    minWidth: "10rem",
-                                }}
-                                lazy={true}
-                            /> */}
+                                name="relate_cust"
+                                label="Customer"
+                                options={relate_cust_op}
+                                sx={{ width: "30rem" }}
+                            />
                             <SelectDOComp
                                 control={control}
                                 name="do_num"
                                 label="DO Number"
                                 preop={preOp}
-                                type="LCO"
-                                cgrp={C_GRP}
+                                cust_id={watch("relate_cust")?.value ?? ""}
                             />
-
-                            {showRefDo && (
-                                <TextFieldComp
-                                    control={control}
-                                    name="ref_do_num"
-                                    label="Reference DO"
-                                    disabled
-                                    sx={{
-                                        mr: 1,
-                                        maxWidth: "8rem",
-                                        minWidth: "6rem",
-                                    }}
-                                />
-                            )}
-                            {showRefDo && (
-                                <TextFieldComp
-                                    control={control}
-                                    name="buyer_name"
-                                    label="Buyer"
-                                    disabled
-                                    sx={{
-                                        mr: 1,
-                                        maxWidth: "15rem",
-                                        minWidth: "6rem",
-                                    }}
-                                />
-                            )}
-
                             <LoadingButton
                                 onClick={() =>
                                     handleCheckSO(getValues("do_num"))
@@ -607,59 +503,23 @@ export default function LoadingNoteFormUPS() {
                                 flexWrap: "wrap",
                             }}
                         >
-                            <TextFieldComp
+                            <AutoCompleteVCont
+                                name="vendor"
+                                label="Vendor"
                                 control={control}
-                                name="ven_code"
-                                label="Vendor Code"
-                                sx={{
-                                    maxWidth: "12rem",
-                                    minWidth: "6rem",
-                                }}
-                                disabled
+                                options={ven_op}
+                                sx={{ width: "30rem" }}
                             />
-                            <TextFieldComp
-                                control={control}
-                                name="ven_name"
-                                label="Vendor Name"
-                                sx={{
-                                    maxWidth: "18rem",
-                                    minWidth: "6rem",
-                                }}
-                                disabled
-                            />
-                            <TextFieldComp
-                                control={control}
-                                name="po_num"
-                                label="PO Number"
-                                sx={{
-                                    mr: 1,
-                                    maxWidth: "8rem",
-                                    minWidth: "6rem",
-                                }}
-                                disabled
-                            />
-                            <TextFieldComp
-                                control={control}
-                                name="po_num"
-                                label="PO Number"
-                                sx={{
-                                    mr: 1,
-                                    maxWidth: "8rem",
-                                    minWidth: "6rem",
-                                }}
-                                disabled
-                            />
-                            <SelectComp
-                                control={control}
-                                name="bc_num"
-                                label="BC Number"
-                                sx={{
-                                    mr: 1,
-                                    maxWidth: "12rem",
-                                    minWidth: "10rem",
-                                }}
-                                options={bcList}
-                            />
+                            {watch("incoterms").split("-")[0].trim() ==
+                                "FRC" && (
+                                <TextFieldComp
+                                    name="sto_num"
+                                    label="Sto Number"
+                                    control={control}
+                                    disabled
+                                    sx={{ minWidth: "10rem" }}
+                                />
+                            )}
                             <TextFieldComp
                                 name="material"
                                 label="Material"
@@ -703,8 +563,8 @@ export default function LoadingNoteFormUPS() {
                                 disabled
                             />
                             <NumericFieldComp
-                                name="os_wb_qty"
-                                label="O/S WB Quantity"
+                                name="os_sap_qty"
+                                label="O/S SAP Quantity"
                                 control={control}
                                 sx={{
                                     minWidth: "15rem",
@@ -842,7 +702,7 @@ export default function LoadingNoteFormUPS() {
                                 newCheckBoxState.push(false);
                                 setCheckedMulti(newCheckBoxState);
                             }}
-                            disabled={!isPaid}
+                            // disabled={!isPaid}
                             variant="contained"
                         >
                             Add +
@@ -977,39 +837,6 @@ export default function LoadingNoteFormUPS() {
                                                 onBlurOvr={checkExistingOsQty}
                                                 thousandSeparator
                                             />
-                                            <CheckBoxComp
-                                                label="Multi Loading Note"
-                                                control={control}
-                                                name={`load_detail.${index}.is_multi`}
-                                                index={index}
-                                                onChangeOvr={handleCheckedMulti}
-                                            />
-                                            <SelectMultiDOComp
-                                                label="Related DO"
-                                                control={control}
-                                                name={`load_detail.${index}.relate_do`}
-                                                disabled={isSelectEnabled(
-                                                    index
-                                                )}
-                                                preop={getValues(
-                                                    `load_detail.${index}.relate_do`
-                                                )}
-                                            />
-                                            <TextFieldComp
-                                                name={`load_detail.${index}.no_resi`}
-                                                label="No. Surat Jalan"
-                                                control={control}
-                                                sx={{
-                                                    width: "20rem",
-                                                }}
-                                                rules={{
-                                                    maxLength: {
-                                                        value: 100,
-                                                        message:
-                                                            "Max 100 Character",
-                                                    },
-                                                }}
-                                            />
                                             <TextFieldComp
                                                 name={`load_detail.${index}.remark`}
                                                 label="Remark"
@@ -1114,112 +941,6 @@ export default function LoadingNoteFormUPS() {
                             </div>
                         );
                     })}
-                    {curAuth.current.fread &&
-                        ["FINA", "END"].includes(position.current) && (
-                            <>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyItems: "stretch",
-                                        flexWrap: "wrap",
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            marginBottom: "3rem",
-                                            minWidth: "50%",
-                                        }}
-                                    >
-                                        <Typography variant="h5">
-                                            Factory Plant
-                                        </Typography>
-                                        <Divider
-                                            sx={{ my: 3 }}
-                                            variant="middle"
-                                        />
-                                        <div
-                                            style={{
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: "1rem",
-                                                paddingRight: "1rem",
-                                            }}
-                                        >
-                                            <TextFieldComp
-                                                name="fac_plant"
-                                                label="Factory Plant"
-                                                control={control}
-                                                toUpperCase={true}
-                                            />
-                                            <SelectComp
-                                                name="fac_store_loc"
-                                                label="Factory Store Location"
-                                                control={control}
-                                                options={slocOP}
-                                            />
-                                            <TextFieldComp
-                                                name="fac_batch"
-                                                label="Factory Batch"
-                                                control={control}
-                                                toUpperCase={true}
-                                            />
-                                            <SelectComp
-                                                name="fac_val_type"
-                                                label="Factory Valuation Type"
-                                                control={control}
-                                                options={ValuationTypeOp}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div
-                                        style={{
-                                            marginBottom: "3rem",
-                                            minWidth: "50%",
-                                        }}
-                                    >
-                                        <Typography variant="h5">
-                                            Other Party
-                                        </Typography>
-                                        <Divider
-                                            sx={{ my: 3 }}
-                                            variant="middle"
-                                        />
-                                        <div
-                                            style={{
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: "1rem",
-                                            }}
-                                        >
-                                            <TextFieldComp
-                                                name="oth_plant"
-                                                label="Other Party Plant"
-                                                control={control}
-                                                toUpperCase={true}
-                                            />
-                                            <SelectComp
-                                                name="oth_store_loc"
-                                                label="Other Party Store Location"
-                                                control={control}
-                                                options={slocOP}
-                                            />
-                                            <TextFieldComp
-                                                name="oth_batch"
-                                                label="Other Party Batch"
-                                                control={control}
-                                                disabled
-                                            />
-                                            <SelectComp
-                                                name="oth_val_type"
-                                                label="Other Party Valuation Type"
-                                                control={control}
-                                                options={ValuationTypeOp}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
                 </div>
                 {(curAuth.current.fcreate || curAuth.current.fupdate) &&
                     position.current !== "END" && (
@@ -1236,20 +957,9 @@ export default function LoadingNoteFormUPS() {
                                     loading={isLoading}
                                     disabled={!isPaid || isExceed}
                                     type="submit"
-                                    // onClick={() =>
-                                    //     submitItem(getValues(), false)
-                                    // }
                                 >
                                     Submit
                                 </LoadingButton>
-                                {/* <LoadingButton
-                                    loading={isLoading}
-                                    onClick={() =>
-                                        submitItem(getValues(), true)
-                                    }
-                                >
-                                    Save Draft
-                                </LoadingButton> */}
                             </div>
                         </>
                     )}

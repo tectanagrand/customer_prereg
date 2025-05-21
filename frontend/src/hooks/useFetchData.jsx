@@ -1,11 +1,13 @@
 import useAxiosPrivate from "./useAxiosPrivate";
 import { useEffect, useState } from "react";
 
-export default function useFetchData({ url, initData, refresh, setRefresh }) {
+export default function useFetchData({ url, initData }) {
     const axiosPrivate = useAxiosPrivate();
-    const [data, setData] = useState(initData);
+    const [refresh, setRefresh] = useState(true);
+    const [data, setData] = useState(initData ?? {});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const refreshData = () => setRefresh(true);
     useEffect(() => {
         (async () => {
             if (refresh) {
@@ -24,5 +26,5 @@ export default function useFetchData({ url, initData, refresh, setRefresh }) {
         })();
     }, [url, refresh]);
 
-    return { data, loading, error };
+    return { data, loading, error, refreshData };
 }

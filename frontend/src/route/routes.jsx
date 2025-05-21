@@ -8,6 +8,9 @@ const ApprovalPage = lazy(() => import("../pages/approvalreq/ApprovalPage"));
 import ErrorPage from "../pages/error/ErrorPage";
 import { Axios } from "../api/axios";
 import TestCallApi from "../pages/test/TestCallApi";
+import FormWBSales from "../pages/wb_sales/FormWBSales";
+import DashboardWBSales from "../pages/wb_sales/DashboardWBSales";
+import DashboardMasterPlant from "../pages/masterplant/DashboardMasterPlant";
 const PushSAPMulti = lazy(
     () => import("../pages/multiloadingnote/PushSAPMulti")
 );
@@ -377,6 +380,22 @@ export const routes = createBrowserRouter([
                     {
                         path: "pushmultiln",
                         element: <PushSAPMulti />,
+                    },
+                    {
+                        path: "wb",
+                        children: [
+                            { path: "sales", element: <DashboardWBSales /> },
+                            { path: "sales/create", element: <FormWBSales /> },
+                        ],
+                    },
+                    {
+                        path: "master",
+                        children: [
+                            {
+                                path: "plant",
+                                element: <DashboardMasterPlant />,
+                            },
+                        ],
                     },
                 ],
             },

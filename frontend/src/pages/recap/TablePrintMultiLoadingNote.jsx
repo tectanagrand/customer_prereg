@@ -16,7 +16,7 @@ const columnHelper = createColumnHelper();
 export default function TablePrintMultiLoadingNote() {
     const axiosPrivate = useAxiosPrivate();
     const [refresh, setRefresh] = useState(true);
-    const { data, error, loading } = useFetchData({
+    const { data, error, loading, refreshData } = useFetchData({
         url: `multi/printreq`,
         initData: {
             data: [],
@@ -26,8 +26,6 @@ export default function TablePrintMultiLoadingNote() {
                 left: [],
             },
         },
-        refresh: refresh,
-        setRefresh: setRefresh,
     });
 
     const exportData = useCallback(async hd_id => {
@@ -55,6 +53,7 @@ export default function TablePrintMultiLoadingNote() {
             // Cleanup
             URL.revokeObjectURL(url);
             setRefresh(true);
+            refreshData();
         } catch (error) {
             if (error.response) {
                 toast.error(error.response.statusText);

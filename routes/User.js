@@ -27,6 +27,7 @@ router.post("/email", UserController.sendEmailCredentials2);
 router.post("/delete", UserController.deleteUser);
 router.post("/isroleup", UserController.isRoleUp);
 
+//register for api user
 router.post(
     "/regapi",
     AuthMiddleware.authSession,
@@ -36,5 +37,12 @@ router.post(
     "/resetpassapi",
     AuthMiddleware.authSession,
     UserController.UpdatePassApi
+);
+
+//get relation cust
+router.get(
+    "/relation",
+    AuthMiddleware.authSession,
+    UserController.ShowRelatedCust
 );
 module.exports = router;

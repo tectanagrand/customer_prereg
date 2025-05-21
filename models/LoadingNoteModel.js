@@ -15,6 +15,7 @@ const EmailModel = require("../models/EmailModel");
 const { Pool, sqls } = require("../config/sqlservconn");
 const OSCheck = require("../helper/OSCheck");
 const TicketGen = require("../helper/TicketGen");
+const { param } = require("../routes/LoadingNote");
 
 const LoadingNoteModel = {};
 
@@ -234,6 +235,10 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
             if (params.ref_do_num) {
                 payloadHeader.ref_id_do = params.ref_do_num;
                 payloadHeader.buyer_name = params.buyer_name;
+            }
+            if (params.ven_code) {
+                payloadHeader.ven_code = params.ven_code;
+                payloadHeader.ven_name = params.ven_name;
             }
             if (params.id_header === "") {
                 [que, val] = crud.insertItem(
@@ -784,6 +789,8 @@ LoadingNoteModel.getById2 = async id_header => {
 
             const resp = {
                 ref_do_num: hd_dt.ref_id_do,
+                ven_code: hd_dt.ven_code,
+                ven_name: hd_dt.ven_name,
                 buyer_name: hd_dt.buyer_name,
                 do_num: hd_dt.id_do,
                 po_num: hd_dt.id_po,

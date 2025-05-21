@@ -28,6 +28,7 @@ import { LoadingButton } from "@mui/lab";
 import toast, { Toaster } from "react-hot-toast";
 import AutocompleteComp from "../../component/input/AutocompleteComp";
 import { RefreshOutlined } from "@mui/icons-material";
+import AutoCompleteMultiSelectCust from "../../component/input/AutoCompleteMultiSelectCust";
 
 export default function NewUserRegFormPage() {
     // const [customerID, setCustID] = useState("");
@@ -51,6 +52,7 @@ export default function NewUserRegFormPage() {
         reset,
         setValue,
         formState: { isDirty, dirtyFields },
+        watch,
     } = useForm({
         defaultValues: {
             username: "",
@@ -60,6 +62,7 @@ export default function NewUserRegFormPage() {
             telfList: [{ telf: "" }],
             emailList: [{ email: "" }],
             plant_code: { value: "", label: "" },
+            relate_cust: [],
         },
         resetOptions: {
             keepErrors: true, // input errors will be retained with value update
@@ -135,12 +138,16 @@ export default function NewUserRegFormPage() {
                     password: "",
                     emailList: data.email.map(item => ({ email: item })),
                     telfList: data.telf.map(item => ({ telf: item })),
+                    relate_cust: data.relate_cust,
                 };
-                _setRole(data.role);
+                const label = roleOp.find(
+                    ({ value }) => value === data.role
+                )?.label;
+                _setRole(label);
                 reset(dataUser);
             })();
         }
-    }, []);
+    }, [roleOp]);
 
     useEffect(() => {
         (async () => {
@@ -177,6 +184,7 @@ export default function NewUserRegFormPage() {
             role: values.role,
             email: values.emailList.map(item => item.email),
             phonenum: values.telfList.map(item => item.telf),
+            relate_cust: values.relate_cust.map(item => item.value),
         };
         if (values.hasOwnProperty("password")) {
             payload.password = values.password;
@@ -184,6 +192,7 @@ export default function NewUserRegFormPage() {
         if (!!searchParams.get("iduser")) {
             payload.id_user = searchParams.get("iduser");
         }
+        console.log(values);
         setLoading(true);
         try {
             if (!!searchParams.get("iduser")) {
@@ -490,6 +499,18 @@ export default function NewUserRegFormPage() {
                         </div>
                     </Grid>
                 </Grid>
+                {["COMMERCIAL", "LOG_KRANI"].includes(role) && (
+                    <Grid container spacing={2}>
+                        <Grid item xs>
+                            <AutoCompleteMultiSelectCust
+                                name="relate_cust"
+                                label="Relation Customer"
+                                control={control}
+                                roleSelected={role}
+                            />
+                        </Grid>
+                    </Grid>
+                )}
                 <Box
                     sx={{
                         display: "flex",

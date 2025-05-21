@@ -1,5 +1,8 @@
 const MasterController = require("../controllers/MasterController");
 const express = require("express");
+const AuthManager = require("../middleware/AuthManager");
+const ValidationMid = require("../middleware/ValidationMid");
+const MasterSchema = require("../schema/MasterSchema");
 const router = express.Router();
 
 router.get("/comp", MasterController.getComp);
@@ -54,5 +57,26 @@ router.post("/deletemstcon", MasterController.deleteMasterContract);
 router.post("/deactmstcon", MasterController.deactivateMasterContract);
 router.get("/getsap", MasterController.getCodeSAP);
 router.get("/getbcbyso", MasterController.getBCbySO);
+
+//Master Plant
+router.get("/plant/:company", MasterController.getPlant);
+router.post(
+    "/plant",
+    AuthManager.authSession,
+    ValidationMid(MasterSchema.plantSave),
+    MasterController.savePlant
+);
+router.patch(
+    "/plant",
+    AuthManager.authSession,
+    ValidationMid(MasterSchema.plantUpdate),
+    MasterController.updatePlant
+);
+router.delete(
+    "/plant",
+    AuthManager.authSession,
+    ValidationMid(MasterSchema.plantDelete),
+    MasterController.deletePlant
+);
 
 module.exports = router;
