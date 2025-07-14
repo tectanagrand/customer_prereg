@@ -11,6 +11,7 @@ export default function AutoCompleteMultiSelectCust({
     label,
     sx,
     roleSelected,
+    disabled,
 }) {
     const [end_value, setEndValue] = useState([]);
     const { data: cust_data, loading: loading_cust } = useFetchData({
@@ -101,6 +102,7 @@ export default function AutoCompleteMultiSelectCust({
                         }}
                     >
                         <Autocomplete
+                            disabled={disabled}
                             multiple
                             value={value}
                             options={
@@ -116,17 +118,19 @@ export default function AutoCompleteMultiSelectCust({
                                 setEndValue(newValue);
                             }}
                             disableCloseOnSelect={true}
-                            isOptionEqualToValue={(option, value) =>
-                                option.value == value.value
-                            }
+                            isOptionEqualToValue={(option, value) => {
+                                return option.value === value.value;
+                            }}
                         />
-                        <TableSimple
-                            sx={{ height: "20rem" }}
-                            rowsData={value}
-                            columns={columnTable}
-                            active_search
-                            stickyHeader
-                        />
+                        {!disabled && (
+                            <TableSimple
+                                sx={{ height: "20rem" }}
+                                rowsData={value}
+                                columns={columnTable}
+                                active_search
+                                stickyHeader
+                            />
+                        )}
                     </Box>
                 );
             }}

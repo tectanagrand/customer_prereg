@@ -325,7 +325,7 @@ export default function DashboardWBSales() {
                 <RefreshButton setRefreshbtn={setRefresh} isLoading={refresh} />
                 {getPermission("Sales Request").fcreate && (
                     <Button
-                        sx={{ width: 200, heigth: 50, margin: 2 }}
+                        sx={{ width: 200, height: 50, margin: 2 }}
                         variant="contained"
                         onClick={buttonNewUser}
                     >

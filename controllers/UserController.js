@@ -311,6 +311,18 @@ UserController.showById = async (req, res) => {
             `,
             [id_user]
         );
+        const { rows: relate_plant } = await client.query(
+            `
+            select
+                plt.plant_code as label,
+                plt.plant_code as value
+            from
+                mst_usr_to_plt plt
+            where
+                user_id = $1
+            `,
+            [id_user]
+        );
         const responseData = {
             fullname: dataUser.fullname,
             role: dataUser.role,
@@ -319,6 +331,7 @@ UserController.showById = async (req, res) => {
             email: dataUser.email?.split(",").map(item => item.trim()) ?? [],
             telf: dataUser.telf?.split(",").map(item => item.trim()) ?? [],
             relate_cust: relate_cust,
+            relate_plant: relate_plant,
         };
         res.status(200).send(responseData);
     } catch (error) {
@@ -640,4 +653,12 @@ UserController.ShowRelatedCust = async (req, res) => {
         });
     }
 };
+
+// UserController.ShowRelatedPlant = async(req,res) => {
+//     try {
+//         const
+//     } catch (error) {
+
+//     }
+// }
 module.exports = UserController;

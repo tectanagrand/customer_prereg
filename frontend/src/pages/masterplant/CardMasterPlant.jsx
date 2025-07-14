@@ -9,7 +9,6 @@ import CreateEditPlantModal from "./CreateEditPlantModal";
 
 const CardMasterPlant = ({ companyCode, companyName }) => {
     const cachePlant = useCachePlant();
-    console.log(cachePlant.plants);
     const axiosPrivate = useAxiosPrivate();
     const refDialog = useRef();
     const [loading, setLoading] = useState(false);
@@ -62,7 +61,6 @@ const CardMasterPlant = ({ companyCode, companyName }) => {
             },
         },
     ];
-    console.log(refDialog.current);
     return (
         <Card sx={{ width: "50%", borderStyle: "solid", borderSize: "1px" }}>
             <Box
@@ -102,7 +100,11 @@ const CardMasterPlant = ({ companyCode, companyName }) => {
                     columns={columns}
                     stickyHeader
                 />
-                <CreateEditPlantModal ref={refDialog} />
+                <CreateEditPlantModal
+                    ref={refDialog}
+                    companyCode={companyCode}
+                    companyName={companyName}
+                />
             </Box>
         </Card>
     );

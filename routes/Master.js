@@ -60,6 +60,8 @@ router.get("/getbcbyso", MasterController.getBCbySO);
 
 //Master Plant
 router.get("/plant/:company", MasterController.getPlant);
+router.get("/plantora", MasterController.getPlantSTG);
+router.get("/plantbyid/:id");
 router.post(
     "/plant",
     AuthManager.authSession,
@@ -78,5 +80,13 @@ router.delete(
     ValidationMid(MasterSchema.plantDelete),
     MasterController.deletePlant
 );
+
+//Get data PO by code cust
+router.get("/pocust", AuthManager.authSession, MasterController.GetPObyCust);
+//Get data detail PO
+router.get("/podet", AuthManager.authSession, MasterController.GetDetailPO);
+
+//Get data STO by code plant
+router.get("/stocust", AuthManager.authSession, MasterController.GetSTObyPlant);
 
 module.exports = router;

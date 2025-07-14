@@ -119,8 +119,18 @@ export default function TableApprovalLNUPS({
                 },
             },
             {
+                header: "Request No",
+                accessorKey: "ticket_no",
+                cell: props => props.getValue(),
+            },
+            {
                 header: "DO Number",
                 accessorKey: "id_do",
+                cell: props => props.getValue(),
+            },
+            {
+                header: "PO Number",
+                accessorKey: "id_po",
                 cell: props => props.getValue(),
             },
             {
@@ -287,7 +297,7 @@ export default function TableApprovalLNUPS({
         if (DoNum !== "" && CustNum !== "" && DoNum && CustNum) {
             const updateSAPRemaining = setInterval(async () => {
                 const { data: do_data } = await axiosPrivate.get(
-                    `/master/do?do_num=${DoNum}`
+                    `/master/doups?do_num=${DoNum}`
                 );
                 const os_data =
                     parseFloat(do_data.SLIP.KWMENG) -
@@ -305,7 +315,7 @@ export default function TableApprovalLNUPS({
                 }
                 try {
                     const { data: do_data } = await axiosPrivate.get(
-                        `/master/do?do_num=${DoNum}`
+                        `/master/doups?do_num=${DoNum}`
                     );
                     const os_data =
                         parseFloat(do_data.SLIP.KWMENG) -

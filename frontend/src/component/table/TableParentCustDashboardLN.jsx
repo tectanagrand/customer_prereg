@@ -53,6 +53,7 @@ import ModalConfirmDelete from "../common/ModalConfirmDelete";
 export default function TableParentCustDashboard() {
     const loader = useLoaderData();
     const C_GRP = useMemo(() => loader.C_GRP, []);
+    const INCO = loader?.INCO ?? "";
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
     const [dataCust, setDataCust] = useState([]);
@@ -143,6 +144,11 @@ export default function TableParentCustDashboard() {
                         ""
                     );
                 },
+            },
+            {
+                header: "Request ID",
+                accessorKey: "ticket_no",
+                cell: props => props.getValue(),
             },
             {
                 header: "DO Number",
@@ -305,7 +311,9 @@ export default function TableParentCustDashboard() {
                 getPermission("LOCO UPS Request").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
-                    "/ln/lnuser?isallow=" + allow + `&group=${C_GRP}`,
+                    "/ln/lnuser?isallow=" +
+                        allow +
+                        `&group=${C_GRP}${INCO ? `&inco=${INCO}` : ""}`,
                     {
                         withCredentials: true,
                     }
@@ -331,7 +339,7 @@ export default function TableParentCustDashboard() {
                 {(getPermission("LOCO DWS Request").fcreate ||
                     getPermission("LOCO UPS Request").fcreate) && (
                     <Button
-                        sx={{ width: 200, heigth: 50, margin: 2 }}
+                        sx={{ width: 200, margin: 2 }}
                         variant="contained"
                         onClick={buttonNewUser}
                     >

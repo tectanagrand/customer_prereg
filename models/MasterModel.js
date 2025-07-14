@@ -9,6 +9,8 @@ const { Pool, sqls } = require("../config/sqlservconn");
 const OSCheck = require("../helper/OSCheck");
 const moment = require("moment");
 const DBClientWrapper = require("../helper/DBClientWrapper");
+const { OraClientWrapper } = require("../config/oracleconnectionv2");
+const basic_authtoken = require("../helper/sap_auth");
 // noderfc.setIniFileDirectory(process.env.SAPINIFILE);
 
 const MasterModel = {};
@@ -22,8 +24,10 @@ MasterModel.getCompanyData = async (q, limit, offset) => {
         let limitque = [];
         let index = 1;
         if (q) {
-            whereval.push(`%${q}%`);
-            whereque.push(`lower(name) like $1 and lower(code) like $2`);
+            whereval.push(`%${q.toLowerCase()}%`);
+            whereque.push(
+                `lower(name) like $${index} or lower(code) like $${index}`
+            );
             index++;
         }
         if (limit) {
@@ -168,7 +172,9 @@ MasterModel.getSOData = async do_num => {
             }
         );
         let I_ZSLIP = {};
-        // console.log(ZSLIP_get.d.results[0]);
+        if (!ZSLIP_get.d.results[0]) {
+            throw new Error("Data not found");
+        }
         Object.keys(ZSLIP_get.d.results[0]).map(item => {
             if (item !== "__metadata") {
                 I_ZSLIP[item.toUpperCase()] = ZSLIP_get.d.results[0][item];
@@ -184,10 +190,6 @@ MasterModel.getSOData = async do_num => {
                 },
             }
         );
-        // console.log(
-        //     `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZPINOSet?$filter=(Vbeln eq '${do_num}')&$format=json`
-        // );
-        // console.log(ZPINO_get.d.results);
         const I_ZPINO = ZPINO_get.d.results.map(item => {
             const itemTemp = {};
             Object.keys(item).map(data => {
@@ -218,7 +220,7 @@ MasterModel.getSOData = async do_num => {
         });
         const SLIPZ = I_ZSLIP;
 
-        const SLIP = {
+        let SLIP = {
             ...SLIPZ,
             KWMENG: parseFloat(SLIPZ.KWMENG.split(".")[0]),
             ZTTLPROF: SLIPZ.ZTTLPROF.trim()
@@ -295,13 +297,43 @@ MasterModel.getSODataUPS = async do_num => {
         PINO.forEach(item => {
             totalPay += parseFloat(item.WRBTR);
         });
-        const SLIP = {
+        let SLIP = {
             ...I_ZSLIP,
             KWMENG: parseFloat(I_ZSLIP.KWMENG.split(".")[0]),
             ZTTLPROF: I_ZSLIP.ZTTLPROF.trim()
                 .replace(/[.,]/g, "")
                 .replace(",", "."),
         };
+
+        //check existence of po number
+        const { data: PONumGet } = await axios.get(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/GETPOSTOSet?$filter=(Do%20eq%20%27${do_num}%27)&$format=json 
+                `,
+            {
+                auth: {
+                    username: process.env.UNAMESAP,
+                    password: process.env.PWDSAP,
+                },
+            }
+        );
+        const POData = PONumGet.d.results[0];
+        SLIP.PO = POData.Po;
+        SLIP.STO = POData.Sto;
+
+        //check sto transtype if exist
+        if (POData.Sto) {
+            const { data: ttype } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOTYPESet?$filter=(Ebeln%20eq%20%27${POData.STO}%27)&$format=json`,
+                {
+                    auth: {
+                        username: process.env.UNAMESAP,
+                        password: process.env.PWDSAP,
+                    },
+                }
+            );
+            SLIP.STO_TTYPE = ttype.d.results[0]?.ZztransType ?? "";
+        }
+
         const OSData = await OSCheck.CheckOSUps(do_num);
         return {
             SLIP: SLIP,
@@ -311,13 +343,11 @@ MasterModel.getSODataUPS = async do_num => {
             TOTALSPEND:
                 parseInt(OSData.TotalWB) +
                 parseInt(OSData.HoldQty) +
-                parseInt(OSData.TotalSAP) +
                 parseInt(OSData.QtyWeb),
             TOTALWB: parseInt(OSData.TotalWB),
-            TOTALSAP: parseInt(OSData.TotalSAP) - parseInt(OSData.TotalDeleted),
             OS_QTY:
                 parseInt(OSData.ConQty) -
-                (parseInt(OSData.TotalSAP) -
+                (parseInt(OSData.TotalWB) -
                     parseInt(OSData.TotalDeleted) +
                     parseInt(OSData.HoldQty)),
             HOLDQTY: parseInt(OSData.HoldQty),
@@ -1039,9 +1069,6 @@ MasterModel.getDOList = async (cust_id, type, bu) => {
                     },
                 }
             );
-            console.log(
-                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOKUNNRSet?$filter=(Kunnr%20eq%20%27${cust_id}%27)&$format=json`
-            );
             for (const d of data.d.results) {
                 if (type && type !== "undefined") {
                     const { data } = await axios.get(
@@ -1202,7 +1229,7 @@ MasterModel.getInterDataDB = async (limit, offset, q) => {
                 where_val
             );
             const { rows } = await client.query(
-                `SELECT COUNT(*) AS ctr FROM MST_INTERCO WHERE kunnr like '%000' ${count_que.val > 0 ? "and" + count_que : ""}`,
+                `SELECT COUNT(*) AS ctr FROM MST_INTERCO WHERE kunnr like '%000'${count_val.length > 0 ? `and ${count_que}` : ""}`,
                 count_val
             );
             return {
@@ -1350,7 +1377,7 @@ MasterModel.getOSDataCust2 = async (limit, offset, q, cgrp) => {
                                 AND DET.ln_num is null
                                 AND DET.push_sap_date is null
                                 AND hed.cur_pos = 'FINA'
-                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}' and HED.inco_1 = 'LCO'` : ""}
+                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}' ` : ""}
                 LIMIT $7 OFFSET $8`,
                 [
                     `%${q}%`,
@@ -1388,7 +1415,7 @@ MasterModel.getOSDataCust2 = async (limit, offset, q, cgrp) => {
                                 AND DET.ln_num is null
                                 AND DET.push_sap_date is null
                                 AND hed.cur_pos = 'FINA'
-                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}' and HED.inco_1 = 'LCO'` : ""}`,
+                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`,
                 [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]
             );
             return {
@@ -1725,6 +1752,53 @@ MasterModel.getPlant = async company => {
     });
 };
 
+MasterModel.getPlantById = async plant => {
+    return DBClientWrapper(async client => {
+        try {
+            const { rows: plantid } = await client.query(
+                `select * from mst_company_plant where `
+            );
+        } catch (error) {}
+    });
+};
+
+MasterModel.getDataPlantSTG = async payload => {
+    const { q } = payload;
+    return OraClientWrapper(async client => {
+        try {
+            let whereval = {};
+            let whereque = [];
+            if (q) {
+                whereval[0] = `%${q}%`;
+                whereque.push(`AND PLANT LIKE :0`);
+            }
+            const { rows } = await client.execute(
+                `
+                SELECT
+                COMPANY,
+                b.COMPDESCRIPTION ,
+                b.PLANT
+            FROM
+                BUSINESSUNIT b
+            WHERE
+                plant LIKE '%2%'
+                AND ZPROFILE IS NOT NULL ${whereque.length > 0 ? whereque.join(" AND ") : ""} 
+                `,
+                whereval
+            );
+            //map data item
+
+            return rows.map(value => ({
+                comp_code: value[0],
+                comp_name: value[1],
+                plant_code: value[2],
+            }));
+        } catch (error) {
+            throw error;
+        }
+    });
+};
+
 MasterModel.savePlant = async payload => {
     return DBClientWrapper(async client => {
         try {
@@ -1831,6 +1905,154 @@ MasterModel.deletePlant = async payload => {
             throw error;
         }
     });
+};
+
+MasterModel.GetDataPObyCust = async ({ code_cust }) => {
+    try {
+        const { data } = await axios.get(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/POVENDSet?$filter=(Lifnr eq '${code_cust}')&$format=json`,
+            {
+                headers: {
+                    Authorization: `Basic ${basic_authtoken}`,
+                },
+            }
+        );
+        let result = [];
+        if (data.d.results.length < 0) {
+            return result;
+        }
+        result = data.d.results
+            .filter(item => {
+                console.log(item.Bsart.split("").slice(-2));
+                return item.Bsart.split("").slice(-2).join("") == "10";
+            })
+            .map(item => ({
+                po_num: item.Ebeln,
+            }));
+        return result;
+    } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.GetDataPODetail = async ({ id_po }) => {
+    try {
+        // get header PO
+        const { data } = await axios.get(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/PODETAILSet?$filter=(Ebeln eq '${id_po}')&$format=json`,
+            {
+                headers: {
+                    Authorization: `Basic ${basic_authtoken}`,
+                },
+            }
+        );
+        if (!data.d.results[0]) {
+            throw new Error("Data not found");
+        }
+        const result = data.d.results[0];
+        const qty_con = parseFloat(result?.Menge ?? 0);
+        const qty_os = await MasterModel.GetSpentQtyPO(id_po, qty_con);
+        const payload = {
+            po_num: result.Ebeln,
+            desc_material: result.Txz01,
+            mat_code: result.Matnr,
+            plant: result.Werks,
+            con_qty: qty_con,
+            region: result.Ort01,
+            address: result.Stras,
+            qty_os: qty_os,
+            uom: result.Meins,
+        };
+        return payload;
+    } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.GetSpentQtyPO = async (id_po, po_qty = null) => {
+    try {
+        let po_qty_con = po_qty;
+        if (!po_qty_con) {
+            //if po_qty is empty get po from odata
+            const { data } = await axios.get(
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/PODETAILSet?$filter=(Ebeln eq '${id_po}')&$format=json`,
+                {
+                    headers: {
+                        Authorization: `Basic ${basic_authtoken}`,
+                    },
+                }
+            );
+            if (!data.d.results) {
+                throw new Error("PO Data not found");
+            }
+            po_qty_con = parseFloat(data.d.results?.[0].Menge ?? 0);
+        }
+        //get zwb park qty
+        const result_zwbpark = await OraClientWrapper(async client => {
+            try {
+                const { rows } = await client.execute(
+                    `
+                    SELECT SUM(NETAG_QTY) as QTY_ACTUAL FROM ZWB_PARK WHERE EBELN_PO = :0                    
+                    `,
+                    [id_po]
+                );
+                return parseFloat(rows[0][0] ?? 0);
+            } catch (error) {
+                throw error;
+            }
+        });
+
+        //get planned qty
+        const result_prereg = await DBClientWrapper(async client => {
+            try {
+                const { rows } = await client.query(
+                    `
+                    select sum(plan_qty) as plan_qty from loading_note_hd lhd
+                    left join loading_note_det ldet on lhd.hd_id = ldet.hd_fk
+                    where lhd.id_po = $1 and ldet.is_active = true and ldet.is_pushed = false
+                    `,
+                    [id_po]
+                );
+                return parseFloat(rows[0]?.plan_qty ?? 0);
+            } catch (error) {
+                throw error;
+            }
+        });
+        return {
+            QTY_PO: po_qty_con,
+            QTY_ZWBPARK: result_zwbpark,
+            QTY_PREREG: result_prereg,
+            TOTAL_SPENT: result_zwbpark + result_prereg,
+            REMAINING: po_qty_con - result_zwbpark - result_prereg,
+        };
+    } catch (error) {
+        throw error;
+    }
+};
+
+MasterModel.GetDataSTObyPlant = async ({ plant }) => {
+    try {
+        const { data } = await axios.get(
+            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/POVENDSet?$filter=(Werks eq '${plant}')&$format=json`,
+            {
+                headers: {
+                    Authorization: `Basic ${basic_authtoken}`,
+                },
+            }
+        );
+        let result = [];
+        if (data.d.results.length < 0) {
+            return result;
+        }
+        result = data.d.results
+            .filter(item => item.Bsart.split().slice(-2).join("") == "70")
+            .map(item => ({
+                po_num: item.Ebeln,
+            }));
+        return result;
+    } catch (error) {
+        throw error;
+    }
 };
 
 module.exports = MasterModel;

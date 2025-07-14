@@ -317,7 +317,7 @@ export default function TableParentTolling() {
                 <RefreshButton setRefreshbtn={setRefresh} isLoading={refresh} />
                 {getPermission("Tolling Request").fcreate && (
                     <Button
-                        sx={{ width: 200, heigth: 50, margin: 2 }}
+                        sx={{ width: 200, margin: 2 }}
                         variant="contained"
                         onClick={buttonNewUser}
                     >

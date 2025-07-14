@@ -219,7 +219,7 @@ OSCheck.CheckOSUps = async do_number => {
                 TotalSAP: totalFromSAP,
                 TotalDeleted: deletedLN,
                 HoldQty: parseFloat(hold_qty),
-                QtyWeb: parseFloat(qtyWeb[0].totaltemp_plan),
+                QtyWeb: parseFloat(qtyWeb[0]?.totaltemp_plan ?? 0),
             };
         } catch (error) {
             throw error;

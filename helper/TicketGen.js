@@ -62,7 +62,7 @@ TicketGen.genLoadingNoteUPS = (plant, lastlnnum) => {
             }
         }
     }
-    return "LCO/" + U + month + year + running_num.toString().padStart(3, "0");
+    return "PRG/" + U + month + year + running_num.toString().padStart(3, "0");
 };
 
 module.exports = TicketGen;

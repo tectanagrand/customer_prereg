@@ -228,7 +228,7 @@ export default function User() {
         <>
             <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                 <Button
-                    sx={{ width: 200, heigth: 50, margin: 2 }}
+                    sx={{ width: 200, height: 50, margin: 2 }}
                     variant="contained"
                     onClick={buttonNewUser}
                 >

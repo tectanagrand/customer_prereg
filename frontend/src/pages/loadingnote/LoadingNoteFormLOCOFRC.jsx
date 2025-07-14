@@ -235,6 +235,7 @@ export default function LoadingNoteFormFRC() {
             is_draft: is_draft,
             id_header: uuidLN.current,
             company: values.company,
+            relate_cust: session?.user_id ?? "",
             load_detail: load_detail,
             con_qty:
                 typeof values.con_qty === "string"

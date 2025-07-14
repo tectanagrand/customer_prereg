@@ -356,6 +356,7 @@ export default function FormApprovalLNUPS() {
                     oth_batch: value.oth_batch.value,
                     id_do: item.id_do,
                     id_sto: item.id_sto,
+                    id_po: item.id_po,
                     inco_1: item.inco_1,
                     driver_id: item.driver_id,
                     vhcl_id: item.vhcl_id,
@@ -368,6 +369,7 @@ export default function FormApprovalLNUPS() {
                     con_num: item.con_num,
                     material: item.material,
                     desc_con: item.desc_con,
+                    ticket_no: item.ticket_no,
                 };
             });
             setLoading(true);

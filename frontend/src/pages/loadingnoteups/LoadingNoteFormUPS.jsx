@@ -269,6 +269,7 @@ export default function LoadingNoteFormUPS() {
             is_draft: is_draft,
             id_header: uuidLN.current,
             company: values.company,
+            relate_cust: session?.username ?? "",
             load_detail: load_detail,
             con_qty:
                 typeof values.con_qty === "string"
@@ -337,7 +338,7 @@ export default function LoadingNoteFormUPS() {
 
             const dataMap = {
                 do_num: value,
-                po_num: bc_num.PO,
+                po_num: slip.PO,
                 inv_type: slip.ZZINVOICETYPE,
                 inv_type_tol_from: slip.UEBTOINV + " %",
                 inv_type_tol_to: slip.UNTTOINV + " %",
@@ -623,17 +624,6 @@ export default function LoadingNoteFormUPS() {
                                 label="Vendor Name"
                                 sx={{
                                     maxWidth: "18rem",
-                                    minWidth: "6rem",
-                                }}
-                                disabled
-                            />
-                            <TextFieldComp
-                                control={control}
-                                name="po_num"
-                                label="PO Number"
-                                sx={{
-                                    mr: 1,
-                                    maxWidth: "8rem",
                                     minWidth: "6rem",
                                 }}
                                 disabled

@@ -32,4 +32,21 @@ async function getConnection() {
     return pool.getConnection();
 }
 
-module.exports = { initPool, getConnection, ora };
+/**
+ * @template T
+ * @param {(client: import("oracledb").Connection) => Promise<T>} callback
+ * @returns {Promise<T>}
+ */
+
+const OraClientWrapper = async callback => {
+    const client = await getConnection();
+    try {
+        return callback(client);
+    } catch (error) {
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
+module.exports = { initPool, getConnection, ora, OraClientWrapper };

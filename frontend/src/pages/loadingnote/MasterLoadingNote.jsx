@@ -25,7 +25,7 @@ export default function MasterLoadingNote() {
         const allow = getPermission("Loading Note").fcreate;
         const getAllDataUser = async () => {
             const { data } = await axiosPrivate.get(
-                "/ln/lnuser?isallow=" + allow,
+                "/ln/lnuser?type=LCO&isallow=" + allow,
                 {
                     withCredentials: true,
                 }
@@ -153,7 +153,7 @@ export default function MasterLoadingNote() {
         <>
             <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                 <Button
-                    sx={{ width: 200, heigth: 50, margin: 2 }}
+                    sx={{ width: 200, height: 50, margin: 2 }}
                     variant="contained"
                     onClick={buttonNewUser}
                 >

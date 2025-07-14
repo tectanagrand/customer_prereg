@@ -58,6 +58,7 @@ const AuthManager = {
                 res.status(401).send({
                     message: "Forbidden",
                 });
+                return;
             }
             const buffer = Buffer.from(authorization.split(" ")[1], "base64");
             const credential = buffer.toString("utf8").split(":");

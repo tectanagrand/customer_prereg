@@ -22,10 +22,26 @@ const AutoCompleteVCont = ({ control, name, label, options, sx }) => (
                     // Use the field value from react-hook-form
                     label={label}
                     value={value}
-                    getOptionLabel={option => option?.label || ""}
-                    isOptionEqualToValue={(option, val) =>
-                        option?.value === val?.value
-                    }
+                    getOptionLabel={option => {
+                        if (typeof option === "string") {
+                            return option;
+                        }
+                        if (
+                            option !== null &&
+                            option !== undefined &&
+                            option !== ""
+                        )
+                            return option.label;
+                        if (option.inputValue) {
+                            return option.inputValue;
+                        }
+                        return option.title;
+                    }}
+                    isOptionEqualToValue={(option, val) => {
+                        let value = val?.value ?? val;
+                        return option?.value === value;
+                        // return true;
+                    }}
                     sx={sx}
                 />
             );

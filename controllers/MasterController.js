@@ -426,7 +426,7 @@ MasterController.getDataInterDB = async (req, res) => {
     try {
         const limit = req.query.limit;
         const offset = req.query.offset;
-        const q = q ? req.query.q.toLowerCase() : null;
+        const q = req.query.q ? req.query.q.toLowerCase() : null;
         const dataComp = await Master.getInterDataDB(limit, offset, q);
         res.status(200).send(dataComp);
     } catch (error) {
@@ -1561,6 +1561,19 @@ MasterController.getPlant = async (req, res) => {
     }
 };
 
+MasterController.getPlantSTG = async (req, res) => {
+    try {
+        const { q } = req.query;
+        const result = await Master.getDataPlantSTG({ q });
+        res.status(200).send({ data: result });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 MasterController.savePlant = async (req, res) => {
     try {
         const result = await Master.savePlant({
@@ -1598,6 +1611,49 @@ MasterController.deletePlant = async (req, res) => {
             update_by: req.cookies,
         });
         res.status(200).send(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.GetPObyCust = async (req, res) => {
+    try {
+        const { cust } = req.query;
+        const result = await Master.GetDataPObyCust({ code_cust: cust });
+        res.status(200).send({
+            result: result,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.GetDetailPO = async (req, res) => {
+    try {
+        const { id_po } = req.query;
+        const result = await Master.GetDataPODetail({ id_po });
+        res.status(200).send({ data: result });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MasterController.GetSTObyPlant = async (req, res) => {
+    try {
+        const { plant } = req.query;
+        const result = await Master.GetDataSTObyPlant({ plant });
+        res.status(200).send({
+            result: result,
+        });
     } catch (error) {
         console.error(error);
         res.status(500).send({

@@ -362,6 +362,7 @@ export default function TableLoadingNoteReq({
                             { id: code_filter, value: CustNum },
                         ],
                         who: who,
+                        cgrp: "DOWNSTREAM",
                     });
                     setRemainingUp(os_data);
                     setRows(data.data);

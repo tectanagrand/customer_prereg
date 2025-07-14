@@ -22,8 +22,8 @@ import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
-import SelectDOFRCComp from "../loadingnote/SelectDOFRCComp";
 import SelectMultiDOComp from "../loadingnote/SelectMultiDoComp";
+import SelectDOComp from "../loadingnote/SelectDOComp";
 import { useTheme } from "@mui/material/styles";
 import CheckBoxComp from "../../component/input/CheckBoxComp";
 
@@ -78,6 +78,7 @@ export default function LoadingNoteFormFRCUPS() {
     } = useForm({
         defaultValues: {
             do_num: "",
+            po_num: "",
             sto_num: "",
             trans_type: "",
             inv_type: "",
@@ -144,7 +145,7 @@ export default function LoadingNoteFormFRCUPS() {
                     reset({
                         ...data.data,
                         con_qty: data.data.con_qty,
-                        os_wb_qty: data.data.con_qty - data.data.totalSAP,
+                        os_wb_qty: data.data.con_qty - data.data.TOTALWB,
                         load_detail: load_detail,
                     });
                     setPreOp(data.data.do_num);
@@ -253,6 +254,7 @@ export default function LoadingNoteFormFRCUPS() {
             is_draft: is_draft,
             id_header: uuidLN.current,
             company: values.company,
+            relate_cust: session?.username ?? "",
             load_detail: load_detail,
             con_qty:
                 typeof values.con_qty === "string"
@@ -301,10 +303,6 @@ export default function LoadingNoteFormFRCUPS() {
     };
 
     const handleCheckSO = async value => {
-        if (getValues("sto_num") === "") {
-            toast.error("Please Provide STO Number");
-            return;
-        }
         if (getValues("do_num") === "") {
             toast.error("Please Provide DO Number");
             return;
@@ -312,11 +310,14 @@ export default function LoadingNoteFormFRCUPS() {
         setLoading(true);
         try {
             const { data } = await axiosPrivate.get(
-                `/master/do?do_num=${value}`
+                `/master/doups?do_num=${value}`
             );
             const slip = data.SLIP;
             const dataMap = {
                 do_num: value,
+                po_num: slip.PO,
+                sto_num: slip.STO,
+                trans_type: slip.STO_TTYPE,
                 inv_type: slip.ZZINVOICETYPE,
                 inv_type_tol_from: slip.UEBTOINV + " %",
                 inv_type_tol_to: slip.UNTTOINV + " %",
@@ -369,6 +370,7 @@ export default function LoadingNoteFormFRCUPS() {
                     con_qty: "0",
                     os_qty: "0",
                     os_sap_qty: "0",
+                    os_wb_qty: "0",
                     hold_qty: "0",
                     plant: "",
                     description: "",
@@ -400,6 +402,7 @@ export default function LoadingNoteFormFRCUPS() {
                 con_qty: "",
                 os_qty: "0",
                 os_sap_qty: "0",
+                os_wb_qty: "0",
                 hold_qty: "0",
                 plant: "",
                 batch: "",
@@ -485,37 +488,6 @@ export default function LoadingNoteFormFRCUPS() {
                             <div
                                 style={{
                                     display: "flex",
-                                    gap: "1rem",
-                                    marginBottom: "1rem",
-                                    alignItems: "center",
-                                }}
-                            >
-                                <TextFieldComp
-                                    control={control}
-                                    label={"STO Number"}
-                                    name="sto_num"
-                                    sx={{ maxWidth: "17rem" }}
-                                    toUpperCase={true}
-                                />
-                                <TextFieldComp
-                                    control={control}
-                                    label={"Trans. Type"}
-                                    name="trans_type"
-                                    sx={{ maxWidth: "10rem" }}
-                                    toUpperCase={true}
-                                    disabled
-                                />
-                                <LoadingButton
-                                    onClick={() => handleCheckSTO()}
-                                    loading={isLoading}
-                                    sx={{ height: "2rem" }}
-                                >
-                                    Check STO
-                                </LoadingButton>
-                            </div>
-                            <div
-                                style={{
-                                    display: "flex",
                                     alignItems: "center",
                                 }}
                             >
@@ -534,14 +506,13 @@ export default function LoadingNoteFormFRCUPS() {
                                     }}
                                     lazy={true}
                                 /> */}
-                                <SelectDOFRCComp
+                                <SelectDOComp
                                     control={control}
                                     name="do_num"
                                     label="DO Number"
                                     preop={preOp}
-                                    onChangeOvr={setDONum}
-                                    getValue={getValues}
-                                    comp_group="UPSTREAM"
+                                    type="FRC"
+                                    cgrp={"UPSTREAM"}
                                 />
                                 <LoadingButton
                                     onClick={() =>
@@ -562,6 +533,27 @@ export default function LoadingNoteFormFRCUPS() {
                                 flexWrap: "wrap",
                             }}
                         >
+                            <TextFieldComp
+                                name="sto_num"
+                                label="STO Num."
+                                control={control}
+                                disabled
+                                sx={{ maxWidth: "10rem" }}
+                            />
+                            <TextFieldComp
+                                name="trans_type"
+                                label="STO Trans Type"
+                                control={control}
+                                disabled
+                                sx={{ maxWidth: "10rem" }}
+                            />
+                            <TextFieldComp
+                                name="po_num"
+                                label="PO Num."
+                                control={control}
+                                disabled
+                                sx={{ maxWidth: "10rem" }}
+                            />
                             <TextFieldComp
                                 name="material"
                                 label="Material"
@@ -605,8 +597,8 @@ export default function LoadingNoteFormFRCUPS() {
                                 disabled
                             />
                             <NumericFieldComp
-                                name="os_sap_qty"
-                                label="O/S SAP Quantity"
+                                name="os_wb_qty"
+                                label="O/S WB Quantity"
                                 control={control}
                                 sx={{
                                     minWidth: "15rem",

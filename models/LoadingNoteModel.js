@@ -16,6 +16,8 @@ const { Pool, sqls } = require("../config/sqlservconn");
 const OSCheck = require("../helper/OSCheck");
 const TicketGen = require("../helper/TicketGen");
 const { param } = require("../routes/LoadingNote");
+const DBClientWrapper = require("../helper/DBClientWrapper");
+const MasterModel = require("./MasterModel");
 
 const LoadingNoteModel = {};
 
@@ -131,6 +133,50 @@ LoadingNoteModel.CheckIsExceedOS = async (do_number, load_detail) => {
     }
 };
 
+LoadingNoteModel.CheckIsExceedOSUPS = async (do_number, load_detail) => {
+    try {
+        const osups = await OSCheck.CheckOSUps(do_number);
+        const OSQty =
+            osups.ConQty -
+            osups.TotalWB +
+            osups.TotalDeleted -
+            osups.QtyWeb -
+            osups.HoldQty;
+        let totalRequested = 0;
+        if (Array.isArray(load_detail)) {
+            load_detail.forEach(item => {
+                totalRequested += parseFloat(item.planned_qty);
+            });
+        } else {
+            totalRequested += parseFloat(load_detail.planned_qty);
+        }
+        if (OSQty - totalRequested < 0) {
+            throw new Error(
+                "Amount requested is over than current outstanding quantity contract"
+            );
+        }
+        return;
+    } catch (error) {
+        throw error;
+    }
+};
+
+LoadingNoteModel.CheckIsExceedOSPO = async (po_number, load_detail) => {
+    try {
+        const result = await MasterModel.GetSpentQtyPO(po_number);
+        const planned_qty = load_detail.reduce((res, dt) => {
+            res += parseFloat(dt.planned_qty);
+        }, 0);
+        const total_spen = result.REMAINING - planned_qty;
+        if (total_spen < 0) {
+            throw new Error("Quantity Planning Exceeded");
+        }
+        return;
+    } catch (error) {
+        throw error;
+    }
+};
+
 LoadingNoteModel.GetLatestNoTicket = async user_id => {
     try {
         const client = await db.connect();
@@ -140,11 +186,33 @@ LoadingNoteModel.GetLatestNoTicket = async user_id => {
             let year = moment().format("YY");
             const { rows: data_user } = await client.query(
                 `
-                select initial_user from mst_user where id_user = $1
+                select initial_user, fullname from mst_user where id_user = $1
                 `,
                 [user_id]
             );
-            const initial_name = data_user[0].initial_user;
+            let initial_name = data_user[0].initial_user;
+            if (!initial_name) {
+                initial_name = [];
+                let split_name = data_user[0].fullname.split(" ");
+                let idx = 0;
+                let idx_wrd = 0;
+                while (initial_name.length < 3) {
+                    let split_mini = split_name[idx].split("");
+                    if (!split_mini[idx_wrd]) {
+                        initial_name.push("X");
+                        continue;
+                    }
+                    initial_name.push(split_mini[idx_wrd].toUpperCase());
+                    if (split_name[idx + 1]) {
+                        idx_wrd = 0;
+                        idx++;
+                        continue;
+                    }
+                    idx_wrd++;
+                }
+                initial_name = initial_name.join("");
+            }
+
             const { rows: latest_notick } = await client.query(
                 `
                 select ticket_no, month, year, initial_user from ln_notickets where create_by = $1
@@ -168,14 +236,16 @@ LoadingNoteModel.GetLatestNoTicket = async user_id => {
                 init_num.toString().padStart(3, "0");
             return {
                 new_created_ticket,
-                last_ticket: late_notick.ticket_no,
+                last_ticket: late_notick?.ticket_no ?? 0,
             };
         } catch (error) {
             throw error;
         } finally {
             client.release();
         }
-    } catch (error) {}
+    } catch (error) {
+        throw error;
+    }
 };
 
 LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
@@ -187,10 +257,40 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
         let deleteIdx = [];
         try {
             await client.query(TRANS.BEGIN);
-            await LoadingNoteModel.CheckIsExceedOS(
-                params.do_num,
-                params.load_detail
+
+            // check company bunit
+            const { rows: getBunit } = await client.query(
+                `
+                select group_comp from mst_company where sap_code = $1                
+                `,
+                [params.company]
             );
+            const bunit = getBunit[0].group_comp;
+            if (params.do_num) {
+                if (bunit == "DOWNSTREAM") {
+                    await LoadingNoteModel.CheckIsExceedOS(
+                        params.do_num,
+                        params.load_detail
+                    );
+                } else if (bunit == "UPSTREAM") {
+                    await LoadingNoteModel.CheckIsExceedOSUPS(
+                        params.do_num,
+                        params.load_detail
+                    );
+                } else {
+                    throw new Error(
+                        "Company not registered to any group business unit, please ask administrator"
+                    );
+                }
+            }
+
+            //if request is a wb purchase
+            if (params.po_num) {
+                await LoadingNoteModel.CheckIsExceedOSPO(
+                    params.po_num,
+                    params.load_detail
+                );
+            }
             // throw new Error("Test");
             //
             const ticket_no = await LoadingNoteModel.GetLatestNoTicket(
@@ -199,11 +299,11 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
             const is_draft = params.is_draft;
             const today = new Date();
             const details = params.load_detail;
-            const id_header =
-                params.id_header !== "" ? params.id_header : uuid.uuid();
+            const id_header = params.id_header ? params.id_header : uuid.uuid();
             let payloadHeader = {
                 hd_id: id_header,
                 id_do: params.do_num,
+                id_po: params.po_num,
                 invoice_type: params.inv_type,
                 tol_from: params.inv_type_tol_from,
                 tol_to: params.inv_type_tol_to,
@@ -222,7 +322,10 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                 is_active: true,
                 is_paid: params.is_paid,
                 cur_pos: "INIT",
-                ticket_no: ticket_no?.new_created_ticket,
+                //uniforming customer code on this field, using uname if relate_cust is empty on fe
+                relate_cust: params.relate_cust,
+                //for differ which is for WB and SAP
+                prereg_type: params.prereg_type,
             };
             if (params.sto_num && params.sto_num !== "") {
                 payloadHeader.id_sto = params.sto_num;
@@ -240,7 +343,13 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                 payloadHeader.ven_code = params.ven_code;
                 payloadHeader.ven_name = params.ven_name;
             }
+            if (params.po_num) {
+                payloadHeader.id_po = params.po_num;
+            }
+            // console.log(params);
+            // throw new Error("error");
             if (params.id_header === "") {
+                payloadHeader.ticket_no = ticket_no.new_created_ticket;
                 [que, val] = crud.insertItem(
                     "loading_note_hd",
                     payloadHeader,
@@ -735,9 +844,11 @@ LoadingNoteModel.getById2 = async id_header => {
         try {
             const { rows } = await client.query(
                 `SELECT HD.*,
-                DET.*
+                DET.*,
+                mbc.name as cust_name
             FROM LOADING_NOTE_HD HD
             LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
+            LEFT JOIN master_bp_code mbc on mbc.kunnr = HD.relate_cust
             WHERE HD.hd_id = $1`,
                 [id_header]
             );
@@ -774,20 +885,29 @@ LoadingNoteModel.getById2 = async id_header => {
             let deletedQty = 0;
             let qtyTemp = 0;
             let hold_qty = 0;
-            if (compdet[0].group_comp === "DOWNSTREAM") {
+            if (compdet[0].group_comp === "DOWNSTREAM" && compdet[0].id_do) {
                 os_data = await OSCheck.CheckOSCust(compdet[0].id_do);
                 totalFromSAP = os_data.TotalSAP;
                 deletedQty = os_data.TotalDeleted;
                 qtyTemp = os_data.TotalTemp;
                 hold_qty = os_data.HoldQty;
-            } else {
+            } else if (
+                compdet[0].group_comp === "UPSTREAM" &&
+                compdet[0].id_do
+            ) {
                 os_data = await OSCheck.CheckOSUps(compdet[0].id_do);
                 totalFromSAP = os_data.TotalWB;
                 qtyTemp = os_data.QtyWeb;
                 hold_qty = os_data.HoldQty;
+            } else if (hd_dt.id_po) {
+                const qty_po = await MasterModel.GetSpentQtyPO(hd_dt.id_po);
+                totalFromSAP = qty_po.QTY_ZWBPARK;
+                qtyTemp = qty_po.QTY_PREREG;
             }
 
             const resp = {
+                relate_cust: hd_dt.relate_cust,
+                cust_name: hd_dt.cust_name,
                 ref_do_num: hd_dt.ref_id_do,
                 ven_code: hd_dt.ven_code,
                 ven_name: hd_dt.ven_name,
@@ -1046,7 +1166,7 @@ LoadingNoteModel.getOSLoadingNoteNum2 = async (limit, offset, cust, cgrp) => {
                 LEFT JOIN mst_vendor mv on mv.lifnr = u.username
                 LEFT JOIN mst_interco mi on mi.kunnr = u.username
                 WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
-                AND( c.kunnr = $1 or mv.lifnr = $2 or mi.kunnr = $3) AND det.is_active = true ${cgrp ? `and hd.inco_1 = 'LCO' and co.group_comp = '${cgrp}'` : ""}
+                AND( c.kunnr = $1 or mv.lifnr = $2 or mi.kunnr = $3) AND det.is_active = true ${cgrp ? ` and co.group_comp = '${cgrp}'` : ""}
                 LIMIT $4 OFFSET $5
                 `,
                 [cust, cust, cust, limit, offset]
@@ -1060,7 +1180,7 @@ LoadingNoteModel.getOSLoadingNoteNum2 = async (limit, offset, cust, cgrp) => {
                 LEFT JOIN mst_vendor mv on mv.lifnr = u.username
                 LEFT JOIN mst_interco mi on mi.kunnr = u.username
                 WHERE det.ln_num is null AND push_sap_date is null AND hd.cur_pos = 'FINA'
-                AND( c.kunnr = $1 or mv.lifnr = $2 or mi.kunnr = $3) AND det.is_active = true ${cgrp ? `and hd.inco_1 = 'LCO' and co.group_comp = '${cgrp}'` : ""}`,
+                AND( c.kunnr = $1 or mv.lifnr = $2 or mi.kunnr = $3) AND det.is_active = true ${cgrp ? ` and co.group_comp = '${cgrp}'` : ""}`,
                 [cust, cust, cust]
             );
             return {
@@ -1619,25 +1739,26 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
             materialMst.forEach((item, index) => {
                 material_mst.set(item.material_code, item.material_cat);
             });
-            const { rows: latestLN } = await client.query(
-                `
-                select lnd.ln_num from loading_note_det lnd 
-                left join loading_note_hd lnh on lnd.hd_fk = lnh.hd_id 
-                where ln_num like 'LCO%' and lnh.plant = $1
-                order by lnd.id desc
-                `,
-                [plant]
-            );
-            let latestTicketNum = latestLN[0]?.ln_num ?? "";
+            // const { rows: latestLN } = await client.query(
+            //     `
+            //     select lnd.ln_num from loading_note_det lnd
+            //     left join loading_note_hd lnh on lnd.hd_fk = lnh.hd_id
+            //     where ln_num like 'PRG%' and lnh.plant = $1
+            //     order by lnd.id desc
+            //     `,
+            //     [plant]
+            // );
+            // let latestTicketNum = latestLN[0]?.ln_num ?? "";
             for (const ln of lnreq) {
-                const ticketNum = TicketGen.genLoadingNoteUPS(
-                    plant,
-                    latestTicketNum
-                );
+                // const ticketNum = TicketGen.genLoadingNoteUPS(
+                //     plant,
+                //     latestTicketNum
+                // );
                 const payload = {
-                    ID_SJ: ticketNum,
+                    ID_SJ: ln.ticket_no,
                     ID_TRANSPORTER: cust_code,
                     DO_NO: ln.id_do,
+                    PO_NO: ln.id_po,
                     STONO: ln.id_sto,
                     INCO1: ln.inco_1,
                     ID_CUSTOMER: ln?.trg_cust,
@@ -1670,7 +1791,7 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                 );
                 await oraclient.execute(queIns, valIns);
                 const updateLoc = {
-                    ln_num: ticketNum,
+                    ln_num: ln.ticket_no,
                     is_pushed: true,
                     push_sap_date: today,
                     plan_qty: ln.plan_qty,
@@ -1688,8 +1809,7 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                     "det_id"
                 );
                 await client.query(queUp, valUp);
-                created_tgen.push(latestTicketNum);
-                latestTicketNum = ticketNum;
+                created_tgen.push(ln.ticket_no);
             }
             // throw new Error("test");
             await client.query(TRANS.COMMIT);
@@ -1827,6 +1947,100 @@ LoadingNoteModel.getAllDataLNbyUser = async session => {
     }
 };
 
+LoadingNoteModel.getAllDataLNSales = async ({ user_id, type }) => {
+    return DBClientWrapper(async client => {
+        try {
+            let where = "";
+            switch (type) {
+                case "sales":
+                    where = "and lhd.id_po is null and lhd.id_sto is null";
+                    break;
+                case "purchase":
+                    where = "and lhd.id_do is null and lhd.id_sto is null";
+                    break;
+                case "transfer":
+                    where = "and lhd.id_po is null and lhd.id_do is null";
+                    break;
+                default:
+                    return [];
+            }
+            const { rows } = await client.query(
+                `
+                select
+                    lhd.hd_id,
+                    lhd.ticket_no,
+                    lhd.trg_cust,
+                    mbc.name as cust_name,
+                    lhd.id_do,
+                    lhd.id_po,
+                    lhd.id_sto,
+                    lhd.inco_1 as inco,
+                    lhd.inco_1 || '-' || lhd.inco_2 as incoterm,
+                    lhd.material,
+                    lhd.desc_con,
+                    lhd.cur_pos,
+                    lhd.plant,
+                    ldet.tanggal_surat_jalan,
+                    ldet.cre_date as tanggal_create,
+                    ldet.det_id,
+                    ldet.driver_id,
+                    ldet.driver_name,
+                    ldet.vhcl_id,
+                    ldet.ticket_no as ticket_det,
+                    case	
+                        when lhd.cur_pos = 'INIT' then 'INITIATE'
+                        when lhd.cur_pos = 'FINA'
+                        and ldet.is_wb_staged is null then 'ON LOGISTIC'
+                        when lhd.cur_pos = 'FINA'
+                        and ldet.is_wb_staged = true then 'LOG APPROVED'
+                        else ''
+                    end as status
+                from
+                    loading_note_hd lhd
+                left join 
+                    loading_note_det ldet on
+                    ldet.hd_fk = lhd.hd_id
+                left join master_bp_code mbc on mbc.kunnr = lhd.trg_cust 
+                    where
+                lhd.create_by = $1 ${where}
+                and ldet.tanggal_surat_jalan + interval '30' day > now() 
+                `,
+                [user_id]
+            );
+            const map_data = new Map();
+            for (const row of rows) {
+                let detail = {
+                    det_id: row.det_id,
+                    tanggal_surat_jalan: row.tanggal_surat_jalan,
+                    cre_date: row.cre_date,
+                    driver: `${row.driver_name}(${row.driver_id})`,
+                    vehicle: row.vhcl_id,
+                    ticket_det: row.ticket_det,
+                };
+                if (!map_data.get(row.hd_id)) {
+                    map_data.set(row.hd_id, {
+                        hd_id: row.hd_id,
+                        ticket_no: row.ticket_no,
+                        trg_cust: row.trg_cust,
+                        id_do: row.id_do,
+                        inco: row.inco,
+                        incoterm: row.incoterm,
+                        material: `${row.desc_con}(${row.material})`,
+                        plant: row.plant,
+                        sub_table: [detail],
+                    });
+                } else {
+                    map_data.get(row.hd_id).sub_table.push(detail);
+                }
+            }
+            const result = Array.from(map_data).map(item => item[1]);
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    });
+};
+
 LoadingNoteModel.getAllDataLNbyUser_2 = async (
     session,
     isallow,
@@ -1839,9 +2053,13 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
         let parentRow;
         let leftJoin;
         let whereClause;
+        let whereval = [];
+        let whereinco = " ";
+        let idx = 0;
         const que_par = `SELECT HD.HD_ID,
             HD.ID_DO,
             HD.ID_STO,
+            HD.ID_PO,
             HD.RULES,
             HD.CON_NUM,
             HD.CON_QTY,
@@ -1849,8 +2067,27 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
             HD.PLANT,
             HD.COMPANY,
             DET.CTROS,
-            HD.CUR_POS
+            HD.CUR_POS,
+            HD.ticket_no,
+            HD.relate_cust,
+            HD.create_by,
+            mbc.name as customer_name,
+            mbc.kunnr as customer_code,
+            hd.material as material_code,
+            hd.desc_con as material_desc,
+            hd.ven_name,
+            hd.ven_code
         FROM LOADING_NOTE_HD HD`;
+        if (type) {
+            whereval.push(`%${type}%`);
+            whereinco = ` and HD.INCO_1 like $${idx + 1} `;
+            idx++;
+        }
+        if (comp_group) {
+            whereval.push(`${comp_group}`);
+            whereinco += ` AND C.group_comp = $${idx + 1} `;
+            idx++;
+        }
         try {
             if (isallow) {
                 leftJoin = `LEFT JOIN (
@@ -1872,9 +2109,9 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
                     GROUP BY HD_FK
                 ) LOG ON HD.HD_ID = LOG.HD_FK
                  LEFT JOIN MST_COMPANY C ON HD.COMPANY = C.SAP_CODE`;
-                whereClause = `WHERE HD.IS_ACTIVE = true AND HD.CREATE_BY = $1 AND HD.INCO_1 LIKE $2 AND C.group_comp = $3  
-                AND ( DET.CTROS IS NOT NULL OR LNU.CTRLN IS NOT NULL OR LOG.CTRLOG IS NOT NULL )
+                whereClause = `WHERE HD.IS_ACTIVE = true${whereinco}AND HD.CREATE_BY = $${idx + 1} AND ( DET.CTROS IS NOT NULL OR LNU.CTRLN IS NOT NULL OR LOG.CTRLOG IS NOT NULL )
                 ORDER BY DET.CTROS asc, HD.CREATE_AT desc ;`;
+                whereval.push(session.id_user);
             } else {
                 leftJoin = `LEFT JOIN (
                     SELECT HD_FK, COUNT(DET_ID) AS CTROS FROM LOADING_NOTE_DET DET
@@ -1889,24 +2126,20 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
                             GROUP BY HD_FK
                 ) LNU ON HD.HD_ID = LNU.HD_FK
                  LEFT JOIN MST_COMPANY C ON HD.COMPANY = C.SAP_CODE`;
-                whereClause = `WHERE HD.IS_ACTIVE = true AND HD.CUR_POS = 'FINA' AND HD.INCO_1 LIKE $1 AND C.group_comp = $2 AND DET.CTROS IS NOT NULL AND LNU.CTRLN IS NULL`;
+                whereClause = `WHERE HD.IS_ACTIVE = true AND HD.CUR_POS = 'FINA'${whereinco} AND DET.CTROS IS NOT NULL AND LNU.CTRLN IS NULL`;
             }
 
-            const getDataSess = `${que_par} ${leftJoin} ${whereClause}`;
-            if (isallow) {
-                const { rows } = await client.query(getDataSess, [
-                    session.id_user,
-                    `%${type}%`,
-                    comp_group,
-                ]);
-                parentRow = rows;
-            } else {
-                const { rows } = await client.query(getDataSess, [
-                    `%${type}%`,
-                    comp_group,
-                ]);
-                parentRow = rows;
-            }
+            const getDataSess = `${que_par} ${leftJoin} 
+            LEFT JOIN mst_user mu on mu.id_user = hd.create_by 
+            LEFT JOIN master_bp_code mbc on mbc.kunnr = case when HD.relate_cust is not null then HD.relate_cust
+            else mu.username
+            end ${whereClause}`;
+            console.log(getDataSess);
+            console.log(whereval);
+
+            const { rows } = await client.query(getDataSess, whereval);
+            parentRow = rows;
+
             for (const row of parentRow) {
                 const que_ch = `SELECT 
                 TO_CHAR(DET.CRE_DATE,

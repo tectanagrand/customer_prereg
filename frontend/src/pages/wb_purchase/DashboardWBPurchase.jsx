@@ -143,33 +143,38 @@ export default function DashboardWBPurchase() {
                 },
             },
             {
-                header: "DO Number",
-                accessorKey: "id_do",
+                header: "Ticket No.",
+                accessorKey: "ticket_no",
                 cell: props => props.getValue(),
             },
             {
-                header: "Contract Number",
-                accessorKey: "con_num",
-                cell: props => props.getValue(),
+                header: "Customer",
+                accessorKey: "customer_code",
+                cell: props => {
+                    const row = props.row.original;
+                    return `${row.customer_name} (${row.customer_code})`;
+                },
             },
             {
-                header: "Contract Quantity",
-                accessorKey: "con_qty",
-                cell: ({ row }) =>
-                    `${row.original.con_qty?.replace(
-                        /\B(?=(\d{3})+(?!\d))/g,
-                        ","
-                    )} ${row.original.uom}`,
+                header: "Vendor",
+                accessorKey: "vendor_code",
+                cell: props => {
+                    const row = props.row.original;
+                    return `${row.ven_name} (${row.ven_code})`;
+                },
             },
             {
-                header: "Plant",
-                accessorKey: "plant",
-                cell: props => props.getValue(),
+                header: "PO No.",
+                accessorKey: "id_po",
+                cell: ({ getValue }) => getValue(),
             },
             {
-                header: "Company",
-                accessorKey: "company",
-                cell: props => props.getValue(),
+                header: "Material",
+                accessorKey: "material",
+                cell: props => {
+                    const row = props.row.original;
+                    return `${row.material_desc} (${row.material_code})`;
+                },
             },
             {
                 id: "action_but",
@@ -178,7 +183,7 @@ export default function DashboardWBPurchase() {
                     let buttons = [];
                     if (
                         props.row.original.ctros > 0 &&
-                        getPermission("Sales Request").fcreate
+                        getPermission("Purchase Request").fcreate
                     ) {
                         buttons.push(
                             <Tooltip
@@ -279,6 +284,7 @@ export default function DashboardWBPurchase() {
     const table = useReactTable({
         columns,
         data: dataCust,
+        getRowId: originalRow => originalRow.hd_id,
         getRowCanExpand: () => true,
         getCoreRowModel: getCoreRowModel(),
         getExpandedRowModel: getExpandedRowModel(),
@@ -297,7 +303,7 @@ export default function DashboardWBPurchase() {
 
     useEffect(() => {
         (async () => {
-            const allow = getPermission("Sales Request").fcreate;
+            const allow = getPermission("Purchase Request").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
                     "/ln/lnuser?isallow=" + allow,
@@ -325,7 +331,7 @@ export default function DashboardWBPurchase() {
                 <RefreshButton setRefreshbtn={setRefresh} isLoading={refresh} />
                 {getPermission("Sales Request").fcreate && (
                     <Button
-                        sx={{ width: 200, heigth: 50, margin: 2 }}
+                        sx={{ width: 200, height: 50, margin: 2 }}
                         variant="contained"
                         onClick={buttonNewUser}
                     >
@@ -432,7 +438,6 @@ export default function DashboardWBPurchase() {
                                             >
                                                 {
                                                     <TableChildCustLN
-                                                        comp_group={C_GRP}
                                                         dataChild={
                                                             row.original
                                                                 .sub_table

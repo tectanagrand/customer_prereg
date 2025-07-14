@@ -1,11 +1,13 @@
 import { useImperativeHandle, useRef, forwardRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Dialog, Button } from "@mui/material";
+import { Dialog, Button, Box, Typography } from "@mui/material";
+import { TextFieldComp } from "../../component/input/TextFieldComp";
 import Form from "../../component/common/Form";
 
 const CreateEditPlantModal = forwardRef((props, ref) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [mode, setMode] = useState("");
+    const { companyCode, companyName } = props;
     const { control, reset, handleSubmit } = useForm({
         defaultValues: {
             plant_code: "",
@@ -32,7 +34,11 @@ const CreateEditPlantModal = forwardRef((props, ref) => {
     );
     return (
         <Dialog open={modalOpen} onClose={() => setModalOpen(false)}>
-            <Form></Form>
+            <Form>
+                <Box sx={{ height: "80dvh", minWidth: "480px" }}>
+                    <Typography variant="h4"></Typography>
+                </Box>
+            </Form>
         </Dialog>
     );
 });

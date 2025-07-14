@@ -104,7 +104,7 @@ export default function LoginPage() {
         } else if (role === "CUSTOMER-UPS" || role === "INTERCO") {
             link = "/dashboard/locoups";
         } else {
-            link = "/dashboard/loco";
+            link = "/dashboard";
         }
         return <NavigateTo link={link} />;
     }

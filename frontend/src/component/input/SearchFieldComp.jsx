@@ -22,7 +22,7 @@ import { useEffect, useState, useRef, forwardRef, useCallback } from "react";
 //     );
 // });
 
-const SearchFieldComp = ({ setQuery }) => {
+const SearchFieldComp = ({ setQuery, placeholder = "Search..." }) => {
     const [que, setQue] = useState("");
     const fieldRef = useRef();
     const updateQuery = useCallback(
@@ -50,7 +50,7 @@ const SearchFieldComp = ({ setQuery }) => {
     return (
         <TextField
             sx={{ width: "30rem", mb: 2 }}
-            placeholder="Search..."
+            placeholder={placeholder}
             value={que}
             onChange={e => {
                 onChangeQuery(e.target.value);

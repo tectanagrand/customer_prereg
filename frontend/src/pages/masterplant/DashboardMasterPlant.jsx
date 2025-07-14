@@ -1,7 +1,8 @@
 import useFetchData from "../../hooks/useFetchData";
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import CardMasterPlant from "./CardMasterPlant";
 import { Box, Pagination } from "@mui/material";
+import SearchFieldComp from "../../component/input/SearchFieldComp";
 
 const CachePlant = createContext({ plants: [], updatePlants: () => {} });
 export const useCachePlant = () => {
@@ -10,11 +11,13 @@ export const useCachePlant = () => {
 
 const DashboardMasterPlant = () => {
     //fetch all company first
+    const [que, setQue] = useState("");
     const {
         data: company,
         loading: load_company,
         error: error_company,
-    } = useFetchData({ url: `/master/comp`, initData: { data: [] } });
+        refreshData,
+    } = useFetchData({ url: `/master/comp?q=${que}`, initData: { data: [] } });
     const [plants, setPlants] = useState({});
     const [pagination, setPagination] = useState({
         pageIndex: 1,
@@ -32,7 +35,10 @@ const DashboardMasterPlant = () => {
             return { ...prev, [compcode]: plants };
         });
     };
-    console.log(toDisplay);
+
+    useEffect(() => {
+        refreshData();
+    }, [que]);
     return (
         <CachePlant.Provider value={{ plants, updatePlants }}>
             <Box
@@ -42,6 +48,10 @@ const DashboardMasterPlant = () => {
                     height: "100%",
                 }}
             >
+                <SearchFieldComp
+                    setQuery={setQue}
+                    placeholder="Search Company"
+                />
                 <Box
                     sx={{
                         display: "flex",

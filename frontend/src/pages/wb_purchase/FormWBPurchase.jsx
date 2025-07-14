@@ -21,7 +21,7 @@ import DatePickerComp from "../../component/input/DatePickerComp";
 import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import SelectDOComp from "../loadingnote/SelectDOComp";
+import SelectPOComp from "./SelectPOComp";
 import { useSession } from "../../provider/sessionProvider";
 import { useTheme } from "@mui/material/styles";
 import AutocompleteComp from "../../component/input/AutocompleteComp";
@@ -40,10 +40,8 @@ export default function FormWBPurchase() {
     const [checkedMulti, setCheckedMulti] = useState([]);
     const [uomQty, setUomQty] = useState("Kg");
     const [preOp, setPreOp] = useState("");
-    const [pltRule, setPltRule] = useState({ plant: "", material: "" });
-    const lastIdx = useRef(0);
+    const { session, getPermission } = useSession();
     const navigate = useNavigate();
-    const { getPermission } = useSession();
     const curAuth = useRef({});
     const {
         control,
@@ -58,32 +56,18 @@ export default function FormWBPurchase() {
         defaultValues: {
             relate_cust: null,
             vendor: null,
-            do_num: "",
-            sto_num: "",
+            po_num: "",
             trans_type: "",
-            inv_type: "",
-            inv_type_tol_from: "0 %",
-            inv_type_tol_to: "0 %",
-            incoterms: "",
-            rules: "",
             con_num: "",
             material: "",
             con_qty: 0,
             hold_qty: 0,
             os_qty: 0,
-            os_sap_qty: 0,
+            os_wb_qty: 0,
             plant: "",
             description: "",
             uom: "",
             load_detail: [],
-            fac_plant: "",
-            fac_store_loc: "",
-            fac_batch: "",
-            fac_val_type: "",
-            oth_plant: "",
-            oth_store_loc: "",
-            oth_batch: "",
-            oth_val_type: "",
             company: "",
         },
     });
@@ -100,60 +84,53 @@ export default function FormWBPurchase() {
     const position = useRef("");
     const uuidLN = useRef("");
     const theme = useTheme();
-    // useEffect(() => {
-    //     (async () => {
-    //         try {
-    //             const { data } = await axiosPrivate.get(
-    //                 "ln/id?idloadnote=" + idloadnote
-    //             );
-    //             let checkedMulti = [];
-    //             const load_detail = data.data.load_detail.map(item => {
-    //                 checkedMulti.push(item.is_multi);
-    //                 return {
-    //                     ...item,
-    //                     loading_date: moment(item.loading_date),
-    //                     relate_do: item.multi_do ?? [],
-    //                     method: "",
-    //                 };
-    //             });
-    //             setCheckedMulti(checkedMulti);
-    //             setRemaining(parseFloat(data.data.remaining));
-    //             usedQty.current = parseFloat(data.data.totalspend);
-    //             reset({
-    //                 ...data.data,
-    //                 con_qty: data.data.con_qty,
-    //                 os_sap_qty: data.data.con_qty - data.data.totalSAP,
-    //                 load_detail: load_detail,
-    //             });
-    //             setPreOp(data.data.do_num);
-    //             uuidLN.current = data.id_header;
-    //             position.current = data.cur_pos;
-    //             setPltRule({
-    //                 plant: data.data.plant,
-    //                 rule: data.data.material,
-    //             });
-    //             setPaid(data.is_paid);
-    //             // const { data: slocList } = await Axios.get(
-    //             //     "ln/sloc?plant=" + data.plant
-    //             // );
-    //             // setSloc(slocList);
-    //             curAuth.current = getPermission("Sales Request");
-
-    //             lastIdx.current =
-    //                 load_detail.length !== 0 ? load_detail.length : 0;
-    //         } catch (error) {
-    //             console.error(error);
-    //         }
-    //     })();
-    // }, []);
-
+    const [searchparam] = useSearchParams();
+    const idloadnote = searchparam.get("idloadnote");
     useEffect(() => {
         (async () => {
-            const { data } = await axiosPrivate.get(
-                `master/sloc?plant=${pltRule.plant}&material=${pltRule.material}`
-            );
+            try {
+                const { data } = await axiosPrivate.get(
+                    "ln/id?idloadnote=" + idloadnote
+                );
+                let checkedMulti = [];
+                const load_detail = data.data.load_detail.map(item => {
+                    checkedMulti.push(item.is_multi);
+                    return {
+                        ...item,
+                        loading_date: moment(item.loading_date),
+                        relate_do: item.multi_do ?? [],
+                        method: "",
+                    };
+                });
+                setCheckedMulti(checkedMulti);
+                setRemaining(parseFloat(data.data.remaining));
+                usedQty.current = parseFloat(data.data.totalspend);
+                reset({
+                    ...data.data,
+                    relate_cust: {
+                        value: data.data.relate_cust,
+                        label: `${data.data.cust_name} - ${data.data.relate_cust}`,
+                    },
+                    vendor: {
+                        value: data.data.ven_code,
+                        label: `${data.data.ven_name} - ${data.data.ven_code}`,
+                    },
+                    con_qty: data.data.con_qty,
+                    os_sap_qty: data.data.con_qty - data.data.totalSAP,
+                    load_detail: load_detail,
+                });
+                setPreOp(data.data.po_num);
+                uuidLN.current = data.id_header;
+                position.current = data.cur_pos;
+                curAuth.current = getPermission("Purchase Request");
+
+                // lastIdx.current =
+                //     load_detail.length !== 0 ? load_detail.length : 0;
+            } catch (error) {
+                console.error(error);
+            }
         })();
-    }, [pltRule]);
+    }, []);
 
     useEffect(() => {
         (async () => {
@@ -205,10 +182,7 @@ export default function FormWBPurchase() {
             : [];
     }, [relate_cust]);
 
-    const submitItem = async (values, is_draft = false) => {
-        if (typeof is_draft !== "boolean") {
-            is_draft = false;
-        }
+    const submitItem = async values => {
         const load_detail = values.load_detail.map(item => ({
             ...item,
             driver_id: item.driver ? item.driver.value : "",
@@ -224,55 +198,28 @@ export default function FormWBPurchase() {
         }));
         const payload = {
             ...values,
-            inv_type_tol_from: values.inv_type_tol_from.replace("%", "").trim(),
-            inv_type_tol_to: values.inv_type_tol_to.replace("%", "").trim(),
-            incoterms_1: values.incoterms.split("-")[0],
-            incoterms_2: values.incoterms.split("-")[1],
-            is_paid: isPaid,
-            is_draft: is_draft,
             id_header: uuidLN.current,
+            relate_cust: values.relate_cust?.value,
             company: values.company,
             load_detail: load_detail,
-            ven_code: values.vendor.value,
-            ven_name: values.vendor.label.split("-")[0].trim(),
-            sto_num: values.sto_num,
+            ven_code: values.vendor?.value ?? "",
+            ven_name: values.vendor?.label.split("-")[0].trim() ?? "",
+            prereg_type: "WB",
             con_qty:
                 typeof values.con_qty === "string"
                     ? values.con_qty.replace(/,/g, "")
                     : values.con_qty,
         };
-        delete payload.incoterms;
+        // delete payload.incoterms
         setLoading(true);
         try {
-            if (position.current === "FINA") {
-                const { data } = await axiosPrivate.post(
-                    "/ln/pushsap",
-                    payload,
-                    {
-                        withCredentials: true,
-                    }
-                );
-                toast.success(data.message);
-            } else {
-                const { data } = await axiosPrivate.post("/ln/save", payload, {
-                    withCredentials: true,
-                });
-                toast.success(data.message);
-                if (is_draft) {
-                    uuidLN.current = data.id_header;
-                    data.deleteIdx.forEach(item => {
-                        remove(parseInt(item));
-                    });
-                    const detailId = new Map(data.detailId);
-                    if (detailId.size !== 0) {
-                        detailId.forEach((value, key) => {
-                            setValue(`load_detail.${key}.id_detail`, value);
-                        });
-                    }
-                }
-            }
+            const { data } = await axiosPrivate.post("/ln/save", payload, {
+                withCredentials: true,
+            });
+            toast.success(data.message);
+
             setHookTimeout(() => {
-                navigate("/dashboard/sales");
+                navigate("/dashboard/wb/purchase");
             }, 2000);
         } catch (error) {
             console.error(error);
@@ -286,109 +233,41 @@ export default function FormWBPurchase() {
         setLoading(true);
         try {
             const { data } = await axiosPrivate.get(
-                `/master/do?do_num=${value}`
+                `/master/podet?id_po=${value}`
             );
-            const slip = data.SLIP;
-            if (slip.INCO1 === "FRC") {
-                throw new Error("Cannot proceed FRANCO type SO");
-            }
+            const slip = data.data;
             const dataMap = {
-                do_num: value,
-                inv_type: slip.ZZINVOICETYPE,
-                inv_type_tol_from: slip.UEBTOINV + " %",
-                inv_type_tol_to: slip.UNTTOINV + " %",
-                incoterms: slip.INCO1 + "-" + slip.INCO2,
-                rules: slip.ITEMRULE,
-                con_num: slip.CTRNO,
-                material: slip.MATNR,
-                con_qty: slip.KWMENG,
-                os_qty: slip.KWMENG - data.TOTALSPEND,
-                os_sap_qty: slip.KWMENG - data.TOTALSAP,
-                plant: slip.WERKS,
-                description: slip.MAKTX,
-                uom: slip.VRKME,
-                company: slip.WERKS.slice(0, 2),
-                oth_plant: slip.WERKS,
-                fac_plant: slip.WERKS,
-                oth_batch: value,
-                hold_qty: data.HOLDQTY,
+                po_num: value,
+                material: slip.mat_code,
+                con_qty: slip.con_qty,
+                os_qty: slip.qty_os.REMAINING,
+                os_wb_qty: slip.qty_os.QTY_PO - slip.qty_os.QTY_ZWBPARK,
+                plant: slip.plant,
+                description: slip.desc_material,
+                uom: slip.uom,
+                company: slip.plant.slice(0, 2),
             };
-            setUomQty(slip.VRKME);
-            setRemaining(slip.KWMENG - data.TOTALSPEND);
-            usedQty.current = data.TOTALSPEND;
+            setUomQty(slip.uom);
+            setRemaining(slip.qty_os.REMAINING);
+            usedQty.current = slip.qty_os.TOTAL_SPENT;
             Object.keys(getValues()).forEach(item => {
                 if (dataMap.hasOwnProperty(item)) {
                     setValue(item, dataMap[item]);
                 }
             });
-            setPaid(data.IS_PAID);
-            const { data: slocList } = await axiosPrivate.get(
-                "master/sloc?plant=" +
-                    dataMap.plant +
-                    "&material=" +
-                    dataMap.material
-            );
             // toast.success("Success retrieve SO");
-            if (data.IS_PAID) {
-                toast.success("Already paid, can proceed to logistic");
-            } else {
-                reset({
-                    do_num: "",
-                    inv_type: "",
-                    inv_type_tol_from: "0 %",
-                    inv_type_tol_to: "0 %",
-                    incoterms: "",
-                    rules: "",
-                    con_num: "",
-                    material: "",
-                    con_qty: "0",
-                    os_qty: "0",
-                    plant: "",
-                    description: "",
-                    uom: "",
-                    load_detail: [],
-                    fac_plant: "",
-                    fac_store_loc: "",
-                    fac_batch: "",
-                    fac_val_type: "",
-                    oth_plant: "",
-                    oth_store_loc: "",
-                    oth_batch: "",
-                    oth_val_type: "",
-                    company: "",
-                });
-                toast.error("Not paid yet");
-            }
-            if (slip.INCO1 == "FRC") {
-                //get sto if exist
-                const { data: stodata, status: statussto } =
-                    await axiosPrivate.get(`/master/checkstobydo?do=${value}`);
-                setValue("sto_num", stodata.ebeln);
-                const { data: sto, status } = await axiosPrivate.get(
-                    `/master/checkstolcfrc?sto=${stodata.ebeln}`
-                );
-                if (status === 200) {
-                    setValue("trans_type", sto.ttype);
-                }
-            }
         } catch (error) {
             console.log(error);
-            const resetData = {
-                do_num: "",
-                inv_type: "",
-                inv_type_tol_from: "",
-                inv_type_tol_to: "",
-                incoterms: "",
-                rules: "",
-                con_num: "",
+            reset({
+                po_num: "",
                 material: "",
                 con_qty: "",
+                os_qty: 0,
+                os_wb_qty: 0,
                 plant: "",
-                batch: "",
                 description: "",
-            };
-            Object.keys(resetData).forEach(item => {
-                setValue(item, resetData[item]);
+                uom: "",
+                company: "",
             });
             if (error.response) {
                 toast.error(error.response.data.message);
@@ -403,9 +282,9 @@ export default function FormWBPurchase() {
     const checkExistingOsQty = () => {
         const plansData = getValues("load_detail");
         let con_os = parseFloat(getValues("con_qty")) - usedQty.current;
-        // console.log(getValues("con_qty"));
-        // console.log(usedQty.current);
-        // console.log(con_os);
+        console.log(getValues("con_qty"));
+        console.log(usedQty.current);
+        console.log(con_os);
         let currentTotal = 0;
         plansData.forEach(item => {
             currentTotal += parseFloat(
@@ -440,7 +319,7 @@ export default function FormWBPurchase() {
         <>
             <Toaster />
             <Typography variant="h4">
-                Customer LOCO Loading Note Registration Form
+                WB Purchase Loading Note Registration Form
             </Typography>
             <br />
             <form
@@ -478,17 +357,18 @@ export default function FormWBPurchase() {
                                 options={relate_cust_op}
                                 sx={{ width: "30rem" }}
                             />
-                            <SelectDOComp
+                            <SelectPOComp
                                 control={control}
-                                name="do_num"
-                                label="DO Number"
+                                name="po_num"
+                                label="PO Number"
                                 preop={preOp}
                                 cust_id={watch("relate_cust")?.value ?? ""}
                             />
                             <LoadingButton
-                                onClick={() =>
-                                    handleCheckSO(getValues("do_num"))
-                                }
+                                onClick={() => {
+                                    console.log(getValues("po_num"));
+                                    handleCheckSO(getValues("po_num"));
+                                }}
                                 loading={isLoading}
                                 sx={{ height: "2rem" }}
                             >
@@ -510,16 +390,6 @@ export default function FormWBPurchase() {
                                 options={ven_op}
                                 sx={{ width: "30rem" }}
                             />
-                            {watch("incoterms").split("-")[0].trim() ==
-                                "FRC" && (
-                                <TextFieldComp
-                                    name="sto_num"
-                                    label="Sto Number"
-                                    control={control}
-                                    disabled
-                                    sx={{ minWidth: "10rem" }}
-                                />
-                            )}
                             <TextFieldComp
                                 name="material"
                                 label="Material"
@@ -563,8 +433,8 @@ export default function FormWBPurchase() {
                                 disabled
                             />
                             <NumericFieldComp
-                                name="os_sap_qty"
-                                label="O/S SAP Quantity"
+                                name="os_wb_qty"
+                                label="O/S WB Quantity"
                                 control={control}
                                 sx={{
                                     minWidth: "15rem",
@@ -587,20 +457,6 @@ export default function FormWBPurchase() {
                                         message: "Minimum value is 0",
                                     },
                                 }}
-                                sx={{
-                                    minWidth: "15rem",
-                                    maxWidth: "16rem",
-                                }}
-                                endAdornment={
-                                    <InputAdornment>{uomQty}</InputAdornment>
-                                }
-                                thousandSeparator
-                                disabled={true}
-                            />
-                            <NumericFieldComp
-                                name="hold_qty"
-                                label="Holding Quantity"
-                                control={control}
                                 sx={{
                                     minWidth: "15rem",
                                     maxWidth: "16rem",
@@ -641,21 +497,6 @@ export default function FormWBPurchase() {
                                 control={control}
                                 disabled
                                 rules={{ required: true }}
-                            />
-                            <TextFieldComp
-                                name="con_num"
-                                label="Contract Document"
-                                control={control}
-                                disabled
-                                sx={{ minWidth: "10rem", maxWidth: "20rem" }}
-                                rules={{ required: true }}
-                            />
-                            <TextFieldComp
-                                name="incoterms"
-                                label="Incoterms"
-                                control={control}
-                                disabled
-                                sx={{ minWidth: "10rem", maxWidth: "20rem" }}
                             />
                         </div>
                         <div
@@ -955,7 +796,7 @@ export default function FormWBPurchase() {
                             >
                                 <LoadingButton
                                     loading={isLoading}
-                                    disabled={!isPaid || isExceed}
+                                    disabled={isExceed}
                                     type="submit"
                                 >
                                     Submit

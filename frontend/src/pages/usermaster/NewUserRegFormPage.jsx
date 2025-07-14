@@ -29,6 +29,7 @@ import toast, { Toaster } from "react-hot-toast";
 import AutocompleteComp from "../../component/input/AutocompleteComp";
 import { RefreshOutlined } from "@mui/icons-material";
 import AutoCompleteMultiSelectCust from "../../component/input/AutoCompleteMultiSelectCust";
+import AutoCompleteMultiSelectPlant from "../../component/input/AutoCompleteMultiSelectPlant";
 
 export default function NewUserRegFormPage() {
     // const [customerID, setCustID] = useState("");
@@ -51,6 +52,7 @@ export default function NewUserRegFormPage() {
         handleSubmit,
         reset,
         setValue,
+        getValues,
         formState: { isDirty, dirtyFields },
         watch,
     } = useForm({
@@ -63,6 +65,7 @@ export default function NewUserRegFormPage() {
             emailList: [{ email: "" }],
             plant_code: { value: "", label: "" },
             relate_cust: [],
+            relate_plant: [],
         },
         resetOptions: {
             keepErrors: true, // input errors will be retained with value update
@@ -86,6 +89,7 @@ export default function NewUserRegFormPage() {
         control,
         name: "telfList",
     });
+    // console.log(getValues());
 
     const onChangeControlOvrCust = value => {
         if (value) {
@@ -139,6 +143,7 @@ export default function NewUserRegFormPage() {
                     emailList: data.email.map(item => ({ email: item })),
                     telfList: data.telf.map(item => ({ telf: item })),
                     relate_cust: data.relate_cust,
+                    relate_plant: data.relate_plant,
                 };
                 const label = roleOp.find(
                     ({ value }) => value === data.role
@@ -147,7 +152,7 @@ export default function NewUserRegFormPage() {
                 reset(dataUser);
             })();
         }
-    }, [roleOp]);
+    }, [roleOp, searchParams.get("iduser")]);
 
     useEffect(() => {
         (async () => {
@@ -185,6 +190,7 @@ export default function NewUserRegFormPage() {
             email: values.emailList.map(item => item.email),
             phonenum: values.telfList.map(item => item.telf),
             relate_cust: values.relate_cust.map(item => item.value),
+            relate_plant: values.relate_plant.map(item => item.value),
         };
         if (values.hasOwnProperty("password")) {
             payload.password = values.password;
@@ -499,18 +505,45 @@ export default function NewUserRegFormPage() {
                         </div>
                     </Grid>
                 </Grid>
-                {["COMMERCIAL", "LOG_KRANI"].includes(role) && (
-                    <Grid container spacing={2}>
-                        <Grid item xs>
-                            <AutoCompleteMultiSelectCust
-                                name="relate_cust"
-                                label="Relation Customer"
-                                control={control}
-                                roleSelected={role}
-                            />
-                        </Grid>
+
+                <Grid container spacing={2}>
+                    <Grid item xs>
+                        <AutoCompleteMultiSelectCust
+                            name="relate_cust"
+                            label="Relation Customer"
+                            control={control}
+                            roleSelected={role}
+                            disabled={
+                                !["COMMERCIAL", "LOG_KRANI"].includes(role)
+                            }
+                            sx={{
+                                label: {
+                                    "&.Mui-disabled": {
+                                        color: theme.palette.grey[400],
+                                    },
+                                },
+                            }}
+                        />
                     </Grid>
-                )}
+                </Grid>
+
+                <Grid container spacing={2}>
+                    <Grid item xs>
+                        <AutoCompleteMultiSelectPlant
+                            name="relate_plant"
+                            label="Relation plant"
+                            control={control}
+                            disabled={!["LOG_KRANI"].includes(role)}
+                            sx={{
+                                label: {
+                                    "&.Mui-disabled": {
+                                        color: theme.palette.grey[400],
+                                    },
+                                },
+                            }}
+                        />
+                    </Grid>
+                </Grid>
                 <Box
                     sx={{
                         display: "flex",

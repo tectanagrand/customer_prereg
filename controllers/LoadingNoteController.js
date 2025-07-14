@@ -170,7 +170,9 @@ LoadingNoteController.showOSReqLN2 = async (req, res) => {
         const who = req.body.who;
         const cgrp = req.body.cgrp;
         if (cgrp && !["DOWNSTREAM", "UPSTREAM"].includes(cgrp)) {
-            throw new Error("Please provide correct Company Group");
+            throw new Error(
+                "Please provide correct Company Group (UPSTREAM or DOWNSTREAM)"
+            );
         }
         const data = await LoadNote.getRequestedLoadNote2(filter, who, cgrp);
         res.status(200).send(data);
@@ -386,16 +388,34 @@ LoadingNoteController.PushJobSAPUPSTrigger = (
     return;
 };
 
+LoadingNoteController.getDataWBReq = async (req, res) => {
+    try {
+        const { id_user } = req.cookies;
+        const { type } = req.params;
+        const result = await LoadNote.getAllDataLNSales({
+            user_id: id_user,
+            type: type,
+        });
+        res.status(200).send({ data: result });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 LoadingNoteController.getAllDataLNbyUser = async (req, res) => {
     try {
         const session = req.cookies;
         // console.log(session);
         const isallow = req.query.isallow === "true" ? true : false;
         const c_grp = req.query.group;
+        const { inco } = req.query;
         const data = await LoadNote.getAllDataLNbyUser_2(
             session,
             isallow,
-            "LCO",
+            inco,
             c_grp
         );
         res.status(200).send(data);

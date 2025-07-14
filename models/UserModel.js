@@ -10,6 +10,7 @@ const ncrypt = require("ncrypt-js");
 const moment = require("moment");
 const EmailModel = require("./EmailModel");
 const DBClientWrapper = require("../helper/DBClientWrapper");
+const { createInitial } = require("../helper/formatting");
 
 const UserModel = {};
 
@@ -75,6 +76,7 @@ UserModel.registerNew_2 = async ({
     phonenum,
     plant_code,
     relate_cust,
+    relate_plant,
     role,
     session,
 }) => {
@@ -98,6 +100,10 @@ UserModel.registerNew_2 = async ({
                 upperCaseAlphabets: true,
                 specialChars: true,
             });
+
+            //create initial for user
+            const initial_uname = createInitial(username);
+
             const payloadUser = {
                 id_user: id_user,
                 username: username,
@@ -108,6 +114,7 @@ UserModel.registerNew_2 = async ({
                 otp_validto: validUntil,
                 plant_code: plant_code,
                 create_by: session.id_user,
+                initial_user: initial_uname,
             };
             const [queUsr, valUsr] = crud.insertItem(
                 "mst_user",
@@ -155,6 +162,7 @@ UserModel.registerNew_2 = async ({
                 );
                 const insertTelf = await client.query(que, val);
             }
+            // if user is log_krani,
             if (relate_cust.length > 0) {
                 let promises_rlt = [];
                 relate_cust.map(item => {
@@ -162,13 +170,28 @@ UserModel.registerNew_2 = async ({
                         id_user: id_user,
                         cust_id: item,
                     };
-                    const [que_rlt, val_rlt] = crud.insertItem(
+                    const [que_plt, val_plt] = crud.insertItem(
                         "mst_usr_to_cust",
                         payload
                     );
-                    promises_rlt.push(client.query(que_rlt, val_rlt));
+                    promises_rlt.push(client.query(que_plt, val_plt));
                 });
                 await Promise.all(promises_rlt);
+            }
+            if (relate_plant.length > 0) {
+                let promises_plt = [];
+                relate_plant.map(item => {
+                    const payload = {
+                        user_id: id_user,
+                        plant_code: item,
+                    };
+                    const [que_rlt, val_rlt] = crud.insertItem(
+                        "mst_usr_to_plt",
+                        payload
+                    );
+                    promises_plt.push(client.query(que_rlt, val_rlt));
+                });
+                await Promise.all(promises_plt);
             }
             await EmailModel.newUserNotify(
                 email,
@@ -289,6 +312,25 @@ UserModel.editUser = async (payload, session) => {
                     promises_rlt.push(client.query(que_rlt, val_rlt));
                 });
                 await Promise.all(promises_rlt);
+            }
+            if (payload.relate_plant.length > 0) {
+                await client.query(
+                    `delete from mst_usr_to_plt where user_id = $1`,
+                    [payload.id_user]
+                );
+                let promises_plt = [];
+                payload.relate_plant.map(item => {
+                    const payload_send = {
+                        user_id: payload.id_user,
+                        plant_code: item,
+                    };
+                    const [que_rlt, val_rlt] = crud.insertItem(
+                        "mst_usr_to_plt",
+                        payload_send
+                    );
+                    promises_plt.push(client.query(que_rlt, val_rlt));
+                });
+                await Promise.all(promises_plt);
             }
             await client.query(TRANS.COMMIT);
             return "User updated";

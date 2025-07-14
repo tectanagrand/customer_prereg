@@ -11,6 +11,8 @@ import TestCallApi from "../pages/test/TestCallApi";
 import FormWBSales from "../pages/wb_sales/FormWBSales";
 import DashboardWBSales from "../pages/wb_sales/DashboardWBSales";
 import DashboardMasterPlant from "../pages/masterplant/DashboardMasterPlant";
+import DashboardWBPurchase from "../pages/wb_purchase/DashboardWBPurchase";
+import FormWBPurchase from "../pages/wb_purchase/FormWBPurchase";
 const PushSAPMulti = lazy(
     () => import("../pages/multiloadingnote/PushSAPMulti")
 );
@@ -182,10 +184,13 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: "locoups/",
-                        element: <TableParentCustDashboard key="UPSTREAM" />,
+                        element: (
+                            <TableParentCustDashboard key="UPSTREAM-LCO" />
+                        ),
                         loader: () => {
                             return {
                                 C_GRP: "UPSTREAM",
+                                INCO: "LCO",
                             };
                         },
                     },
@@ -386,6 +391,14 @@ export const routes = createBrowserRouter([
                         children: [
                             { path: "sales", element: <DashboardWBSales /> },
                             { path: "sales/create", element: <FormWBSales /> },
+                            {
+                                path: "purchase",
+                                element: <DashboardWBPurchase />,
+                            },
+                            {
+                                path: "purchase/create",
+                                element: <FormWBPurchase />,
+                            },
                         ],
                     },
                     {

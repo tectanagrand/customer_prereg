@@ -147,6 +147,11 @@ export default function TableParentCustDashboardFRC() {
                 },
             },
             {
+                header: "Request NO.",
+                accessorKey: "ticket_no",
+                cell: props => props.getValue(),
+            },
+            {
                 header: "STO Number",
                 accessorKey: "id_sto",
                 cell: props => props.getValue(),
@@ -353,7 +358,7 @@ export default function TableParentCustDashboardFRC() {
                         isLoading={refresh}
                     />
                     <Button
-                        sx={{ width: 200, heigth: 50, margin: 2 }}
+                        sx={{ width: 200, margin: 2 }}
                         variant="contained"
                         onClick={buttonNewUser}
                     >
