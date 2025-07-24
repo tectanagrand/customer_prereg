@@ -411,12 +411,13 @@ LoadingNoteController.getAllDataLNbyUser = async (req, res) => {
         // console.log(session);
         const isallow = req.query.isallow === "true" ? true : false;
         const c_grp = req.query.group;
-        const { inco } = req.query;
+        const { inco, prereg_type } = req.query;
         const data = await LoadNote.getAllDataLNbyUser_2(
             session,
             isallow,
             inco,
-            c_grp
+            c_grp,
+            prereg_type
         );
         res.status(200).send(data);
     } catch (error) {
@@ -429,12 +430,14 @@ LoadingNoteController.getAllDataLNbyUserFRC = async (req, res) => {
     try {
         const session = req.cookies;
         const comp_group = req.query.comp_group;
+        const { prereg_type } = req.query;
         const isallow = req.query.isallow === "true" ? true : false;
         const data = await LoadNote.getAllDataLNbyUser_2(
             session,
             isallow,
             "FRC",
-            comp_group
+            comp_group,
+            prereg_type
         );
         res.status(200).send(data);
     } catch (error) {
@@ -1175,4 +1178,9 @@ LoadingNoteController.PostZWBChain = async (req, res) => {
     }
     return;
 };
+
+// LoadingNoteController.GetZWBPostOutstanding = async(req, res) => {
+//     const {from, start} = req.query ;
+//     trycatch
+// }
 module.exports = LoadingNoteController;

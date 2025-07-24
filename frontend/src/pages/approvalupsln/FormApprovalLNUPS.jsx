@@ -38,7 +38,6 @@ const ContentApprovalConfirm = ({ getValues, selectedRows }) => {
     return (
         <Box
             sx={{
-                width: "80em",
                 height: "30rem",
                 display: "flex",
                 flexDirection: "column",
@@ -370,8 +369,11 @@ export default function FormApprovalLNUPS() {
                     material: item.material,
                     desc_con: item.desc_con,
                     ticket_no: item.ticket_no,
+                    tr_code: item.tr_code,
+                    tr_name: item.tr_name,
                 };
             });
+            // console.log(payload);
             setLoading(true);
             const { data } = await axiosPrivate.post("/ln/pushlnups", {
                 lnreq: payload,

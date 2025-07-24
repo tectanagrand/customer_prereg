@@ -53,6 +53,7 @@ import ModalConfirmDelete from "../common/ModalConfirmDelete";
 export default function TableParentCustDashboardFRC() {
     const loader = useLoaderData();
     const C_GRP = loader.C_GRP;
+    const PREREG_TYPE = loader.PREREG_TYPE;
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
     const [dataCust, setDataCust] = useState([]);
@@ -160,20 +161,6 @@ export default function TableParentCustDashboardFRC() {
                 header: "DO Number",
                 accessorKey: "id_do",
                 cell: props => props.getValue(),
-            },
-            {
-                header: "Contract Number",
-                accessorKey: "con_num",
-                cell: props => props.getValue(),
-            },
-            {
-                header: "Contract Quantity",
-                accessorKey: "con_qty",
-                cell: ({ row }) =>
-                    `${row.original.con_qty?.replace(
-                        /\B(?=(\d{3})+(?!\d))/g,
-                        ","
-                    )} ${row.original.uom}`,
             },
             {
                 header: "Plant",
@@ -328,7 +315,9 @@ export default function TableParentCustDashboardFRC() {
                 getPermission("FRANCO → LOCO DWS").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
-                    "/ln/lnuserfrc?isallow=" + allow + `&comp_group=${C_GRP}`,
+                    "/ln/lnuserfrc?isallow=" +
+                        allow +
+                        `&comp_group=${C_GRP}&inco=FRC${PREREG_TYPE ? `&prereg_type=${PREREG_TYPE}` : ""}`,
                     {
                         withCredentials: true,
                     }

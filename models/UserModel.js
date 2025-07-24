@@ -102,7 +102,7 @@ UserModel.registerNew_2 = async ({
             });
 
             //create initial for user
-            const initial_uname = createInitial(username);
+            const initial_uname = createInitial(fullname);
 
             const payloadUser = {
                 id_user: id_user,

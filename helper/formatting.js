@@ -7,7 +7,10 @@ const formatNumber = (number, uom) => {
 };
 
 const createInitial = user_name => {
-    const splitted_uname = user_name.split(" ");
+    const splitted_uname = user_name
+        .replace(/\b\w*PT\w*\b\.?\s*/gi, "")
+        .trim()
+        .split(" ");
     let initial = "";
     if (splitted_uname.length == 1) {
         initial = splitted_uname[0].slice(0, 3).toUpperCase();

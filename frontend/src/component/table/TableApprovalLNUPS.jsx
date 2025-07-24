@@ -174,6 +174,14 @@ export default function TableApprovalLNUPS({
                 },
             },
             {
+                header: "Transporter",
+                accessorKey: "tr_code",
+                cell: ({ row }) => {
+                    const dt = row.original;
+                    return `${dt.tr_name} (${dt.tr_code})`;
+                },
+            },
+            {
                 header: "Driver",
                 accessorKey: "driver",
                 cell: props => props.getValue(),

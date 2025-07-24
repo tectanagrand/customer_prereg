@@ -42,6 +42,24 @@ MultiLNController.ShowDataUser = async (req, res) => {
     return;
 };
 
+MultiLNController.GetRequestsWB = async (req, res) => {
+    try {
+        const { id_user } = req.cookies;
+        const result = await MultiLoadingNoteModel.GetRequestsWB({
+            user_id: id_user,
+        });
+        res.status(200).send({
+            data: result,
+        });
+        return;
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 MultiLNController.SendToLog = async (req, res) => {
     try {
         const { hd_id } = req.body;
@@ -64,7 +82,11 @@ MultiLNController.SendToLog = async (req, res) => {
 
 MultiLNController.GetOSPushReq = async (req, res) => {
     try {
-        const data = await MultiLoadingNoteModel.GetOSPushReq();
+        const { prereg_type, cust } = req.query;
+        const data = await MultiLoadingNoteModel.GetOSPushReq(
+            prereg_type,
+            cust
+        );
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
@@ -107,6 +129,27 @@ MultiLNController.SubmitPushMultiLN = async (req, res) => {
         });
     }
     return;
+};
+
+MultiLNController.ApprovalMultiLNWB = async (req, res) => {
+    try {
+        const session = req.cookies;
+        const { requests } = req.body;
+        const result = await MultiLoadingNoteModel.ApproveMultiWB(
+            requests,
+            session
+        );
+        res.status(200).send({
+            message: "Successfully Approved",
+            result: result,
+        });
+        return;
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
 };
 
 MultiLNController.PushJobSAPTrigger = (
@@ -154,6 +197,22 @@ MultiLNController.GetReqbyID = async (req, res) => {
     try {
         const { id } = req.params;
         const result = await MultiLoadingNoteModel.GetReqbyID({ id });
+        res.status(200).send({
+            data: result,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+MultiLNController.GetCustOSPush = async (req, res) => {
+    try {
+        const { prereg_type } = req.query;
+        const result =
+            await MultiLoadingNoteModel.GetCustomerOSAppr(prereg_type);
         res.status(200).send({
             data: result,
         });

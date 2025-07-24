@@ -1,5 +1,11 @@
 import { LoadingButton } from "@mui/lab";
-import { Dialog, DialogActions, Button, DialogTitle } from "@mui/material";
+import {
+    Dialog,
+    DialogActions,
+    Button,
+    DialogTitle,
+    DialogContent,
+} from "@mui/material";
 import { useState, useMemo } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -35,7 +41,7 @@ export default function DialogFormConfirmation({
             <Toaster />
             <Dialog open={open} maxWidth="xl">
                 <DialogTitle>{Title}</DialogTitle>
-                {Content}
+                <DialogContent>{Content}</DialogContent>
                 <DialogActions>
                     <LoadingButton
                         onClick={async () => await onYesClick()}

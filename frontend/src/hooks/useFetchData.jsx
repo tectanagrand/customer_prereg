@@ -10,7 +10,7 @@ export default function useFetchData({ url, initData }) {
     const refreshData = () => setRefresh(true);
     useEffect(() => {
         (async () => {
-            if (refresh) {
+            if (refresh && url) {
                 setLoading(true);
                 try {
                     const { data } = await axiosPrivate.get(url);
@@ -22,6 +22,8 @@ export default function useFetchData({ url, initData }) {
                     setLoading(false);
                     setRefresh(false);
                 }
+            } else if (!url) {
+                setData(initData);
             }
         })();
     }, [url, refresh]);

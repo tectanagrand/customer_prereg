@@ -54,6 +54,7 @@ export default function TableParentCustDashboard() {
     const loader = useLoaderData();
     const C_GRP = useMemo(() => loader.C_GRP, []);
     const INCO = loader?.INCO ?? "";
+    const PREREG_TYPE = loader?.PREREG_TYPE ?? "SAP";
     const theme = useTheme();
     const axiosPrivate = useAxiosPrivate();
     const [dataCust, setDataCust] = useState([]);
@@ -307,13 +308,14 @@ export default function TableParentCustDashboard() {
     useEffect(() => {
         (async () => {
             const allow =
-                getPermission("LOCO DWS Request").fcreate ||
-                getPermission("LOCO UPS Request").fcreate;
+                getPermission("LOCO Request").fcreate ||
+                getPermission("LOCO UPS Request").fcreate ||
+                getPermission("LOCO Request").fcreate;
             try {
                 const { data } = await axiosPrivate.get(
                     "/ln/lnuser?isallow=" +
                         allow +
-                        `&group=${C_GRP}${INCO ? `&inco=${INCO}` : ""}`,
+                        `&group=${C_GRP}${INCO ? `&inco=${INCO}` : ""}${PREREG_TYPE ? `&prereg_type=${PREREG_TYPE}` : ""}`,
                     {
                         withCredentials: true,
                     }

@@ -51,6 +51,8 @@ router.post("/syncstgwb", LoadNote.syncDataStagingWBNET);
 router.get("/choicesyncwbnet", LoadNote.choicesSyncStagingWBNET);
 router.get("/postzwbchain", AuthManager.authAPI, LoadNote.PostZWBChain);
 
+//get zwb post outstanding
+
 //endpoint for wb
 router.get("/lnwb/:type", AuthManager.authSession, LoadNote.getDataWBReq);
 

@@ -10,9 +10,11 @@ router.post(
     MultiLNController.SaveMultiLNDB
 );
 router.get("/showcust", MultiLNController.ShowDataUser);
+router.get("/wb/requests", MultiLNController.GetRequestsWB);
 router.get("/id/:id", AuthManager.authSession, MultiLNController.GetReqbyID);
 router.post("/tolog", MultiLNController.SendToLog);
 router.get("/osreq", MultiLNController.GetOSPushReq);
+router.get("/listcustos", MultiLNController.GetCustOSPush);
 router.get("/printreq", MultiLNController.GetPrintReq);
 router.post(
     "/pushsapmulti",
@@ -20,5 +22,6 @@ router.post(
     MultiLNController.SubmitPushMultiLN
 );
 router.post("/exportsj", PDFController.exportSuratJalanMulti);
+router.post("/approvemultiwb", MultiLNController.ApprovalMultiLNWB);
 
 module.exports = router;

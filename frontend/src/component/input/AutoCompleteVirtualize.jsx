@@ -113,6 +113,7 @@ const ListBoxComponent = forwardRef((props, ref) => {
 const AutoCompleteVirtualize = ({ sx, ...rest }) => {
     return (
         <Autocomplete
+            fullWidth
             sx={sx}
             {...rest}
             disableListWrap

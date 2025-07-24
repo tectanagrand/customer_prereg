@@ -12,7 +12,7 @@ import { Cancel, Replay } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import AutoSelectVehicle from "../loadingnote/AutoselectVehicle";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import SelectComp from "../../component/input/SelectComp";
 import { NumericFormat } from "react-number-format";
@@ -20,12 +20,14 @@ import { TextField } from "@mui/material";
 import DatePickerComp from "../../component/input/DatePickerComp";
 import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLoaderData } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
 import SelectMultiDOComp from "../loadingnote/SelectMultiDoComp";
 import SelectDOComp from "../loadingnote/SelectDOComp";
 import { useTheme } from "@mui/material/styles";
 import CheckBoxComp from "../../component/input/CheckBoxComp";
+import AutoCompleteVCont from "../../component/input/AutoCompleteVCont";
+import useFetchData from "../../hooks/useFetchData";
 
 const MediaTransportOp = [
     { value: "V", label: "Vessel" },
@@ -52,6 +54,8 @@ export default function LoadingNoteFormFRCUPS() {
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
+    const loader = useLoaderData();
+    const PREREG_TYPE = loader?.PREREG_TYPE ?? "SAP";
     const axiosPrivate = useAxiosPrivate();
     const [searchParams] = useSearchParams();
     const [click, setClick] = useState(false);
@@ -77,6 +81,7 @@ export default function LoadingNoteFormFRCUPS() {
         formState: { errors },
     } = useForm({
         defaultValues: {
+            vendor: null,
             do_num: "",
             po_num: "",
             sto_num: "",
@@ -254,6 +259,9 @@ export default function LoadingNoteFormFRCUPS() {
             is_draft: is_draft,
             id_header: uuidLN.current,
             company: values.company,
+            ven_code: values.vendor.value,
+            ven_name: values.vendor.label.split("-")[0].trim(),
+            prereg_type: PREREG_TYPE,
             relate_cust: session?.username ?? "",
             load_detail: load_detail,
             con_qty:
@@ -292,7 +300,11 @@ export default function LoadingNoteFormFRCUPS() {
                 }
             }
             setTimeout(() => {
-                navigate("/dashboard/francoups");
+                if (PREREG_TYPE == "SAP") {
+                    navigate("/dashboard/francoups");
+                } else {
+                    navigate("/dashboard/wb/franco");
+                }
             }, 2000);
         } catch (error) {
             console.error(error);
@@ -449,6 +461,23 @@ export default function LoadingNoteFormFRCUPS() {
         return !checkedMulti[index];
     };
 
+    const { data: ven_data, loading: ven_loading } = useFetchData({
+        url: "/master/ven",
+        initData: {
+            data: [],
+        },
+    });
+
+    const ven_op = useMemo(() => {
+        return ven_data.data
+            ? ven_data.data.map(value => ({
+                  label: value.name,
+                  value: value.code,
+                  ...value,
+              }))
+            : [];
+    }, [ven_data]);
+
     return (
         <>
             <Toaster />
@@ -524,6 +553,15 @@ export default function LoadingNoteFormFRCUPS() {
                                     Check Payment
                                 </LoadingButton>
                             </div>
+                        </div>
+                        <div>
+                            <AutoCompleteVCont
+                                name="vendor"
+                                label="Transporter"
+                                control={control}
+                                options={ven_op}
+                                sx={{ width: "30rem" }}
+                            />
                         </div>
                         <div
                             style={{

@@ -13,6 +13,9 @@ import DashboardWBSales from "../pages/wb_sales/DashboardWBSales";
 import DashboardMasterPlant from "../pages/masterplant/DashboardMasterPlant";
 import DashboardWBPurchase from "../pages/wb_purchase/DashboardWBPurchase";
 import FormWBPurchase from "../pages/wb_purchase/FormWBPurchase";
+import DashboardMultiLNWB from "../pages/multiwb/DashboardMultiLNWB";
+import MultiLNWB from "../pages/multiwb/MultiLNWB";
+import PushWBMulti from "../pages/multiwb/ApproveWBMulti";
 const PushSAPMulti = lazy(
     () => import("../pages/multiloadingnote/PushSAPMulti")
 );
@@ -389,15 +392,69 @@ export const routes = createBrowserRouter([
                     {
                         path: "wb",
                         children: [
-                            { path: "sales", element: <DashboardWBSales /> },
-                            { path: "sales/create", element: <FormWBSales /> },
                             {
-                                path: "purchase",
-                                element: <DashboardWBPurchase />,
+                                path: "loco",
+                                element: (
+                                    <TableParentCustDashboard key="UPSTREAM-WB" />
+                                ),
+                                loader: () => {
+                                    return {
+                                        C_GRP: "UPSTREAM",
+                                        PREREG_TYPE: "WB",
+                                        INCO: "LCO",
+                                    };
+                                },
                             },
                             {
-                                path: "purchase/create",
-                                element: <FormWBPurchase />,
+                                path: "loco/create",
+                                element: <LoadingNoteForm key="UPSTREAM-WB" />,
+                                loader: () => {
+                                    return {
+                                        C_GRP: "UPSTREAM",
+                                        PREREG_TYPE: "WB",
+                                    };
+                                },
+                            },
+                            {
+                                path: "franco",
+                                element: (
+                                    <TableParentCustDashboardFRC key="UPSTREAM-WB" />
+                                ),
+                                loader: () => {
+                                    return {
+                                        C_GRP: "UPSTREAM",
+                                        PREREG_TYPE: "WB",
+                                        INCO: "FRC",
+                                    };
+                                },
+                            },
+                            {
+                                path: "franco/create",
+                                element: <LoadingNoteFormFRCUPS />,
+                                loader: () => {
+                                    return {
+                                        PREREG_TYPE: "WB",
+                                    };
+                                },
+                            },
+                            {
+                                path: "appr",
+                                element: <FormApprovalLNUPS />,
+                            },
+                            {
+                                path: "multi",
+                                element: <DashboardMultiLNWB />,
+                            },
+                            {
+                                path: "multi/create",
+                                element: <MultiLNWB />,
+                                loader: () => ({
+                                    C_GRP: "UPSTREAM",
+                                }),
+                            },
+                            {
+                                path: "multi/appr",
+                                element: <PushWBMulti />,
                             },
                         ],
                     },

@@ -20,7 +20,7 @@ import { TextField } from "@mui/material";
 import DatePickerComp from "../../component/input/DatePickerComp";
 import NumericFieldComp from "../../component/input/NumericFieldComp";
 import moment from "moment";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLoaderData } from "react-router-dom";
 import { useSession } from "../../provider/sessionProvider";
 import SelectDOFRCComp from "./SelectDOFRCComp";
 import SelectMultiDOComp from "./SelectMultiDoComp";
@@ -49,9 +49,11 @@ const ValuationTypeOp = [
 ];
 
 export default function LoadingNoteFormFRC() {
+    const loader = useLoaderData();
     const checkKeyDown = e => {
         if (e.key === "Enter") e.preventDefault();
     };
+    const PREREG_TYPE = loader?.PREREG_TYPE ?? "SAP";
     const axiosPrivate = useAxiosPrivate();
     const [searchParams] = useSearchParams();
     const [click, setClick] = useState(false);
@@ -234,6 +236,7 @@ export default function LoadingNoteFormFRC() {
             id_header: uuidLN.current,
             company: values.company,
             relate_cust: session?.username ?? "",
+            prereg_type: PREREG_TYPE,
             load_detail: load_detail,
             con_qty:
                 typeof values.con_qty === "string"

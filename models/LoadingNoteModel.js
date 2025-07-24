@@ -1,5 +1,9 @@
 const db = require("../config/connection");
-const { getConnection, ora: ora2 } = require("../config/oracleconnectionv2");
+const {
+    getConnection,
+    ora: ora2,
+    ora,
+} = require("../config/oracleconnectionv2");
 const TRANS = require("../config/transaction");
 const ExcelJS = require("exceljs");
 const crud = require("../helper/crudquery");
@@ -18,6 +22,8 @@ const TicketGen = require("../helper/TicketGen");
 const { param } = require("../routes/LoadingNote");
 const DBClientWrapper = require("../helper/DBClientWrapper");
 const MasterModel = require("./MasterModel");
+const TRANSACTIONID = require("../helper/TransactionID");
+const TransactionLock = require("../helper/TransactionLock");
 
 const LoadingNoteModel = {};
 
@@ -391,9 +397,19 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                     multi_do: rows.multi_do,
                     remark_req: rows.remark,
                     no_resi: rows.no_resi,
-                    ticket_no: ticket_no.new_created_ticket + "~" + (index + 1),
                 };
+                if (params.id_header == "") {
+                    payloadDetail.ticket_no =
+                        ticket_no.new_created_ticket + "~" + (index + 1);
+                }
                 if (rows.id_detail === "") {
+                    if (params.id_header == "") {
+                        payloadDetail.ticket_no =
+                            ticket_no.new_created_ticket + "~" + (index + 1);
+                    } else {
+                        payloadDetail.ticket_no =
+                            ticket_no.last_ticket + "~" + (index + 1);
+                    }
                     [que, val] = crud.insertItem(
                         "loading_note_det",
                         payloadDetail,
@@ -907,6 +923,10 @@ LoadingNoteModel.getById2 = async id_header => {
 
             const resp = {
                 relate_cust: hd_dt.relate_cust,
+                vendor: {
+                    value: hd_dt.ven_code,
+                    label: `${hd_dt.ven_name} - ${hd_dt.ven_code}`,
+                },
                 cust_name: hd_dt.cust_name,
                 ref_do_num: hd_dt.ref_id_do,
                 ven_code: hd_dt.ven_code,
@@ -1093,12 +1113,15 @@ LoadingNoteModel.getRequestedLoadNote2 = async (filters = [], who, cgrp) => {
                 TO_CHAR(DET.cre_date, 'YYYY-MM-DD') as CREATE_DATE_ORA,
                 DET.PLAN_QTY,
                 HD.UOM,
-                C.group_comp as cgrp
+                C.group_comp as cgrp,
+                TR.lifnr as tr_code,
+                TR.name_1 as tr_name 
             FROM LOADING_NOTE_HD HD
             LEFT JOIN LOADING_NOTE_DET DET ON HD.HD_ID = DET.HD_FK
             LEFT JOIN MST_USER USR ON HD.CREATE_BY = USR.ID_USER
             LEFT JOIN MST_CUSTOMER CUST ON CUST.kunnr = USR.USERNAME
             LEFT JOIN MST_VENDOR VEN ON VEN.LIFNR = USR.USERNAME
+            LEFT JOIN MST_VENDOR TR ON TR.LIFNR = hd.ven_code
             LEFT JOIN MST_INTERCO INT ON INT.kunnr = USR.USERNAME
             LEFT JOIN MST_KEY MKY ON MKY.key_item = DET.media_tp
             LEFT JOIN MST_COMPANY C ON C.SAP_CODE = HD.COMPANY 
@@ -1756,12 +1779,14 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                 // );
                 const payload = {
                     ID_SJ: ln.ticket_no,
-                    ID_TRANSPORTER: cust_code,
+                    ID_CUSTOMER: cust_code,
+                    ID_TRANSPORTER: ln.tr_code,
+                    TRANSPORTER_NAME: ln.tr_name,
                     DO_NO: ln.id_do,
                     PO_NO: ln.id_po,
                     STONO: ln.id_sto,
                     INCO1: ln.inco_1,
-                    ID_CUSTOMER: ln?.trg_cust,
+                    // ID_CUSTOMER: ln?.trg_cust,
                     SIM_NO: ln.driver_id,
                     VEHICLE_NO: ln.vhcl_id,
                     PLANNING_QTY: ln.plan_qty,
@@ -2045,7 +2070,8 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
     session,
     isallow,
     type,
-    comp_group
+    comp_group,
+    prereg_type = "SAP"
 ) => {
     try {
         const client = await db.connect();
@@ -2088,6 +2114,11 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
             whereinco += ` AND C.group_comp = $${idx + 1} `;
             idx++;
         }
+        if (prereg_type) {
+            whereval.push(prereg_type);
+            whereinco += ` AND HD.prereg_type = $${idx + 1} `;
+            idx++;
+        }
         try {
             if (isallow) {
                 leftJoin = `LEFT JOIN (
@@ -2105,7 +2136,7 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
                  LEFT JOIN (
                     SELECT HD_FK, COUNT(DET_ID) AS CTRLOG FROM LOADING_NOTE_DET DET
                     LEFT JOIN LOADING_NOTE_HD HD ON DET.HD_FK = HD.HD_ID
-                    WHERE DET.LN_NUM IS NULL  AND HD.CUR_POS = 'FINA' and DET.CREATE_AT + interval '7' day > now ()
+                    WHERE DET.LN_NUM IS NULL  AND HD.CUR_POS = 'FINA' 
                     GROUP BY HD_FK
                 ) LOG ON HD.HD_ID = LOG.HD_FK
                  LEFT JOIN MST_COMPANY C ON HD.COMPANY = C.SAP_CODE`;
@@ -2134,8 +2165,6 @@ LoadingNoteModel.getAllDataLNbyUser_2 = async (
             LEFT JOIN master_bp_code mbc on mbc.kunnr = case when HD.relate_cust is not null then HD.relate_cust
             else mu.username
             end ${whereClause}`;
-            console.log(getDataSess);
-            console.log(whereval);
 
             const { rows } = await client.query(getDataSess, whereval);
             parentRow = rows;
@@ -4764,4 +4793,36 @@ LoadingNoteModel.PostZDO_TRXGRPO = async () => {
         throw error;
     }
 };
+
+// LoadingNoteModel.SyncPOSTZWBStaging = async(user_id) => {
+//     try {
+//         const client = await db.connect() ;
+//         const oraclient = await ora.getConnection() ;
+//         try {
+//             await TransactionLock.setLock(TRANSACTIONID.post_zwb_park, user_id)
+//             //get loading_note with 0
+//             const get_ln_q = `
+//             select det_id from loading_note_det where zwbs_trx_stat = 0
+//             `
+//             const {rows, rowCount: is_exist} = await client.query(get_ln_q) ;
+//             if(!is_exist) {
+//                 return
+//             }
+//             //get loading note from staging
+//             const det_ids = rows.reduce((result, row) => {
+//                 result.push(`'${row.det_id}'`)
+//             }, [])
+//             const {rows : staging} = oraclient.execute(`SELECT `)
+//         } catch (error) {
+//             throw error
+//         } finally {
+//             if(client) {
+//                 await TransactionLock.releaseLock(TRANSACTIONID.post_zwb_park)
+//                 client.release()}
+//                 if(oraclient) oraclient.release()
+//         }
+//     } catch (error) {
+//         throw error ;
+//     }
+// }
 module.exports = LoadingNoteModel;

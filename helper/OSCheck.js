@@ -193,10 +193,32 @@ OSCheck.CheckOSUps = async do_number => {
             //get qty on web
             const { rows: qtyWeb } = await client.query(
                 `
-                select coalesce(sum(plan_qty), 0) as totaltemp_plan
-                from loading_note_det lnd
-                left join loading_note_hd lnh on lnh.hd_id = lnd.hd_fk
-                where lnd.ln_num is null and lnh.id_do = $1 and lnd.is_active = true
+                select
+                    coalesce(sum(plan_qty),
+                    0) as totaltemp_plan
+                from
+                    (
+                    select
+                        plan_qty
+                    from
+                        loading_note_det lnd
+                    left join loading_note_hd lnh on
+                        lnh.hd_id = lnd.hd_fk
+                    where
+                        lnd.ln_num is null
+                        and lnh.id_do = $1
+                        and lnd.is_active = true
+                union all
+                    select
+                        planned_qty as plan_qty
+                    from
+                        multi_ln_det mld
+                    left join multi_ln_hd mlh on
+                        mld.hd_id = mlh.hd_id
+                    where
+                        mld.ln_num is null
+                        and mld.id_do = $1
+                        and mld.is_active = true) a
                 `,
                 [do_number]
             );
