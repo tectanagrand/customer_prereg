@@ -10,6 +10,7 @@ const EmailGen = require("../helper/EmailGen");
 const EmailModel = require("../models/EmailModel");
 const moment = require("moment");
 const TicketGen = require("../helper/TicketGen");
+const { getConnection } = require("../config/oracleconnectionv2");
 
 const LoadingNoteController = {};
 
@@ -169,12 +170,18 @@ LoadingNoteController.showOSReqLN2 = async (req, res) => {
         const filter = req.body.filters;
         const who = req.body.who;
         const cgrp = req.body.cgrp;
+        const prereg_type = req.body?.prereg_type ?? "SAP";
         if (cgrp && !["DOWNSTREAM", "UPSTREAM"].includes(cgrp)) {
             throw new Error(
                 "Please provide correct Company Group (UPSTREAM or DOWNSTREAM)"
             );
         }
-        const data = await LoadNote.getRequestedLoadNote2(filter, who, cgrp);
+        const data = await LoadNote.getRequestedLoadNote2(
+            filter,
+            who,
+            cgrp,
+            prereg_type
+        );
         res.status(200).send(data);
     } catch (error) {
         console.error(error);
@@ -780,6 +787,7 @@ LoadingNoteController.processDelete = async (req, res) => {
         let payload;
         let loadNote = [];
         const client = await db.connect();
+        const oraclient = await getConnection();
         try {
             await client.query(TRANS.BEGIN);
             if (action === "APPROVE") {
@@ -827,7 +835,7 @@ LoadingNoteController.processDelete = async (req, res) => {
                 };
             }
             for (const d of selected) {
-                if (action === "APPROVE") {
+                if (action === "APPROVE" && d.prereg_type === "SAP") {
                     const { data } = await axios.get(
                         `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/DOTRXDELDOCSet?$filter=(Bukrs eq '${d.company}')and(Zdconr eq '${d.ln_num}')&$format=json`,
                         {
@@ -837,6 +845,15 @@ LoadingNoteController.processDelete = async (req, res) => {
                             },
                         }
                     );
+                } else if (action === "APPROVE" && d.prereg_type === "WB") {
+                    const [queUp, valUp] = Crud.updateItemOra(
+                        "PREREG_LOADING_NOTE_SAP_UPS",
+                        {
+                            ISACTIVE: "FALSE",
+                        },
+                        { DET_ID: d.id }
+                    );
+                    await oraclient.execute(queUp, valUp);
                 }
                 const { rows } = await client.query(
                     `update loading_note_det set ${payload.key} = $1 where det_id = $2`,
@@ -866,14 +883,19 @@ LoadingNoteController.processDelete = async (req, res) => {
                 );
             }
             await client.query(TRANS.COMMIT);
+            await oraclient.commit();
             res.status(200).send({
                 message: "Request have been processed",
             });
         } catch (error) {
             await client.query(TRANS.ROLLBACK);
+            await oraclient.rollback();
             throw error;
         } finally {
             client.release();
+            if (oraclient) {
+                oraclient.close();
+            }
         }
         //process delete
     } catch (error) {
@@ -1090,11 +1112,42 @@ LoadingNoteController.syncDataStagingWBNET = async (req, res) => {
     }
 };
 
+LoadingNoteController.SyncDataZWB_PARK = async (req, res) => {
+    try {
+        const { month, year, plant } = req.body;
+        const result = await LoadNote.SyncZWBPark(month, year, plant);
+        res.status(200).send({
+            message: "Sync ZWB PARK Success",
+            data: result,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
 LoadingNoteController.choicesSyncStagingWBNET = async (req, res) => {
     try {
         const { id_user, role } = req.cookies;
         const dataChoice = await LoadNote.getChoiceSync(id_user, role);
         res.status(200).send(dataChoice);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            message: error.message,
+        });
+    }
+};
+
+LoadingNoteController.ChoicecsSyncZWBPARK = async (req, res) => {
+    try {
+        const { id_user, role } = req.cookies;
+        const result = await LoadNote.GetChoicesSyncZWBPark(id_user, role);
+        res.status(200).send({
+            data: result,
+        });
     } catch (error) {
         console.error(error);
         res.status(500).send({

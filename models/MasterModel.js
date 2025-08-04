@@ -317,11 +317,11 @@ MasterModel.getSODataUPS = async do_num => {
             }
         );
         const POData = PONumGet.d.results[0];
-        SLIP.PO = POData.Po;
-        SLIP.STO = POData.Sto;
+        SLIP.PO = POData?.Po;
+        SLIP.STO = POData?.Sto;
 
         //check sto transtype if exist
-        if (POData.Sto) {
+        if (POData?.Sto) {
             const { data: ttype } = await axios.get(
                 `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOTYPESet?$filter=(Ebeln%20eq%20%27${POData.STO}%27)&$format=json`,
                 {
@@ -1348,10 +1348,37 @@ MasterModel.getOSDataCust = async (limit, offset, q, do_num) => {
     }
 };
 
-MasterModel.getOSDataCust2 = async (limit, offset, q, cgrp) => {
+MasterModel.getOSDataCust2 = async (limit, offset, q, cgrp, prereg_type) => {
     try {
         const client = await db.connect();
         try {
+            console.log(`
+                SELECT distinct 
+                case
+                    when CUST.kunnr is not NUll then cust.kunnr
+                    when mv.lifnr is not null then mv.lifnr
+                    when mi.kunnr is not null then mi.kunnr
+                    else ''
+                    end as kunnr, 
+                case
+                    when CUST.name_1 is not null then cust.name_1
+                    when mv.name_1 is not null then mv.name_1
+                    when mi.name_1 is not null then mi.name_1
+                    else ''
+                    end as name_1 FROM loading_note_det DET
+                                LEFT JOIN mst_user USR ON DET.create_by = USR.id_user
+                                LEFT JOIN loading_note_hd HED ON DET.hd_fk = HED.hd_id
+                                LEFT JOIN mst_customer CUST ON CUST.kunnr = USR.username
+                                left join mst_vendor mv on mv.lifnr = usr.username 
+                                left join mst_interco mi on mi.kunnr = usr.username
+                                LEFT JOIN mst_company c on c.sap_code = HED.company
+                                WHERE( CUST.kunnr like $1 OR cust.name_1 like $2 or mv.lifnr like $3 or mv.name_1 like $4
+                                 or mi.kunnr like $5 or mi.name_1 like $6)
+                                AND DET.ln_num is null
+                                AND DET.push_sap_date is null
+                                AND hed.cur_pos = 'FINA'
+                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}' ` : ""}${prereg_type ? ` and hed.prereg_type = '${prereg_type}' ` : ""}                
+                `);
             const { rows: dataComp } = await client.query(
                 `SELECT distinct 
                 case
@@ -1377,7 +1404,7 @@ MasterModel.getOSDataCust2 = async (limit, offset, q, cgrp) => {
                                 AND DET.ln_num is null
                                 AND DET.push_sap_date is null
                                 AND hed.cur_pos = 'FINA'
-                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}' ` : ""}
+                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}' ` : ""}${prereg_type ? ` and hed.prereg_type = '${prereg_type}' ` : ""}
                 LIMIT $7 OFFSET $8`,
                 [
                     `%${q}%`,
@@ -1415,7 +1442,7 @@ MasterModel.getOSDataCust2 = async (limit, offset, q, cgrp) => {
                                 AND DET.ln_num is null
                                 AND DET.push_sap_date is null
                                 AND hed.cur_pos = 'FINA'
-                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}`,
+                                AND det.is_active = true${cgrp ? ` and c.group_comp = '${cgrp}'` : ""}${prereg_type ? ` and hed.prereg_type = '${prereg_type}'` : ""}`,
                 [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]
             );
             return {

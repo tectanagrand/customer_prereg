@@ -16,6 +16,7 @@ import FormWBPurchase from "../pages/wb_purchase/FormWBPurchase";
 import DashboardMultiLNWB from "../pages/multiwb/DashboardMultiLNWB";
 import MultiLNWB from "../pages/multiwb/MultiLNWB";
 import PushWBMulti from "../pages/multiwb/ApproveWBMulti";
+import SinglePostZWB from "../pages/postzwb/SinglePostZWB";
 const PushSAPMulti = lazy(
     () => import("../pages/multiloadingnote/PushSAPMulti")
 );
@@ -456,6 +457,12 @@ export const routes = createBrowserRouter([
                                 path: "multi/appr",
                                 element: <PushWBMulti />,
                             },
+                        ],
+                    },
+                    {
+                        path: "pzwb",
+                        children: [
+                            { path: "single", element: <SinglePostZWB /> },
                         ],
                     },
                     {

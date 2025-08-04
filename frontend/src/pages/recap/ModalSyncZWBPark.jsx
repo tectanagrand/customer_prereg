@@ -6,11 +6,11 @@ import toast, { Toaster } from "react-hot-toast";
 
 import { useEffect, useState, useRef } from "react";
 
-const ModalSyncWBNET = ({ refreshTable, is_open, setOpen }) => {
+const ModalSyncZWBPark = ({ refreshTable, is_open, setOpen }) => {
     const axiosPrivate = useAxiosPrivate();
     const optRef = useRef();
-    const [companyOpt, setCompanyOpt] = useState([]);
-    const [companyVal, setCompVal] = useState(null);
+    const [plantOpt, setPlantOpt] = useState([]);
+    const [plantVal, setPlantVal] = useState(null);
     const [yearOpt, setYearOpt] = useState([]);
     const [yearVal, setYearVal] = useState(null);
     const [monthOpt, setMonthOpt] = useState([]);
@@ -19,11 +19,14 @@ const ModalSyncWBNET = ({ refreshTable, is_open, setOpen }) => {
 
     useEffect(() => {
         (async () => {
-            const { data } = await axiosPrivate.get(`/ln/choicesyncwbnet`);
-            setCompanyOpt(
-                Object.keys(data).map(item => ({ value: item, label: item }))
+            const { data } = await axiosPrivate.get(`/ln/choicesyncwbpark`);
+            setPlantOpt(
+                Object.keys(data.data).map(item => ({
+                    value: item,
+                    label: item,
+                }))
             );
-            optRef.current = data;
+            optRef.current = data.data;
         })();
     }, []);
 
@@ -31,10 +34,10 @@ const ModalSyncWBNET = ({ refreshTable, is_open, setOpen }) => {
         // console.log(monthVal, yearVal, companyVal);
         setLoading(true);
         try {
-            const { data } = await axiosPrivate.post(`/ln/syncstgwb`, {
+            const { data } = await axiosPrivate.post(`/ln/synczwbpark`, {
                 month: monthVal,
                 year: yearVal,
-                company: companyVal,
+                plant: plantVal,
             });
             refreshTable();
             setOpen(false);
@@ -47,10 +50,6 @@ const ModalSyncWBNET = ({ refreshTable, is_open, setOpen }) => {
         }
     };
 
-    const onChangeComp = value => {
-        setCompVal(value);
-    };
-
     const onChangeYear = value => {
         setYearVal(value);
     };
@@ -59,19 +58,20 @@ const ModalSyncWBNET = ({ refreshTable, is_open, setOpen }) => {
         setMonthVal(value);
     };
     useEffect(() => {
-        if (companyVal && optRef.current) {
-            const yearOpt = Object.keys(optRef.current[companyVal]).map(
-                item => ({ value: item, label: item })
-            );
+        if (plantVal && optRef.current) {
+            const yearOpt = Object.keys(optRef.current[plantVal]).map(item => ({
+                value: item,
+                label: item,
+            }));
             setYearOpt(yearOpt);
             setYearVal(null);
             setMonthVal(null);
         }
-    }, [companyVal]);
+    }, [plantVal]);
 
     useEffect(() => {
-        if (companyVal && yearVal && optRef.current) {
-            const monthOpt = optRef.current[companyVal][yearVal].map(item => ({
+        if (plantVal && yearVal && optRef.current) {
+            const monthOpt = optRef.current[plantVal][yearVal].map(item => ({
                 value: item,
                 label: item,
             }));
@@ -104,9 +104,11 @@ const ModalSyncWBNET = ({ refreshTable, is_open, setOpen }) => {
                     <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
                         <SelectCompNoCont
                             label="Company"
-                            options={companyOpt}
-                            value={companyVal}
-                            onChangeovr={onChangeComp}
+                            options={plantOpt}
+                            value={plantVal}
+                            onChangeovr={value => {
+                                setPlantVal(value);
+                            }}
                         />
                         <SelectCompNoCont
                             label="Year"
@@ -139,4 +141,4 @@ const ModalSyncWBNET = ({ refreshTable, is_open, setOpen }) => {
     );
 };
 
-export default ModalSyncWBNET;
+export default ModalSyncZWBPark;

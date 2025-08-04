@@ -8,6 +8,7 @@ export default function AutoCompleteCustomer({
     do_num,
     who,
     cgrp,
+    prereg_type,
     ...props
 }) {
     const axiosPrivate = useAxiosPrivate();
@@ -31,11 +32,11 @@ export default function AutoCompleteCustomer({
             let custData;
             if (who === "wb") {
                 custData = await axiosPrivate.get(
-                    `master/oscustwb?q=${q}&limit=${limit}&offset=${offset}${cgrp ? `&cgrp=${cgrp}` : ""}`
+                    `master/oscustwb?q=${q}&limit=${limit}&offset=${offset}${cgrp ? `&cgrp=${cgrp}` : ""}${prereg_type ? `&prereg_type=${prereg_type}` : ""}`
                 );
             } else {
                 custData = await axiosPrivate.get(
-                    `master/oscust?q=${q}&limit=${limit}&offset=${offset}${cgrp ? `&cgrp=${cgrp}` : ""}`
+                    `master/oscust?q=${q}&limit=${limit}&offset=${offset}${cgrp ? `&cgrp=${cgrp}` : ""}${prereg_type ? `&prereg_type=${prereg_type}` : ""}`
                 );
             }
             const { data: rowData } = custData;

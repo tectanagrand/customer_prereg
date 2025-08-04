@@ -15,6 +15,7 @@ import {
     Scale,
     CloudCircle,
     RefreshOutlined,
+    Park,
 } from "@mui/icons-material";
 
 import {
@@ -40,6 +41,7 @@ import AutoCompleteDODB from "../input/AutoCompleteDODB";
 import toast from "react-hot-toast";
 import { LoadingButton } from "@mui/lab";
 import ModalSyncWBNET from "../../pages/recap/ModalSyncWBNET";
+import ModalSyncZWBPark from "../../pages/recap/ModalSyncZWBPark";
 
 export default function TableReportLN() {
     const formatNumber = (number, uom) => {
@@ -59,6 +61,7 @@ export default function TableReportLN() {
     });
     const tableContainerRef = useRef(null);
     const [modalSync, _setModalSync] = useState(false);
+    const [modalZWBPARK, setModalZWBPARK] = useState(false);
     const [refresh, setRefresh] = useState(false);
     const [isFetch, setIsFetch] = useState(false);
     const fetching = useRef(false);
@@ -577,24 +580,32 @@ export default function TableReportLN() {
                         label="SO Number"
                         sx={{ width: "20rem" }}
                     />
+                    <Tooltip title="Sync ZWBPARK">
+                        <Button
+                            onClick={() => {
+                                setModalZWBPARK(true);
+                            }}
+                            variant="outlined"
+                            sx={{
+                                maxWidth: "1rem",
+                                mb: 1,
+                            }}
+                        >
+                            <Park sx={{ width: "1rem" }}></Park>
+                        </Button>
+                    </Tooltip>
                     <Tooltip title="Sync WBNET">
                         <Button
                             onClick={() => {
                                 setModalSync(true);
                             }}
-                            variant="contained"
+                            variant="outlined"
                             sx={{
-                                minWidth: "4rem",
+                                maxWidth: "1rem",
                                 mb: 1,
-                                color: theme.palette.success.contrastText,
-                                backgroundColor: theme.palette.success.main,
-                                ":hover": {
-                                    backgroundColor:
-                                        theme.palette.success.light,
-                                },
                             }}
                         >
-                            <Scale></Scale>
+                            <Scale sx={{ width: "1rem" }}></Scale>
                         </Button>
                     </Tooltip>
                     <Tooltip title="Sync LN SAP">
@@ -602,16 +613,10 @@ export default function TableReportLN() {
                             onClick={async () => {
                                 await syncLnsap();
                             }}
-                            variant="contained"
+                            variant="outlined"
                             sx={{
-                                minWidth: "4rem",
+                                width: "2rem",
                                 mb: 1,
-                                color: theme.palette.success.contrastText,
-                                backgroundColor: theme.palette.success.main,
-                                ":hover": {
-                                    backgroundColor:
-                                        theme.palette.success.light,
-                                },
                             }}
                             loading={issyncsap}
                         >
@@ -623,16 +628,10 @@ export default function TableReportLN() {
                             onClick={async () => {
                                 await generateExcel();
                             }}
-                            variant="contained"
+                            variant="outlined"
                             sx={{
-                                minWidth: "4rem",
+                                width: "2rem",
                                 mb: 1,
-                                color: theme.palette.success.contrastText,
-                                backgroundColor: theme.palette.success.main,
-                                ":hover": {
-                                    backgroundColor:
-                                        theme.palette.success.light,
-                                },
                             }}
                         >
                             <TableView></TableView>
@@ -974,6 +973,11 @@ export default function TableReportLN() {
             <ModalSyncWBNET
                 is_open={modalSync}
                 setOpen={setModalSync}
+                refreshTable={refreshTable}
+            />
+            <ModalSyncZWBPark
+                is_open={modalZWBPARK}
+                setOpen={setModalZWBPARK}
                 refreshTable={refreshTable}
             />
         </>

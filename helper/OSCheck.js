@@ -183,7 +183,7 @@ OSCheck.CheckOSUps = async do_number => {
                 LEFT JOIN ZWB_PARK zp ON
                     plnsu.ID_SJ = zp.WB_REF
                 WHERE
-                    PLNSU.DO_NO = :1                
+                    PLNSU.DO_NO = :1 and PLNSU.ISACTIVE = 'TRUE'              
                 `,
                 [do_number]
             );

@@ -408,7 +408,6 @@ export default function FormCreateLoadingNote() {
                             label="Customer Code"
                             onChangeovr={setdataCust}
                             who={who}
-                            cgrp={"DOWNSTREAM"}
                         />
                         <AutoCompleteDOList
                             sx={{ minWidth: "12rem", maxWidth: "15rem" }}

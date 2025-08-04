@@ -18,6 +18,7 @@ const SAPGetterChores = require("./helper/SAPGetterChores");
 const db = require("./config/connection");
 const CleanUpLN = require("./helper/Cleanup");
 const ignoreMethod = ["GET", "HEAD", "OPTIONS"];
+const { socketServer } = require("./socket");
 
 const myCSRFProtection = (req, res, next) => {
     if (!ignoreMethod.includes(req.method) || req.url === "/api/getcsrftoken") {
@@ -111,7 +112,9 @@ if (process.env.NODE_ENV === "production") {
         console.log(`App running on ${port}`);
     });
 }
-
+// socketServer.listen(process.env.SOCKETIOPORT, () => {
+//     console.log(`Socket run on ${process.env.SOCKETIOPORT}`);
+// });
 (async () => {
     CleanUpLN.CronLNClean();
     CleanUpLN.CronLNReminder();

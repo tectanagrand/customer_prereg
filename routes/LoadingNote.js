@@ -48,7 +48,9 @@ router.post("/genexcelv2", LoadNote.generateExcelV2);
 router.get("/lndatasap", LoadNote.LNDataSAP);
 router.post("/synclnsap", LoadNote.syncLNSAP);
 router.post("/syncstgwb", LoadNote.syncDataStagingWBNET);
+router.post("/synczwbpark", LoadNote.SyncDataZWB_PARK);
 router.get("/choicesyncwbnet", LoadNote.choicesSyncStagingWBNET);
+router.get("/choicesyncwbpark", LoadNote.ChoicecsSyncZWBPARK);
 router.get("/postzwbchain", AuthManager.authAPI, LoadNote.PostZWBChain);
 
 //get zwb post outstanding

@@ -961,29 +961,6 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                     continue;
                 }
 
-                // if (head_sj.get(ln.ticket_no) == 0) {
-                //     const payload_head = {
-                //         HEAD_SJ: ln.ticket_no,
-                //         PLATE_NUM: ln.vehicle_id,
-                //         DRIVER_ID: ln.driver_id,
-                //         DRIVER_NAME: ln.driver_name,
-                //         TANGGAL_SJ: new Date(
-                //             moment(ln.tanggal_pembuatan).format("YYYY-MM-DD") +
-                //                 "T00:00:00"
-                //         ),
-                //         TANGGAL_LOADING: new Date(
-                //             moment(ln.tanggal_surat_jalan).format(
-                //                 "YYYY-MM-DD"
-                //             ) + "T00:00:00"
-                //         ),
-                //     };
-                //     const [queHD, valHD] = crud.insertItemOra(
-                //         "PRG_LOADING_NOTE_SAP_UPS_HD",
-                //         payload_head
-                //     );
-                //     await oraclient.execute(queHD, valHD);
-                //     head_sj.set(ln.ticket_no, head_sj.get(ln.ticket_no) + 1);
-                // }
                 let cust_code = ln.cust_code;
                 let role = ln.req_cat;
                 const { rows: lnnum_data } = await oraclient.execute(
@@ -999,15 +976,16 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                 //in one row, there's data header and detail. if header already stored, then skip. checked by how many ticket_no already inserted
                 if (head_sj.get(ln.ticket_no) == 0) {
                     const payload_hd = {
+                        HD_ID: ln.hd_id,
                         HEAD_SJ: ln.ticket_no,
                         PLATE_NUM: ln.vehicle_id,
                         DRIVER_ID: ln.driver_id,
                         DRIVER_NAME: ln.driver_name,
-                        SJ_DATE: new Date(
+                        TANGGAL_SJ: new Date(
                             moment(ln.tanggal_pembuatan).format("YYYY-MM-DD") +
                                 "T00:00:00"
                         ),
-                        LOADING_DATE: new Date(
+                        TANGGAL_LOADING: new Date(
                             moment(ln.tanggal_surat_jalan).format(
                                 "YYYY-MM-DD"
                             ) + "T00:00:00"
@@ -1019,14 +997,17 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                         payload_hd
                     );
                     await oraclient.execute(queHd, valHd);
-                    head_sj.set(ln.ticket_no, head_sj.get(ln.ticket_no) + 1);
                 }
+                head_sj.set(ln.ticket_no, head_sj.get(ln.ticket_no) + 1);
                 const payload = {
+                    HD_ID: ln.hd_id,
+                    DET_ID: ln.det_id,
                     ID_SJ: NUMLN,
+                    PO_NO: ln?.id_po ?? "",
                     DO_NO: ln.id_do,
                     STONO: ln.id_sto,
                     INCO1: ln.inco_1,
-                    ID_CUSTOMER: ln?.trg_cust,
+                    ID_CUSTOMER: ln?.cust_code ?? "",
                     PLANNING_QTY: ln.planned_qty,
                     UOM: ln.uom,
                     CREATE_BY: username,
@@ -1044,12 +1025,9 @@ MultiLoadingNoteModel.ApproveMultiSAP = async (lnreq, session) => {
                     OTH_VALTYPE: ln.oth_valtype,
                     FAC_BATCH: ln.fac_batch,
                     OTH_BATCH: ln.oth_batch,
+                    ID_TRANSPORTER: ln?.ven_code ?? "",
+                    TRANSPORTER_NAME: ln?.ven_name ?? "",
                 };
-                if (role === "CUSTOMER" || role === "INTERCO") {
-                    payload.ID_CUSTOMER = cust_code;
-                } else if (role === "VENDOR") {
-                    payload.ID_TRANSPORTER = cust_code;
-                }
                 const [queIns, valIns] = crud.insertItemOra(
                     "PREREG_LOADING_NOTE_SAP_UPS",
                     payload

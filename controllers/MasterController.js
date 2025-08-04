@@ -455,11 +455,18 @@ MasterController.getOSDataCust = async (req, res) => {
     const limit = req.query.limit;
     const offset = req.query.offset;
     const cgrp = req.query.cgrp;
+    const prereg_type = req.query?.prereg_type ?? "SAP";
     try {
         if (cgrp && !["DOWNSTREAM", "UPSTREAM"].includes(cgrp)) {
             throw new Error("Please provide correct Company Group");
         }
-        const data = await Master.getOSDataCust2(limit, offset, q, cgrp);
+        const data = await Master.getOSDataCust2(
+            limit,
+            offset,
+            q,
+            cgrp,
+            prereg_type
+        );
         res.status(200).send(data);
     } catch (error) {
         console.error(error);

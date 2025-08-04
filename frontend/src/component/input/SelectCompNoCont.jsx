@@ -41,7 +41,7 @@ export default function SelectCompNoCont({
         }
     };
     return (
-        <FormControl>
+        <FormControl fullWidth={true}>
             <InputLabel>{label}</InputLabel>
             <Select
                 label={label}

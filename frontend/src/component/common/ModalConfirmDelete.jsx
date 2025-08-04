@@ -5,6 +5,7 @@ import {
     Box,
     Typography,
     DialogActions,
+    DialogContent,
     Button,
 } from "@mui/material";
 import TableSimple from "../table/TableSimple";
@@ -72,43 +73,43 @@ const ModalConfirmDelete = ({
             maxWidth="xl"
         >
             <DialogTitle>Cancel Loading Note</DialogTitle>
-            <Box
-                sx={{
-                    width: "80em",
-                    height: "30rem",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 5,
-                    p: 2,
-                    mb: 3,
-                }}
-            >
-                <Typography variant="h4">
-                    Are you sure want to delete ?
-                </Typography>
-                <TableSimple
-                    rowsData={dataDeleteLN}
-                    sx={{ height: "15rem" }}
-                    columns={columns}
-                />
-                <DialogActions>
-                    <Button
-                        onClick={() => {
-                            setOpen(false);
-                        }}
-                    >
-                        Close
-                    </Button>
-                    <LoadingButton
-                        color="error"
-                        variant="contained"
-                        loading={isLoading}
-                        onClick={() => delAction(props.id)}
-                    >
-                        Delete
-                    </LoadingButton>
-                </DialogActions>
-            </Box>
+            <DialogContent>
+                <Box
+                    sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 5,
+                        p: 2,
+                        mb: 3,
+                    }}
+                >
+                    <Typography variant="h4">
+                        Are you sure want to delete ?
+                    </Typography>
+                    <TableSimple
+                        rowsData={dataDeleteLN}
+                        sx={{ height: "15rem" }}
+                        columns={columns}
+                    />
+                </Box>
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    onClick={() => {
+                        setOpen(false);
+                    }}
+                >
+                    Close
+                </Button>
+                <LoadingButton
+                    color="error"
+                    variant="contained"
+                    loading={isLoading}
+                    onClick={() => delAction(props.id)}
+                >
+                    Delete
+                </LoadingButton>
+            </DialogActions>
         </Dialog>
     );
 };

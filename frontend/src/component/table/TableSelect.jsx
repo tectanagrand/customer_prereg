@@ -59,7 +59,7 @@ const TableSelect = ({
                     return <></>;
                 },
                 cell: ({ row }) => {
-                    if (notselect(row.original)) {
+                    if (notselect && notselect(row.original)) {
                         return (
                             <CheckBoxTable
                                 {...{

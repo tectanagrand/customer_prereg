@@ -362,7 +362,7 @@ export default function TableLoadingNoteReq({
                             { id: code_filter, value: CustNum },
                         ],
                         who: who,
-                        cgrp: "DOWNSTREAM",
+                        prereg_type: "SAP",
                     });
                     setRemainingUp(os_data);
                     setRows(data.data);

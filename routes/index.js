@@ -7,9 +7,8 @@ const LoadNote = require("./LoadingNote");
 const File = require("./File");
 const Tolling = require("./Tolling");
 const MultiLN = require("./MultiLN");
-const SAPGetter = require("../controllers/SAPGetterController");
 const Queue = require("./Queue");
-const ExcelJS = require("exceljs");
+const PostZWB = require("./PostZWB");
 
 router.use("/api/user", User);
 router.use("/api/page", Page);
@@ -19,7 +18,6 @@ router.use("/api/file", File);
 router.use("/api/queue", Queue);
 router.use("/api/tol", Tolling);
 router.use("/api/multi", MultiLN);
-
-router.get("/api/oratest", SAPGetter.LoadingNoteSync);
+router.use("/api/postzwb", PostZWB);
 
 module.exports = router;

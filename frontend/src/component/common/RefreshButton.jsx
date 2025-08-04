@@ -12,7 +12,7 @@ function RefreshButton({ setRefreshbtn, isLoading, sx }) {
                 loading={isLoading}
                 onClick={refreshBtn}
                 sx={sx}
-                variant={"contained"}
+                variant="outlined"
             >
                 <Refresh></Refresh>
             </LoadingButton>

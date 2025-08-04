@@ -115,8 +115,18 @@ const CreatedLoadingNote = () => {
             cell: props => props.getValue(),
         },
         {
-            header: "SO Num.",
+            header: "DO Num.",
             accessorKey: "id_do",
+            cell: props => props.getValue(),
+        },
+        {
+            header: "PO Num.",
+            accessorKey: "id_po",
+            cell: props => props.getValue(),
+        },
+        {
+            header: "STO Num.",
+            accessorKey: "id_sto",
             cell: props => props.getValue(),
         },
         {
