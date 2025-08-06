@@ -4106,7 +4106,7 @@ LoadingNoteModel.syncDataStagingWBNET = async (comp, month, year) => {
     }
 };
 
-LoadingNoteModel.PostZWBS_TRX = async () => {
+LoadingNoteModel.PostZWBS_TRX = async (session, password_sap) => {
     try {
         const client = await db.connect();
         const oraclient = await getConnection();
@@ -4157,8 +4157,8 @@ LoadingNoteModel.PostZWBS_TRX = async () => {
                         "')",
                     {
                         auth: {
-                            username: process.env.UNAMESAP,
-                            password: process.env.PWDSAP,
+                            username: session.username,
+                            password: password_sap,
                         },
                     }
                 );
@@ -4232,7 +4232,7 @@ LoadingNoteModel.PostZWBS_TRX = async () => {
     }
 };
 
-LoadingNoteModel.PostZWB_PARK = async () => {
+LoadingNoteModel.PostZWB_PARK = async (session, password_sap) => {
     try {
         const client = await db.connect();
         const oraclient = await getConnection();
@@ -4283,8 +4283,8 @@ LoadingNoteModel.PostZWB_PARK = async () => {
                         "')",
                     {
                         auth: {
-                            username: process.env.UNAMESAP,
-                            password: process.env.PWDSAP,
+                            username: session.username,
+                            password: password_sap,
                         },
                     }
                 );
@@ -4355,7 +4355,7 @@ LoadingNoteModel.PostZWB_PARK = async () => {
     }
 };
 
-LoadingNoteModel.PostZDO_TRXDOPO = async () => {
+LoadingNoteModel.PostZDO_TRXDOPO = async (session, password_sap) => {
     try {
         const client = await db.connect();
         const oraclient = await getConnection();
@@ -4405,8 +4405,8 @@ LoadingNoteModel.PostZDO_TRXDOPO = async () => {
                         "')",
                     {
                         auth: {
-                            username: process.env.UNAMESAP,
-                            password: process.env.PWDSAP,
+                            username: session.username,
+                            password: password_sap,
                         },
                     }
                 );
@@ -4477,7 +4477,7 @@ LoadingNoteModel.PostZDO_TRXDOPO = async () => {
     }
 };
 
-LoadingNoteModel.PostZDO_TRXPGIP = async () => {
+LoadingNoteModel.PostZDO_TRXPGIP = async (session, password_sap) => {
     try {
         const client = await db.connect();
         const oraclient = await getConnection();
@@ -4527,8 +4527,8 @@ LoadingNoteModel.PostZDO_TRXPGIP = async () => {
                         "')",
                     {
                         auth: {
-                            username: process.env.UNAMESAP,
-                            password: process.env.PWDSAP,
+                            username: session.username,
+                            password: password_sap,
                         },
                     }
                 );
@@ -4601,7 +4601,7 @@ LoadingNoteModel.PostZDO_TRXPGIP = async () => {
     }
 };
 
-LoadingNoteModel.PostZDO_TRXGRTR = async () => {
+LoadingNoteModel.PostZDO_TRXGRTR = async (session, password_sap) => {
     try {
         const client = await db.connect();
         const oraclient = await getConnection();
@@ -4646,8 +4646,8 @@ LoadingNoteModel.PostZDO_TRXGRTR = async () => {
                         "')",
                     {
                         auth: {
-                            username: process.env.UNAMESAP,
-                            password: process.env.PWDSAP,
+                            username: session.username,
+                            password: password_sap,
                         },
                     }
                 );
@@ -4717,7 +4717,7 @@ LoadingNoteModel.PostZDO_TRXGRTR = async () => {
     }
 };
 
-LoadingNoteModel.PostZDO_TRXCSTO = async () => {
+LoadingNoteModel.PostZDO_TRXCSTO = async (session, password_sap) => {
     try {
         const client = await db.connect();
         const oraclient = await getConnection();
@@ -4763,8 +4763,8 @@ LoadingNoteModel.PostZDO_TRXCSTO = async () => {
                         "')",
                     {
                         auth: {
-                            username: process.env.UNAMESAP,
-                            password: process.env.PWDSAP,
+                            username: session.username,
+                            password: password_sap,
                         },
                     }
                 );
@@ -4837,7 +4837,7 @@ LoadingNoteModel.PostZDO_TRXCSTO = async () => {
     }
 };
 
-LoadingNoteModel.PostZDO_TRXGRPO = async () => {
+LoadingNoteModel.PostZDO_TRXGRPO = async (session, password_sap) => {
     try {
         const client = await db.connect();
         const oraclient = await getConnection();
@@ -4883,8 +4883,8 @@ LoadingNoteModel.PostZDO_TRXGRPO = async () => {
                         "')",
                     {
                         auth: {
-                            username: process.env.UNAMESAP,
-                            password: process.env.PWDSAP,
+                            username: session.username,
+                            password: password_sap,
                         },
                     }
                 );

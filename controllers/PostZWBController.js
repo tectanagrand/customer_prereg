@@ -32,12 +32,25 @@ const PostZWBController = {
     },
     PostZWBStart: async (req, res) => {
         try {
-            const { loading_notes } = req.body;
+            const { loading_notes, password } = req.body;
+            const session = req.cookies;
             await PostZWBModel.StartPostZWB(loading_notes);
-            const ZWBS_TRX = await LoadingNoteModel.PostZWBS_TRX();
-            const ZWB_PARK = await LoadingNoteModel.PostZWB_PARK();
-            const ZDO_TRX_DOPO = await LoadingNoteModel.PostZDO_TRXDOPO();
-            const ZDO_TRX_PGIP = await LoadingNoteModel.PostZDO_TRXPGIP();
+            const ZWBS_TRX = await LoadingNoteModel.PostZWBS_TRX(
+                session,
+                password
+            );
+            const ZWB_PARK = await LoadingNoteModel.PostZWB_PARK(
+                session,
+                password
+            );
+            const ZDO_TRX_DOPO = await LoadingNoteModel.PostZDO_TRXDOPO(
+                session,
+                password
+            );
+            const ZDO_TRX_PGIP = await LoadingNoteModel.PostZDO_TRXPGIP(
+                session,
+                password
+            );
             res.status(200).send({
                 data: {
                     ZWBS_TRX,

@@ -13,7 +13,12 @@ import {
     Chip,
     TextField,
     Tooltip,
+    Dialog,
+    DialogActions,
+    DialogTitle,
 } from "@mui/material";
+import { PasswordWithEyes } from "../../component/input/PasswordWithEyes";
+import { LoadingButton } from "@mui/lab";
 import { createColumnHelper } from "@tanstack/react-table";
 import moment from "moment/moment";
 import { debounce, values } from "lodash";
@@ -22,6 +27,7 @@ import TableSelected from "../../component/table/TableSelected";
 import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast from "react-hot-toast";
 import { isAxiosError } from "axios";
+import { useSession } from "../../provider/sessionProvider";
 const columnHelper = createColumnHelper();
 
 const DialogConfirPost = ({ selected }) => {
@@ -81,9 +87,12 @@ const DialogConfirPost = ({ selected }) => {
 
 export default function SinglePostZWB() {
     const axiosPrivate = useAxiosPrivate();
+    const { session } = useSession();
+    const [modalAuth, setModalAuth] = useState(false);
     const [openConfir, setOpenConfir] = useState(false);
     const [selected, setSelect] = useState([]);
     const [cust_val, setCustVal] = useState(null);
+    const [loadingPush, setLoadingPush] = useState(false);
     const [whereval, setWhereval] = useState("");
     const {
         handleSubmit,
@@ -96,6 +105,18 @@ export default function SinglePostZWB() {
             selected: [],
         },
     });
+
+    const {
+        control: controlAuth,
+        handleSubmit: handleAuth,
+        getValues: authValue,
+        reset: resetAuth,
+    } = useForm({
+        defaultValues: {
+            password: "",
+        },
+    });
+
     const { data, loading, error, refreshData } = useFetchData({
         url: whereval,
         initData: { data: [] },
@@ -113,27 +134,40 @@ export default function SinglePostZWB() {
         }));
     }, [list_cust_dt]);
 
-    const submitPostZWBPark = async value => {
+    const submitPostZWBPark = async () => {
+        const value = getValues();
         try {
-            const { data } = axiosPrivate.post("/postzwb/post", {
+            setLoadingPush(true);
+            const { data } = await axiosPrivate.post("/postzwb/post", {
                 loading_notes: value.selected.map(item => ({
                     ln_num: item.ln_num,
                     is_multi: item.ln_type == "multi" ? true : false,
                     start_from: item.start_from,
                 })),
+                ...authValue(),
             });
             console.log(data);
             setOpenConfir(false);
+            setModalAuth(false);
             setSelect([]);
             refreshData();
             toast.success("Success Posted");
         } catch (error) {
-            console.error(error);
-            if (isAxiosError(error)) {
-                toast.error(error.response.data.message);
-            } else {
-                toast.error(error.message);
+            if (
+                [
+                    "Provide password",
+                    "SAP Credential Not Valid",
+                    "Session Expired",
+                ].includes(error.response?.data.message)
+            ) {
+                setModalAuth(true);
             }
+            if (error.response) {
+                toast.error(error.response.data.message);
+            }
+            console.error(error);
+        } finally {
+            setLoadingPush(false);
         }
     };
 
@@ -423,6 +457,84 @@ export default function SinglePostZWB() {
                 }}
                 Content={<DialogConfirPost selected={selected} />}
             />
+            {/* Dialog Auth SAP */}
+            <Dialog open={modalAuth} maxWidth="m">
+                <DialogTitle>Authorize SAP Credentials</DialogTitle>
+
+                <form onSubmit={handleAuth(submitPostZWBPark)}>
+                    <Box
+                        sx={{
+                            width: "40rem",
+                            height: "15rem",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 5,
+                            p: 2,
+                            mb: 3,
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: "3rem",
+                                paddingLeft: "1rem",
+                            }}
+                        >
+                            <div>
+                                <div>
+                                    <Alert
+                                        variant="filled"
+                                        severity="warning"
+                                        sx={{ width: "96%" }}
+                                    >
+                                        <strong>
+                                            Currently you're not authorized to
+                                            push data to SAP, please insert
+                                            registered SAP Password according to
+                                            username displayed
+                                        </strong>{" "}
+                                    </Alert>
+                                </div>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: "1rem",
+                                        margin: "1rem 0 0 0",
+                                    }}
+                                >
+                                    <strong>Username :</strong>{" "}
+                                    <em>
+                                        <strong>{session.username}</strong>
+                                    </em>
+                                </div>
+                            </div>
+                        </div>
+                        <PasswordWithEyes
+                            control={controlAuth}
+                            label="SAP Password"
+                            name="password"
+                            rules={{ required: "Please insert this field" }}
+                        />
+                    </Box>
+                    <DialogActions>
+                        <LoadingButton
+                            type="submit"
+                            color="primary"
+                            variant="contained"
+                            loading={loadingPush}
+                        >
+                            Continue
+                        </LoadingButton>
+                        <Button
+                            variant="contained"
+                            color="error"
+                            onClick={() => setModalAuth(false)}
+                        >
+                            Cancel
+                        </Button>
+                    </DialogActions>
+                </form>
+            </Dialog>
         </Box>
     );
 }

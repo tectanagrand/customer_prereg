@@ -153,11 +153,33 @@ const PostZWBModel = {
                     left join mst_company mc on
                         mc.sap_code = lnh.company
                     where
-                        lnd.ln_num is not null
-                        and lnd.zwbs_trx_stat is null
+                       lnd.ln_num is not null
+                        and (lnd.zwbs_trx_stat <> -1 or lnd.zwbs_trx_stat is null)
                         and lnh.inco_1 = 'LCO'
                         and mc.group_comp = 'UPSTREAM'
                         and prereg_type = 'SAP'
+                        and lnd.wb_ticket is not null
+                    union
+                    select
+                        distinct mbc.kunnr as cust_code,
+                        mbc."name" as cust_name
+                    from
+                        multi_ln_det mld
+                    left join multi_ln_hd mlh on
+                        mld.hd_id = mlh.hd_id
+                    left join mst_user mu on
+                        mld.create_by = mu.id_user
+                    left join master_bp_code mbc on
+                        mbc.kunnr = mu.username
+                    left join mst_company mc on
+                        mc.sap_code = mld.company
+                    where
+                       mld.ln_num is not null
+                        and (mld.zwbs_trx_stat <> -1 or mld.zwbs_trx_stat is null)
+                        and mld.inco_1 = 'LCO'
+                        and mc.group_comp = 'UPSTREAM'
+                        and prereg_type = 'SAP'
+                        and mld.wb_ticket is not null
                 `;
                 const { rows } = await pgclient.query(query);
                 return rows;
