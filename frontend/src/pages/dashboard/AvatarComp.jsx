@@ -40,10 +40,6 @@ export default function AvatarComp() {
     return (
         <>
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                <Typography alignItems={"center"}>
-                    Welcome, {session.fullname?.split(" ")[0]}{" "}
-                    {session.fullname?.split(" ")[1]}
-                </Typography>
                 <IconButton onClick={handleMenu}>
                     <Avatar>
                         {session.username?.slice(0, 2).toUpperCase()}

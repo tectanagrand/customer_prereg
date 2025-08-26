@@ -25,7 +25,7 @@ const NavSection = lazy(() => import("./NavSection"));
 const KpnLogo = lazy(() => import("../../images/kpn-logo-3.svg?react"));
 const KpnNav = lazy(() => import("../../images/kpn-logo.svg?react"));
 
-const drawerWidth = 240;
+const drawerWidth = 220;
 
 const openedMixin = theme => ({
     width: drawerWidth,
@@ -37,9 +37,9 @@ const openedMixin = theme => ({
 });
 
 const closedMixin = theme => ({
-    width: `calc(${theme.spacing(7)} + 1px)`,
+    width: `calc(${theme.spacing(0)} + 1px)`,
     [theme.breakpoints.up("sm")]: {
-        width: `calc(${theme.spacing(8)} + 1px)`,
+        width: `calc(${theme.spacing(7)} + 1px)`,
     },
     overflowX: "hidden",
 });

@@ -17,6 +17,7 @@ const PostZWBModel = {
                         lnd.det_id,
                         mbc.kunnr as cust_code,
                         mbc."name" as cust_name,
+                        lnd.wb_ticket,
                         lnd.ln_num,
                         lnd.driver_name,
                         lnd.vhcl_id,
@@ -69,6 +70,7 @@ const PostZWBModel = {
                         mld.det_id,
                         mbc.kunnr as cust_code,
                         mbc."name" as cust_name,
+                        mld.wb_ticket,
                         mld.ln_num,
                         mlh.driver_name,
                         mlh.vehicle_id as vhcl_id,
@@ -113,7 +115,6 @@ const PostZWBModel = {
                         and (mld.zwbs_trx_stat <> -1 or mld.zwbs_trx_stat is null)
                         and mc.group_comp = 'UPSTREAM'
                         and prereg_type = 'SAP'
-                        and mld.wb_ticket is not null
                         and mbc.kunnr = $1
                 `;
                 const { rows } = await pgclient.query(query, [cust_code]);
@@ -179,7 +180,6 @@ const PostZWBModel = {
                         and mld.inco_1 = 'LCO'
                         and mc.group_comp = 'UPSTREAM'
                         and prereg_type = 'SAP'
-                        and mld.wb_ticket is not null
                 `;
                 const { rows } = await pgclient.query(query);
                 return rows;
@@ -228,7 +228,6 @@ const PostZWBModel = {
                     );
                     await pgclient.query(upque, upval);
                     // update oracle
-                    console.log(keyora);
                     let updatevalora = {
                         [keyora]: 0,
                     };

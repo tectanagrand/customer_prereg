@@ -17,6 +17,7 @@ import {
     DialogActions,
     DialogTitle,
 } from "@mui/material";
+import { Park } from "@mui/icons-material";
 import { PasswordWithEyes } from "../../component/input/PasswordWithEyes";
 import { LoadingButton } from "@mui/lab";
 import { createColumnHelper } from "@tanstack/react-table";
@@ -28,6 +29,7 @@ import useAxiosPrivate from "../../hooks/useAxiosPrivate";
 import toast from "react-hot-toast";
 import { isAxiosError } from "axios";
 import { useSession } from "../../provider/sessionProvider";
+import ModalSyncZWBPark from "../recap/ModalSyncZWBPark";
 const columnHelper = createColumnHelper();
 
 const DialogConfirPost = ({ selected }) => {
@@ -88,6 +90,7 @@ const DialogConfirPost = ({ selected }) => {
 export default function SinglePostZWB() {
     const axiosPrivate = useAxiosPrivate();
     const { session } = useSession();
+    const [modalSync, setModalSync] = useState(false);
     const [modalAuth, setModalAuth] = useState(false);
     const [openConfir, setOpenConfir] = useState(false);
     const [selected, setSelect] = useState([]);
@@ -195,6 +198,22 @@ export default function SinglePostZWB() {
         columnHelper.accessor("ln_num", {
             header: "Loading Note Num.",
             cell: ({ getValue }) => getValue(),
+        }),
+        columnHelper.accessor("wb_ticket", {
+            header: "WB Ticket",
+            cell: ({ row }) => {
+                const data = row.original;
+                if (!data.wb_ticket) {
+                    return (
+                        <Chip
+                            color={"error"}
+                            variant="outlined"
+                            label={"WB Ticket Not Synced"}
+                        />
+                    );
+                }
+                return data.wb_ticket;
+            },
         }),
         columnHelper.accessor("driver_name", {
             header: "Driver",
@@ -405,6 +424,20 @@ export default function SinglePostZWB() {
                     }}
                     isLoading={loading}
                 />
+                <Tooltip title="Sync ZWBPARK">
+                    <Button
+                        onClick={() => {
+                            setModalSync(true);
+                        }}
+                        variant="outlined"
+                        sx={{
+                            maxWidth: "1rem",
+                            mb: 1,
+                        }}
+                    >
+                        <Park sx={{ width: "1rem" }}></Park>
+                    </Button>
+                </Tooltip>
             </Box>
             <Box
                 sx={{
@@ -428,7 +461,9 @@ export default function SinglePostZWB() {
                     columns={columns}
                     setSelected={setSelect}
                     refresh={loading}
-                    notselect={() => true}
+                    notselect={row => {
+                        return row.wb_ticket;
+                    }}
                 />
                 <Box
                     sx={{
@@ -535,6 +570,11 @@ export default function SinglePostZWB() {
                     </DialogActions>
                 </form>
             </Dialog>
+            <ModalSyncZWBPark
+                is_open={modalSync}
+                setOpen={setModalSync}
+                refreshTable={refreshData}
+            />
         </Box>
     );
 }

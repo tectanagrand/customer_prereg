@@ -1426,13 +1426,34 @@ LoadingNoteModel.finalizeLoadingNote_3 = async (params, session) => {
                 if (item.id_sto && item?.trans_type == "M") {
                     itemrule = "6A";
                 }
+
+                //get lntype rule
+                let lntype = "S";
+                const { rows: get_lntype } = await client.query(
+                    `
+                    select type_ln from ln_type where incoterm = $1 and business_unit = $2                    
+                    `,
+                    [item.inco_1, item.cgrp]
+                );
+                if (get_lntype) {
+                    lntype = get_lntype[0].type_ln;
+                }
+
+                //set ln type for upstream
+                if (
+                    item.cgrp == "UPSTREAM" &&
+                    item?.trans_type &&
+                    lntype == "S"
+                ) {
+                    lntype = item?.trans_type == "M" ? "T" : "S";
+                }
                 const splitdt = item.tanggal_surat_jalan.split("-");
                 const param = {
                     HEAD_ID: item.hd_id,
                     DET_ID: item.id,
                     BUKRS: item.company,
                     UPLOADID: "1",
-                    DOTYPE: item?.trans_type === "M" ? "T" : "S",
+                    DOTYPE: lntype,
                     ITEMRULE: itemrule,
                     VBELN_REF: id_do,
                     EBELN_REF: item.id_sto,
@@ -2926,7 +2947,9 @@ LoadingNoteModel.GetChoicesSyncZWBPark = async (id_user, role) => {
             //get by user
             let whereuser = "";
             let valuser = [];
-            if (!["CUSTOMER", "ADMIN", "COMMERCIAL"].includes(role)) {
+            if (
+                !["CUSTOMER", "ADMIN", "COMMERCIAL", "LOGISTIC"].includes(role)
+            ) {
                 whereuser = "and lnd.create_by = $1";
                 valuser = [id_user];
             }

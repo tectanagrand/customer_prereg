@@ -4,6 +4,8 @@ const moment = require("moment");
 const crud = require("../helper/crudquery");
 const TRANS = require("../config/transaction");
 const { formatNumber } = require("../helper/formatting");
+const PDFModel = require("../models/PDFModel");
+const fs = require("fs");
 
 const PDFController = {};
 
@@ -62,8 +64,12 @@ PDFController.exportSuratJalan = async (req, res) => {
       `,
                 [load_noteid]
             );
+            //generate qrcode
             let watermark;
             const dt = rows[0];
+            const qr_path = await PDFModel.GenerateSuratJalanQR({
+                ln_num: dt.ln_num,
+            });
             if (!dt.print_count) {
                 watermark = "Original Document";
             } else {
@@ -170,6 +176,14 @@ PDFController.exportSuratJalan = async (req, res) => {
             doc.fontSize(12).text(dt.driver_name, 400, lastRow + 160);
             doc.fontSize(12).text("Remark :", 100, lastRow + 200);
             doc.fontSize(12).text(dt.remark_req, 100, lastRow + 220);
+            // Scale the image
+            doc.image(qr_path, 400, lastRow + 240, { scale: 0.8 });
+
+            //delete tempqrcode
+            fs.unlink(qr_path, err => {
+                if (err) console.log(err);
+            });
+
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
                 "Content-Disposition",
@@ -244,6 +258,9 @@ PDFController.exportSuratJalanMulti = async (req, res) => {
             );
             let watermark;
             const dt = rows[0];
+            const qr_path = await PDFModel.GenerateSuratJalanQR({
+                ln_num: dt.ln_num,
+            });
             if (!dt.print_count) {
                 watermark = "Original Document";
             } else {
@@ -372,8 +389,16 @@ PDFController.exportSuratJalanMulti = async (req, res) => {
             doc.fontSize(12).text("Hormat Kami", 100, lastRow + 20);
             doc.fontSize(12).text(dt.comp_name, 100, lastRow + 100);
             doc.fontSize(12).text(dt.driver_name, 400, lastRow + 100);
+
+            // Scale the image
+            doc.image(qr_path, 400, lastRow + 140, { scale: 0.8 });
             // doc.fontSize(12).text("Remark :", 100, lastRow + 120);
             // doc.fontSize(12).text("HEHE", 100, lastRow + 160);
+
+            //delete tempqrcode
+            fs.unlink(qr_path, err => {
+                if (err) console.log(err);
+            });
 
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
