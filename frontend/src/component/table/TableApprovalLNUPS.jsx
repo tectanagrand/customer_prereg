@@ -45,6 +45,7 @@ export default function TableApprovalLNUPS({
     setRemainingUp,
     remaining,
     resetRows,
+    prereg_type,
 }) {
     const axiosPrivate = useAxiosPrivate();
     const theme = useTheme();
@@ -335,6 +336,7 @@ export default function TableApprovalLNUPS({
                             { id: code_filter, value: CustNum },
                         ],
                         cgrp: "UPSTREAM",
+                        prereg_type: prereg_type ?? "SAP",
                     });
                     setRemainingUp(os_data);
                     setRows(data.data);

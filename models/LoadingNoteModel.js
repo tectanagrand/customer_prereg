@@ -345,7 +345,7 @@ LoadingNoteModel.refSaveLoadingNoteDB = async (params, session) => {
                 payloadHeader.ref_id_do = params.ref_do_num;
                 payloadHeader.buyer_name = params.buyer_name;
             }
-            if (params.ven_code) {
+            if (params.hasOwnProperty("ven_code")) {
                 payloadHeader.ven_code = params.ven_code;
                 payloadHeader.ven_name = params.ven_name;
             }
@@ -923,14 +923,16 @@ LoadingNoteModel.getById2 = async id_header => {
 
             const resp = {
                 relate_cust: hd_dt.relate_cust,
-                vendor: {
-                    value: hd_dt.ven_code,
-                    label: `${hd_dt.ven_name} - ${hd_dt.ven_code}`,
-                },
+                vendor: hd_dt.ven_code
+                    ? {
+                          value: hd_dt.ven_code,
+                          label: `${hd_dt.ven_name} - ${hd_dt.ven_code}`,
+                      }
+                    : null,
                 cust_name: hd_dt.cust_name,
                 ref_do_num: hd_dt.ref_id_do,
-                ven_code: hd_dt.ven_code,
-                ven_name: hd_dt.ven_name,
+                // ven_code: hd_dt.ven_code,
+                // ven_name: hd_dt.ven_name,
                 buyer_name: hd_dt.buyer_name,
                 do_num: hd_dt.id_do,
                 po_num: hd_dt.id_po,
@@ -1803,7 +1805,27 @@ LoadingNoteModel.ApproveUPSLoadingNote = async (lnreq, session) => {
                 //     plant,
                 //     latestTicketNum
                 // );
+                //insert to loading_note_sap_hd
+                const payload_hd = {
+                    HEAD_SJ: ln.ticket_no,
+                    PLATE_NUM: ln.vhcl_id,
+                    DRIVER_ID: ln.driver_id,
+                    DRIVER_NAME: ln.driver_name,
+                    TANGGAL_SJ: new Date(ln.create_at + "T00:00:00"),
+                    TANGGAL_LOADING: new Date(
+                        ln.tanggal_surat_jalan + "T00:00:00"
+                    ),
+                    CREATE_BY: username,
+                };
+
+                const [queHd, valHd] = crud.insertItemOra(
+                    "PRG_LOADING_NOTE_SAP_UPS_HD",
+                    payload_hd
+                );
+                await oraclient.execute(queHd, valHd);
+
                 const payload = {
+                    HEAD_SJ: ln.ticket_no,
                     ID_SJ: ln.ticket_no,
                     ID_CUSTOMER: cust_code,
                     ID_TRANSPORTER: ln.tr_code,

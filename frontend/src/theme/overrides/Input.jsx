@@ -80,7 +80,7 @@ export default function Input(theme) {
                     },
                 },
                 shrink: {
-                    fontSize: "12pt",
+                    fontSize: "11pt",
                 },
             },
         },

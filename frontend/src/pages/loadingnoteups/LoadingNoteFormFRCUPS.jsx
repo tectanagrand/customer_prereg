@@ -259,8 +259,10 @@ export default function LoadingNoteFormFRCUPS() {
             is_draft: is_draft,
             id_header: uuidLN.current,
             company: values.company,
-            ven_code: values.vendor.value,
-            ven_name: values.vendor.label.split("-")[0].trim(),
+            ven_code: values.vendor?.value ?? null,
+            ven_name: values.vendor?.label
+                ? values.vendor.label.split("-")[0].trim()
+                : null,
             prereg_type: PREREG_TYPE,
             relate_cust: session?.username ?? "",
             load_detail: load_detail,

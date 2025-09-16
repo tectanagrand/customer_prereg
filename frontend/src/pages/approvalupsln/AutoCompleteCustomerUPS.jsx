@@ -6,6 +6,7 @@ import { debounce } from "lodash";
 export default function AutoCompleteCustomerUPS({
     onChangeovr,
     do_num,
+    prereg_type,
     ...props
 }) {
     const axiosPrivate = useAxiosPrivate();
@@ -28,7 +29,7 @@ export default function AutoCompleteCustomerUPS({
         try {
             let custData;
             custData = await axiosPrivate.get(
-                `master/oscust?q=${q}&limit=${limit}&offset=${offset}&cgrp=UPSTREAM`
+                `master/oscust?q=${q}&limit=${limit}&offset=${offset}&cgrp=UPSTREAM&prereg_type=${prereg_type ?? "SAP"}`
             );
             const { data: rowData } = custData;
             return {

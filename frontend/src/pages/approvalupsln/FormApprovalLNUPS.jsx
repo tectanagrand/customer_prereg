@@ -410,6 +410,7 @@ export default function FormApprovalLNUPS() {
                         sx={{ maxWidth: "30rem" }}
                         label="Customer Code"
                         onChangeovr={setdataCust}
+                        prereg_type={"WB"}
                     />
                     <AutoCompleteDOListUPS
                         sx={{ maxWidth: "30rem" }}
@@ -439,6 +440,7 @@ export default function FormApprovalLNUPS() {
                     setRemainingUp={setRemaining}
                     remaining={remainingQty}
                     resetRows={resetRow}
+                    prereg_type={"WB"}
                 />
             </div>
             <form onSubmit={handleSubmit(stagedapproveLN)}>

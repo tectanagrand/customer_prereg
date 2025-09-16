@@ -116,10 +116,10 @@ MultiLNController.SubmitPushMultiLN = async (req, res) => {
     try {
         const { requests, password } = req.body;
         const session = req.cookies;
-        const data = await MultiLoadingNoteModel.PushSAPMulti({
-            data_req: requests,
-            session: session,
-        });
+        // const data = await MultiLoadingNoteModel.PushSAPMulti({
+        //     data_req: requests,
+        //     session: session,
+        // });
         MultiLNController.PushJobSAPTrigger(data, requests, session, password);
         res.status(200).send({ message: "Success push" });
     } catch (error) {
