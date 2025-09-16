@@ -1071,28 +1071,37 @@ MasterModel.getDOList = async (cust_id, type, bu) => {
             );
             for (const d of data.d.results) {
                 if (type && type !== "undefined") {
-                    const { data } = await axios.get(
-                        `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${d.Vbeln}')&$format=json`,
-                        {
-                            auth: {
-                                username: process.env.UNAMESAP,
-                                password: process.env.PWDSAP,
-                            },
+                    let company;
+                    let data_fetch;
+                    let bu_comp;
+                    try {
+                        const { data } = await axios.get(
+                            `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/ZSLIPSet?$filter=(Vbeln eq '${d.Vbeln}')&$format=json`,
+                            {
+                                auth: {
+                                    username: process.env.UNAMESAP,
+                                    password: process.env.PWDSAP,
+                                },
+                            }
+                        );
+                        company = data.d.results[0].Werks.slice(0, 2);
+                        data_fetch = data;
+                        const { rows } = await client.query(
+                            `select group_comp from mst_company where sap_code = $1`,
+                            [company]
+                        );
+                        if (!data.d.results.length > 0) {
+                            throw new Error("error");
                         }
-                    );
-                    const company = data.d.results[0].Werks.slice(0, 2);
-                    const { rows } = await client.query(
-                        `select group_comp from mst_company where sap_code = $1`,
-                        [company]
-                    );
-                    if (!data.d.results.length > 0) {
+                        bu_comp = rows[0].group_comp;
+                    } catch (error) {
+                        console.error("error : ", d.Vbeln);
                         continue;
                     }
-                    const bu_comp = rows[0].group_comp;
                     // suppose customer have multiple connected company from DWS and UPS
                     // Because each request menu have different bu, when user arrive at page DWS, DO UPS won't be displayed
                     if (bu && bu_comp === bu) {
-                        if (data.d.results[0].Inco1 === type) {
+                        if (data_fetch.d.results[0].Inco1 === type) {
                             dolist.push({
                                 value: d.Vbeln,
                                 label: d.Vbeln,
