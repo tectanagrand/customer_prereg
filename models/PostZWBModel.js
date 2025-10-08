@@ -31,9 +31,13 @@ const PostZWBModel = {
                         lnd.zwb_park_desc,
                         lnd.zdo_trx_dopo_stat,
                         lnd.zdo_trx_dopo_desc ,
-                        lnd.zdo_trx_pgip_stat,
+                       case 
+                            when lnh.inco_1 = 'FRC' then 3
+                            else lnd.zdo_trx_pgip_stat
+                        end as zdo_trx_pgip_stat,
                         lnd.zdo_trx_pgip_desc,
                         lnh.prereg_type,
+                        lnh.inco_1 as inco,
                         'single' as ln_type,
                         case
                             when lnd.zwbs_trx_stat is null
@@ -41,9 +45,9 @@ const PostZWBModel = {
                             when lnd.zwb_park_stat is null
                             or lnd.zwb_park_stat = 2 or lnd.zwb_park_stat = 0 then 'zwb_park_stat'
                             when lnd.zdo_trx_dopo_stat is null
-                            or lnd.zdo_trx_dopo_stat = 2 or lnd.zdo_trx_dopo_stat = 0 then 'zwb_park_dopo_stat'
-                            when lnd.zdo_trx_pgip_stat is null
-                            or lnd.zdo_trx_pgip_stat = 2 or lnd.zdo_trx_pgip_stat = 0 then 'zwb_park_pgip_stat'
+                            or lnd.zdo_trx_dopo_stat = 2 or lnd.zdo_trx_dopo_stat = 0 then 'zdo_trx_dopo_stat'
+                            when lnh.inco_1 = 'LCO' and (lnd.zdo_trx_pgip_stat is null
+                            or lnd.zdo_trx_pgip_stat = 2 or lnd.zdo_trx_pgip_stat = 0) then 'zdo_trx_pgip_stat'
                             else 'END'
                         end as start_from
                     from
@@ -59,7 +63,6 @@ const PostZWBModel = {
                     where
                         lnd.ln_num is not null
                         and (lnd.zwbs_trx_stat <> -1 or lnd.zwbs_trx_stat is null)
-                        and lnh.inco_1 = 'LCO'
                         and mc.group_comp = 'UPSTREAM'
                         and prereg_type = 'SAP'
                         and lnd.wb_ticket is not null
@@ -84,9 +87,13 @@ const PostZWBModel = {
                         mld.zwb_park_desc,
                         mld.zdo_trx_dopo_stat,
                         mld.zdo_trx_dopo_desc ,
-                        mld.zdo_trx_pgip_stat,
+                        case 
+                            when mld.inco_1 = 'FRC' then 3
+                            else mld.zdo_trx_pgip_stat
+                        end as zdo_trx_pgip_stat,
                         mld.zdo_trx_pgip_desc,
                         mlh.prereg_type,
+                        mld.inco_1 as inco,
                     'multi' as ln_type,
                         case
                             when mld.zwbs_trx_stat is null
@@ -94,9 +101,9 @@ const PostZWBModel = {
                             when mld.zwb_park_stat is null
                             or mld.zwb_park_stat = 2 or mld.zwb_park_stat = 0 then 'zwb_park_stat'
                             when mld.zdo_trx_dopo_stat is null
-                            or mld.zdo_trx_dopo_stat = 2 or mld.zdo_trx_dopo_stat = 0 then 'zwb_park_dopo_stat'
-                            when mld.zdo_trx_pgip_stat is null
-                            or mld.zdo_trx_pgip_stat = 2 or mld.zdo_trx_pgip_stat = 0 then 'zwb_park_pgip_stat'
+                            or mld.zdo_trx_dopo_stat = 2 or mld.zdo_trx_dopo_stat = 0 then 'zdo_trx_dopo_stat'
+                            when mld.inco_1 = 'LCO' and (mld.zdo_trx_pgip_stat is null
+                            or mld.zdo_trx_pgip_stat = 2 or mld.zdo_trx_pgip_stat = 0) then 'zdo_trx_pgip_stat'
                             else 'END'
                         end as start_from
                     from
@@ -111,7 +118,6 @@ const PostZWBModel = {
                         mc.sap_code = mld.company
                     where
                         mld.ln_num is not null
-                        and mld.inco_1 = 'LCO'
                         and (mld.zwbs_trx_stat <> -1 or mld.zwbs_trx_stat is null)
                         and mc.group_comp = 'UPSTREAM'
                         and prereg_type = 'SAP'

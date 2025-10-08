@@ -323,7 +323,7 @@ MasterModel.getSODataUPS = async do_num => {
         //check sto transtype if exist
         if (POData?.Sto) {
             const { data: ttype } = await axios.get(
-                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOTYPESet?$filter=(Ebeln%20eq%20%27${POData.STO}%27)&$format=json`,
+                `${process.env.ODATADOM}:${process.env.ODATAPORT}/sap/opu/odata/sap/ZGW_REGISTRA_SRV/STOTYPESet?$filter=(Ebeln%20eq%20%27${POData.Sto}%27)&$format=json`,
                 {
                     auth: {
                         username: process.env.UNAMESAP,
@@ -1069,6 +1069,7 @@ MasterModel.getDOList = async (cust_id, type, bu) => {
                     },
                 }
             );
+            console.log(data.d.results);
             for (const d of data.d.results) {
                 if (type && type !== "undefined") {
                     let company;

@@ -378,6 +378,9 @@ export default function SinglePostZWB() {
                         status = "Failed";
                         color = "error";
                         break;
+                    case "3":
+                        status = "Skipped";
+                        break;
                     default:
                         status = "NA";
                 }
@@ -401,6 +404,7 @@ export default function SinglePostZWB() {
         <Box
             sx={{
                 width: "100%",
+                height: "100%",
                 display: "flex",
                 flexDirection: "column",
                 gap: 2,
@@ -442,6 +446,7 @@ export default function SinglePostZWB() {
             <Box
                 sx={{
                     width: "100%",
+                    height: "70%",
                     display: "flex",
                     flexDirection: "column",
                     gap: 1,
